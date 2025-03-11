@@ -95,6 +95,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess }) => {
   const onSubmit = async (data: SignupFormValues) => {
     setIsLoading(true);
     try {
+      // Separate user data into auth data and profile data
       const userData = {
         username: data.username,
         birthday: data.birthday.toISOString().split('T')[0],

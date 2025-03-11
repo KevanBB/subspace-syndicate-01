@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -80,11 +79,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signUp = async (email: string, password: string, userData: any) => {
+    // Sign up with only auth related data in the metadata
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: userData,
+        data: userData, // Pass userData to be used by our database trigger
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       }
     });
