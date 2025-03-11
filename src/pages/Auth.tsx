@@ -20,9 +20,16 @@ const signupSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
   username: z.string().min(3, { message: 'Username must be at least 3 characters' }),
-  birthday: z.string().refine(date => new Date(date) <= new Date(), {
-    message: 'Birthday cannot be in the future',
-  }),
+  birthday: z.string().min(1, { message: 'Please enter your birthday' })
+    .refine(date => {
+      // Basic validation to check if it's a valid date format
+      return !isNaN(Date.parse(date));
+    }, {
+      message: 'Please enter a valid date format (e.g., MM/DD/YYYY)',
+    })
+    .refine(date => new Date(date) <= new Date(), {
+      message: 'Birthday cannot be in the future',
+    }),
   location: z.string().min(2, { message: 'Please enter a valid location' }),
 });
 
@@ -223,7 +230,8 @@ const Auth = () => {
                         <div className="relative">
                           <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 h-4 w-4" />
                           <Input
-                            type="date"
+                            type="text"
+                            placeholder="MM/DD/YYYY"
                             className="pl-10 bg-abyss border-white/20 text-white"
                             {...field}
                           />
