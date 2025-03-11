@@ -17,7 +17,7 @@ type AuthContextType = {
 type SignUpMetadata = {
   username: string;
   birthday: string;
-  role: 'user' | 'creator' | 'admin';
+  user_role: 'user' | 'creator' | 'admin';
   orientation: 'straight' | 'gay' | 'bisexual' | 'other';
   location: string;
   visibility?: 'Public' | 'Private' | 'Friends';

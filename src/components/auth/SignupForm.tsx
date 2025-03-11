@@ -52,7 +52,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ toggleForm }) => {
     await signUp(email, password, {
       username,
       birthday,
-      role: 'user',
+      user_role: 'user',
       orientation: 'other', // default value
       location,
     });
