@@ -3,11 +3,20 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, User, LogOut } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -46,12 +55,40 @@ const Navbar = () => {
         </nav>
         
         <div className="hidden md:flex items-center space-x-4">
-          <Button variant="ghost" className="text-white hover:text-crimson transition-colors">
-            Login
-          </Button>
-          <Button className="bg-crimson hover:bg-crimson/90 text-white">
-            Get Invited
-          </Button>
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="text-white hover:text-crimson transition-colors">
+                  <User className="mr-2 h-4 w-4" />
+                  {user.email?.split('@')[0]}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link to="/profile">Profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={signOut}>
+                  <LogOut className="mr-2 h-4 w-4" /> Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <>
+              <Button 
+                variant="ghost" 
+                className="text-white hover:text-crimson transition-colors" 
+                asChild
+              >
+                <Link to="/auth">Login</Link>
+              </Button>
+              <Button 
+                className="bg-crimson hover:bg-crimson/90 text-white" 
+                asChild
+              >
+                <Link to="/auth?tab=signup">Get Invited</Link>
+              </Button>
+            </>
+          )}
         </div>
         
         <button 
@@ -82,12 +119,40 @@ const Navbar = () => {
               </a>
             ))}
             <div className="flex flex-col space-y-2 pt-2 border-t border-white/10">
-              <Button variant="ghost" className="text-white hover:text-crimson justify-start">
-                Login
-              </Button>
-              <Button className="bg-crimson hover:bg-crimson/90 text-white w-full">
-                Get Invited
-              </Button>
+              {user ? (
+                <>
+                  <Button 
+                    variant="ghost" 
+                    className="text-white hover:text-crimson justify-start"
+                    asChild
+                  >
+                    <Link to="/profile">Profile</Link>
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="text-white hover:text-crimson justify-start"
+                    onClick={signOut}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" /> Logout
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    variant="ghost" 
+                    className="text-white hover:text-crimson justify-start"
+                    asChild
+                  >
+                    <Link to="/auth">Login</Link>
+                  </Button>
+                  <Button 
+                    className="bg-crimson hover:bg-crimson/90 text-white w-full"
+                    asChild
+                  >
+                    <Link to="/auth?tab=signup">Get Invited</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </motion.div>
@@ -102,7 +167,9 @@ const Logo = () => (
     whileHover={{ scale: 1.05 }}
     transition={{ type: "spring", stiffness: 400, damping: 10 }}
   >
-    <span className="text-gradient font-poppins">SubSpace</span>
+    <Link to="/">
+      <span className="text-gradient font-poppins">SubSpace</span>
+    </Link>
   </motion.div>
 );
 
