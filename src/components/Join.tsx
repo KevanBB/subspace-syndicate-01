@@ -4,8 +4,21 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Join = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const handleSignUpClick = () => {
+    navigate('/auth');
+  };
+
+  const handleProfileClick = () => {
+    navigate('/profile');
+  };
+
   return (
     <section id="join" className="py-24 relative overflow-hidden">
       <div className="container mx-auto px-4 md:px-6">
@@ -26,19 +39,22 @@ const Join = () => {
               SubSpace is exclusive by design. Request an invitation now and be among the first to experience the revolution.
             </p>
             
-            <form className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto mb-8">
-              <Input 
-                type="email" 
-                placeholder="Enter your email" 
-                className="bg-abyss border-white/20 text-white placeholder:text-white/50 h-12"
-              />
-              <Button className="bg-crimson hover:bg-crimson/90 text-white h-12">
-                Request Invite <ArrowRight className="ml-2 w-4 h-4" />
-              </Button>
-            </form>
+            {user ? (
+              <div className="max-w-lg mx-auto mb-8">
+                <Button onClick={handleProfileClick} className="bg-crimson hover:bg-crimson/90 text-white h-12 px-8">
+                  Go to Your Profile <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto mb-8">
+                <Button onClick={handleSignUpClick} className="bg-crimson hover:bg-crimson/90 text-white h-12 flex-1">
+                  Sign Up Now <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+              </div>
+            )}
             
             <p className="text-white/50 text-sm">
-              By requesting an invitation, you agree to our Terms of Service and Privacy Policy.
+              By joining SubSpace, you agree to our Terms of Service and Privacy Policy.
             </p>
           </motion.div>
         </div>
