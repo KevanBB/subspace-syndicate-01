@@ -4,12 +4,8 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 
 const Join = () => {
-  const { user } = useAuth();
-  
   return (
     <section id="join" className="py-24 relative overflow-hidden">
       <div className="container mx-auto px-4 md:px-6">
@@ -30,36 +26,20 @@ const Join = () => {
               SubSpace is exclusive by design. Request an invitation now and be among the first to experience the revolution.
             </p>
             
-            {user ? (
-              <div className="flex flex-col items-center gap-4">
-                <p className="text-white/70 text-lg">Welcome to SubSpace! You're already part of the revolution.</p>
-                <Button className="bg-crimson hover:bg-crimson/90 text-white">
-                  Explore SubSpace <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-              </div>
-            ) : (
-              <>
-                <div className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto mb-8">
-                  <Input 
-                    type="email" 
-                    placeholder="Enter your email" 
-                    className="bg-abyss border-white/20 text-white placeholder:text-white/50 h-12"
-                  />
-                  <Button 
-                    className="bg-crimson hover:bg-crimson/90 text-white h-12"
-                    asChild
-                  >
-                    <Link to="/auth?tab=signup">
-                      Request Invite <ArrowRight className="ml-2 w-4 h-4" />
-                    </Link>
-                  </Button>
-                </div>
-                
-                <p className="text-white/50 text-sm">
-                  By requesting an invitation, you agree to our Terms of Service and Privacy Policy.
-                </p>
-              </>
-            )}
+            <form className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto mb-8">
+              <Input 
+                type="email" 
+                placeholder="Enter your email" 
+                className="bg-abyss border-white/20 text-white placeholder:text-white/50 h-12"
+              />
+              <Button className="bg-crimson hover:bg-crimson/90 text-white h-12">
+                Request Invite <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
+            </form>
+            
+            <p className="text-white/50 text-sm">
+              By requesting an invitation, you agree to our Terms of Service and Privacy Policy.
+            </p>
           </motion.div>
         </div>
       </div>
