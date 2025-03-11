@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -79,11 +80,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signUp = async (email: string, password: string, userData: any) => {
+    // The handle_new_user function in Supabase expects certain metadata fields
+    // to populate the profiles table. We need to provide defaults for required fields.
+    const userMetadata = {
+      username: userData.username,
+      // Default values for required fields in the profiles table
+      birthday: new Date().toISOString().split('T')[0], // Today's date as default
+      role: 'Submissive', // Default role from user_role enum
+      orientation: 'Straight', // Default orientation from user_orientation enum
+      location: 'Unknown', // Default location
+      visibility: 'Public' // Default visibility from profile_visibility enum
+    };
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: userData,
+        data: userMetadata,
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       }
     });
