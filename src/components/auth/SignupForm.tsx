@@ -3,19 +3,11 @@ import React, { useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, EyeOff, ArrowRight, Mail, User, MapPin, Lock } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, Mail, User, Lock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import DateField from './DateField';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Form,
   FormControl,
@@ -35,32 +27,12 @@ const signupSchema = z.object({
     .regex(/[0-9]/, "Password must contain at least one number")
     .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
   confirmPassword: z.string(),
-  birthday: z.date({
-    required_error: "Please select your birthday",
-  }),
-  role: z.enum(['Dominant', 'Submissive', 'Switch', 'Voyeur', 'Experimental', 'Not Sure Yet'], {
-    required_error: "Please select a role",
-  }),
-  orientation: z.enum(['Straight', 'Gay', 'Lesbian', 'Bisexual', 'Pansexual', 'Asexual', 'Other'], {
-    required_error: "Please select your orientation",
-  }),
-  location: z.string().min(1, { message: "Location is required" }),
-  visibility: z.enum(['Public', 'Followers-Only', 'Private'], {
-    required_error: "Please select visibility preference",
-  }),
   terms: z.literal(true, {
     errorMap: () => ({ message: "You must agree to the terms and conditions" }),
   }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
-}).refine((data) => {
-  const now = new Date();
-  const eighteenYearsAgo = new Date(now.getFullYear() - 18, now.getMonth(), now.getDate());
-  return data.birthday <= eighteenYearsAgo;
-}, {
-  message: "You must be at least 18 years old",
-  path: ["birthday"],
 });
 
 type SignupFormValues = z.infer<typeof signupSchema>;
@@ -83,11 +55,6 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess }) => {
       email: "",
       password: "",
       confirmPassword: "",
-      birthday: undefined,
-      role: undefined,
-      orientation: undefined,
-      location: "",
-      visibility: "Public",
       terms: undefined as unknown as true,
     },
   });
@@ -95,14 +62,9 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess }) => {
   const onSubmit = async (data: SignupFormValues) => {
     setIsLoading(true);
     try {
-      // Separate user data into auth data and profile data
+      // Only pass username to metadata, as it's the only profile data we need now
       const userData = {
         username: data.username,
-        birthday: data.birthday.toISOString().split('T')[0],
-        role: data.role,
-        orientation: data.orientation,
-        location: data.location,
-        visibility: data.visibility,
       };
 
       const { error } = await signUp(data.email, data.password, userData);
@@ -231,123 +193,6 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSignupSuccess }) => {
               )}
             />
           </div>
-
-          <DateField 
-            form={form} 
-            name="birthday" 
-            label="Birthday" 
-            minAge={18}
-          />
-
-          <FormField
-            control={form.control}
-            name="location"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Location</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 h-4 w-4" />
-                    <Input
-                      placeholder="City, State, Country"
-                      className="pl-10"
-                      {...field}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Role (Identity)</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a role" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Dominant">Dominant</SelectItem>
-                      <SelectItem value="Submissive">Submissive</SelectItem>
-                      <SelectItem value="Switch">Switch</SelectItem>
-                      <SelectItem value="Voyeur">Voyeur</SelectItem>
-                      <SelectItem value="Experimental">Experimental</SelectItem>
-                      <SelectItem value="Not Sure Yet">Not Sure Yet</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="orientation"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Orientation</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select orientation" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Straight">Straight</SelectItem>
-                      <SelectItem value="Gay">Gay</SelectItem>
-                      <SelectItem value="Lesbian">Lesbian</SelectItem>
-                      <SelectItem value="Bisexual">Bisexual</SelectItem>
-                      <SelectItem value="Pansexual">Pansexual</SelectItem>
-                      <SelectItem value="Asexual">Asexual</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <FormField
-            control={form.control}
-            name="visibility"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Profile Visibility</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select visibility" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Public">Public</SelectItem>
-                    <SelectItem value="Followers-Only">Followers Only</SelectItem>
-                    <SelectItem value="Private">Private</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
         </div>
 
         <FormField
