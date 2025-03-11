@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -32,7 +31,6 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
-// Define schemas for form validation
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.string().min(8, { message: "Password must be at least 8 characters" }),
@@ -87,14 +85,12 @@ const Auth = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Redirect if already logged in
   useEffect(() => {
     if (user) {
       navigate('/');
     }
   }, [user, navigate]);
 
-  // Login form
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -104,7 +100,6 @@ const Auth = () => {
     },
   });
 
-  // Signup form
   const signupForm = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
@@ -117,11 +112,10 @@ const Auth = () => {
       orientation: undefined,
       location: "",
       visibility: "Public",
-      terms: false,
+      terms: undefined as unknown as true,
     },
   });
 
-  // Login form submission
   const onLoginSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     try {
@@ -144,7 +138,6 @@ const Auth = () => {
     }
   };
 
-  // Signup form submission
   const onSignupSubmit = async (data: SignupFormValues) => {
     setIsLoading(true);
     try {
@@ -195,7 +188,6 @@ const Auth = () => {
             <span className="text-gradient font-poppins">SubSpace</span>
           </motion.div>
           <h2 className="mt-6 text-3xl font-bold text-white">
-            {/* Dynamic title based on active tab */}
             Welcome to the revolution
           </h2>
           <p className="mt-2 text-sm text-white/60">
@@ -210,7 +202,6 @@ const Auth = () => {
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
 
-            {/* Login Form */}
             <TabsContent value="login">
               <Form {...loginForm}>
                 <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-6">
@@ -302,11 +293,9 @@ const Auth = () => {
               </Form>
             </TabsContent>
 
-            {/* Signup Form */}
             <TabsContent value="signup">
               <Form {...signupForm}>
                 <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-6">
-                  {/* Basic Information */}
                   <div className="space-y-4">
                     <FormField
                       control={signupForm.control}
@@ -480,7 +469,6 @@ const Auth = () => {
                     />
                   </div>
 
-                  {/* Profile Settings */}
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <FormField
