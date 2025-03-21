@@ -16,6 +16,7 @@ interface MessagesContainerProps {
   onBack: () => void;
 }
 
+// This component is kept for backward compatibility but is no longer used directly
 const MessagesContainer: React.FC<MessagesContainerProps> = ({
   conversations,
   selectedConversation,
