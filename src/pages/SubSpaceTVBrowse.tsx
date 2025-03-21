@@ -6,7 +6,7 @@ import VideosList from '@/components/video/VideosList';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Upload, FolderOpen } from 'lucide-react';
+import { Upload, FolderOpen, Film } from 'lucide-react';
 
 const SubSpaceTVBrowse = () => {
   const { user } = useAuth();
@@ -15,7 +15,10 @@ const SubSpaceTVBrowse = () => {
     <AuthenticatedLayout pageTitle="SubSpaceTV - Browse">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-white">Browse Videos</h1>
+          <div className="flex items-center">
+            <Film className="h-6 w-6 text-crimson mr-2" />
+            <h1 className="text-3xl font-bold text-white">Browse Videos</h1>
+          </div>
           <div className="flex space-x-2">
             <Link to="/subspacetv/my-content">
               <Button variant="outline" className="flex items-center gap-2">

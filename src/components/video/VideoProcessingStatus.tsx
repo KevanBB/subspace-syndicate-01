@@ -2,8 +2,14 @@
 import React from 'react';
 import { useVideoStatus } from '@/hooks/useVideoStatus';
 import { toast } from '@/components/ui/use-toast';
-import { Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Clock, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface VideoProcessingStatusProps {
   videoId: string;
@@ -90,6 +96,24 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
       <div className="flex items-center space-x-2 text-green-500">
         <CheckCircle2 className="h-4 w-4" />
         <span className="text-sm">Ready{metadata?.duration ? ` (${Math.floor(metadata.duration / 60)}m ${metadata.duration % 60}s)` : ''}</span>
+        {(metadata?.width || metadata?.height || metadata?.format || metadata?.bitrate) && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 cursor-help text-white/50" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="space-y-1 text-xs">
+                  {metadata.width && metadata.height && (
+                    <p>Resolution: {metadata.width}x{metadata.height}</p>
+                  )}
+                  {metadata.format && <p>Format: {metadata.format}</p>}
+                  {metadata.bitrate && <p>Bitrate: {Math.round(metadata.bitrate / 1000)} kbps</p>}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
     );
   }

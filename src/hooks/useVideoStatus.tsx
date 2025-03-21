@@ -31,7 +31,7 @@ export function useVideoStatus({ videoId, onStatusChange }: UseVideoStatusProps)
         setIsLoading(true);
         const { data, error } = await supabase
           .from('videos')
-          .select('status, duration, thumbnail_url')
+          .select('status, duration, thumbnail_url, width, height, format, bitrate')
           .eq('id', videoId)
           .single();
 
@@ -43,6 +43,10 @@ export function useVideoStatus({ videoId, onStatusChange }: UseVideoStatusProps)
           // Extract available metadata
           const videoMetadata: VideoMetadata = {};
           if (data.duration) videoMetadata.duration = data.duration;
+          if (data.width) videoMetadata.width = data.width;
+          if (data.height) videoMetadata.height = data.height;
+          if (data.format) videoMetadata.format = data.format;
+          if (data.bitrate) videoMetadata.bitrate = data.bitrate;
           
           setMetadata(videoMetadata);
           setIsLoading(false);
@@ -82,6 +86,10 @@ export function useVideoStatus({ videoId, onStatusChange }: UseVideoStatusProps)
             // Extract available metadata from the update
             const videoMetadata: VideoMetadata = {};
             if (payload.new.duration) videoMetadata.duration = payload.new.duration;
+            if (payload.new.width) videoMetadata.width = payload.new.width;
+            if (payload.new.height) videoMetadata.height = payload.new.height;
+            if (payload.new.format) videoMetadata.format = payload.new.format;
+            if (payload.new.bitrate) videoMetadata.bitrate = payload.new.bitrate;
             
             setMetadata(videoMetadata);
             

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from '@/components/ui/use-toast';
 import { FileUploader } from '@/components/ui/file-uploader';
 import { Progress } from '@/components/ui/progress';
-import { FileVideo, Image as ImageIcon, X, Upload, Loader2, AlertTriangle } from 'lucide-react';
+import { FileVideo, Image as ImageIcon, X, Upload, Loader2, AlertTriangle, Sliders } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from 'react-router-dom';
@@ -24,8 +25,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 type VideoVisibility = 'public' | 'private' | 'unlisted';
+type VideoCategory = 'tutorial' | 'scene' | 'event' | 'other';
 
 const VideoUploadForm = () => {
   const { user } = useAuth();
@@ -36,6 +44,7 @@ const VideoUploadForm = () => {
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [category, setCategory] = useState<VideoCategory>('other');
   const [visibility, setVisibility] = useState<VideoVisibility>('public');
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState('');
@@ -44,8 +53,17 @@ const VideoUploadForm = () => {
   const [isPageLeaveDialogOpen, setIsPageLeaveDialogOpen] = useState(false);
   const [leavePage, setLeavePage] = useState(false);
   const [leaveDestination, setLeaveDestination] = useState('');
+  const [skipProcessing, setSkipProcessing] = useState(false);
+  const [duration, setDuration] = useState<number>(0);
+  const [minutes, setMinutes] = useState<number>(0);
+  const [seconds, setSeconds] = useState<number>(0);
   
   const tagInputRef = useRef<HTMLInputElement>(null);
+
+  // Update duration when minutes or seconds change
+  useEffect(() => {
+    setDuration(minutes * 60 + seconds);
+  }, [minutes, seconds]);
 
   useEffect(() => {
     const preventNavigation = (e: BeforeUnloadEvent) => {
@@ -163,6 +181,15 @@ const VideoUploadForm = () => {
       return;
     }
 
+    if (skipProcessing && duration <= 0) {
+      toast({
+        title: "Duration required",
+        description: "Please provide a valid duration for your video.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setUploading(true);
       setUploadProgress(0);
@@ -228,7 +255,7 @@ const VideoUploadForm = () => {
 
       toast({
         title: "Upload complete",
-        description: "Your video is now being processed.",
+        description: skipProcessing ? "Your video is now ready." : "Your video is now being processed.",
       });
       
       setUploadProgress(100);
@@ -243,9 +270,9 @@ const VideoUploadForm = () => {
           thumbnail_url: thumbnailUrl,
           visibility,
           tags: tags.join(','),
-          duration: 0,
-          status: 'processing',
-          category: 'other'
+          duration: skipProcessing ? duration : 0,
+          status: skipProcessing ? 'ready' : 'processing',
+          category
         })
         .select()
         .single();
@@ -254,35 +281,40 @@ const VideoUploadForm = () => {
 
       console.log("Video record inserted:", videoRecord);
 
-      try {
-        const processResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-video`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ videoId: videoRecord.id }),
-        });
+      // Only trigger processing if not skipping
+      if (!skipProcessing) {
+        try {
+          const processResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-video`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({ videoId: videoRecord.id }),
+          });
 
-        if (!processResponse.ok) {
-          const errorData = await processResponse.json();
-          console.error("Video processing error:", errorData);
+          if (!processResponse.ok) {
+            const errorData = await processResponse.json();
+            console.error("Video processing error:", errorData);
+            toast({
+              title: "Processing started",
+              description: "Your video is being processed in the background. You can check its status in My Content.",
+            });
+          }
+        } catch (processError) {
+          console.error("Error initiating video processing:", processError);
           toast({
-            title: "Processing started",
-            description: "Your video is being processed in the background. You can check its status in My Content.",
+            title: "Processing queued",
+            description: "Your video will be processed shortly. You can check its status in My Content.",
           });
         }
-      } catch (processError) {
-        console.error("Error initiating video processing:", processError);
-        toast({
-          title: "Processing queued",
-          description: "Your video will be processed shortly. You can check its status in My Content.",
-        });
       }
 
       toast({
         title: "Upload successful!",
-        description: "Your video has been uploaded and is being processed.",
+        description: skipProcessing 
+          ? "Your video has been uploaded and is ready to view." 
+          : "Your video has been uploaded and is being processed.",
       });
       
       setVideoFile(null);
@@ -293,6 +325,10 @@ const VideoUploadForm = () => {
       setVisibility('public');
       setTags([]);
       setCurrentTag('');
+      setSkipProcessing(false);
+      setDuration(0);
+      setMinutes(0);
+      setSeconds(0);
       
       navigate('/subspacetv/my-content');
       
@@ -357,6 +393,18 @@ const VideoUploadForm = () => {
         </div>
       )}
 
+      <div className="flex items-center space-x-2 bg-black/30 p-3 rounded-md border border-white/10">
+        <Switch 
+          id="skip-processing" 
+          checked={skipProcessing} 
+          onCheckedChange={setSkipProcessing}
+          disabled={uploading}
+        />
+        <Label htmlFor="skip-processing" className="text-white cursor-pointer">
+          Skip automatic processing (manually input video details)
+        </Label>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
           <div>
@@ -384,6 +432,25 @@ const VideoUploadForm = () => {
           </div>
           
           <div>
+            <Label htmlFor="category">Category</Label>
+            <Select 
+              value={category} 
+              onValueChange={(value: VideoCategory) => setCategory(value)}
+              disabled={uploading}
+            >
+              <SelectTrigger className="bg-black/30 border-white/20 text-white">
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tutorial">Tutorial</SelectItem>
+                <SelectItem value="scene">Scene</SelectItem>
+                <SelectItem value="event">Event</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
             <Label htmlFor="tags">Tags (up to 5)</Label>
             <div className="flex items-center gap-2 mb-2">
               {tags.map(tag => (
@@ -408,6 +475,39 @@ const VideoUploadForm = () => {
               />
             </div>
           </div>
+          
+          {skipProcessing && (
+            <div>
+              <Label>Duration</Label>
+              <div className="flex gap-2">
+                <div>
+                  <Label htmlFor="minutes" className="text-sm">Minutes</Label>
+                  <Input
+                    id="minutes"
+                    type="number"
+                    min="0"
+                    value={minutes}
+                    onChange={(e) => setMinutes(parseInt(e.target.value) || 0)}
+                    className="bg-black/30 border-white/20 text-white"
+                    disabled={uploading}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="seconds" className="text-sm">Seconds</Label>
+                  <Input
+                    id="seconds"
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={seconds}
+                    onChange={(e) => setSeconds(parseInt(e.target.value) || 0)}
+                    className="bg-black/30 border-white/20 text-white"
+                    disabled={uploading}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         
         <div className="space-y-4">
@@ -489,7 +589,7 @@ const VideoUploadForm = () => {
               <Button 
                 className="w-full"
                 onClick={handleUpload}
-                disabled={!videoFile || !title.trim() || uploading}
+                disabled={!videoFile || !title.trim() || uploading || (skipProcessing && duration <= 0)}
               >
                 <Upload className="mr-2 h-4 w-4" /> Upload Video
               </Button>
