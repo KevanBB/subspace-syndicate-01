@@ -65,17 +65,17 @@ const SubSpaceTVMyContent = () => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  // Get status badge color
+  // Get status badge variant - FIXED to use available variants
   const getStatusBadgeVariant = (status: string) => {
     switch(status) {
-      case 'ready': return "success";
-      case 'processing': return "warning";
-      case 'failed': return "destructive";
+      case 'ready': return "dominant"; // Changed from "success" to "dominant"
+      case 'processing': return "exploring"; // Changed from "warning" to "exploring"
+      case 'failed': return "destructive"; // This one was already valid
       default: return "secondary";
     }
   };
 
-  // Get visibility badge color
+  // Get visibility badge variant
   const getVisibilityBadgeVariant = (visibility: string) => {
     switch(visibility) {
       case 'public': return "default";
