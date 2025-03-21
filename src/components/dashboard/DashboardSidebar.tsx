@@ -10,7 +10,13 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarSeparator
+  SidebarSeparator,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -21,13 +27,19 @@ import {
   Users, 
   Compass, 
   Settings, 
-  LogOut
+  LogOut,
+  ChevronDown,
+  ChevronRight,
+  Monitor,
+  Upload,
+  Search
 } from 'lucide-react';
 
 const DashboardSidebar = () => {
   const { user, signOut } = useAuth();
   const location = useLocation();
   const [profileData, setProfileData] = useState<any>(null);
+  const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
   
   useEffect(() => {
     if (user?.id) {
@@ -51,6 +63,17 @@ const DashboardSidebar = () => {
       fetchProfileData();
     }
   }, [user]);
+
+  // Check if current route is part of SubSpaceTV section
+  useEffect(() => {
+    if (location.pathname.includes('/subspacetv')) {
+      setExpandedMenu('subspacetv');
+    }
+  }, [location.pathname]);
+  
+  const toggleMenu = (menu: string) => {
+    setExpandedMenu(expandedMenu === menu ? null : menu);
+  };
   
   const username = profileData?.username || user?.user_metadata?.username || user?.email?.split('@')[0] || 'User';
   const bdsmRole = profileData?.bdsm_role || user?.user_metadata?.bdsm_role || 'Exploring';
@@ -126,6 +149,53 @@ const DashboardSidebar = () => {
                 <span>Messages</span>
               </Link>
             </SidebarMenuButton>
+          </SidebarMenuItem>
+          
+          {/* SubSpaceTV Menu Item with Submenu */}
+          <SidebarMenuItem>
+            <Collapsible open={expandedMenu === 'subspacetv'} onOpenChange={() => toggleMenu('subspacetv')}>
+              <CollapsibleTrigger asChild>
+                <SidebarMenuButton 
+                  isActive={location.pathname.includes('/subspacetv')}
+                  className="w-full justify-between"
+                >
+                  <div className="flex items-center">
+                    <Monitor className="mr-2 h-4 w-4" />
+                    <span>SubSpaceTV</span>
+                  </div>
+                  {expandedMenu === 'subspacetv' ? 
+                    <ChevronDown className="h-4 w-4" /> : 
+                    <ChevronRight className="h-4 w-4" />
+                  }
+                </SidebarMenuButton>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarMenuSub>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton 
+                      asChild 
+                      isActive={location.pathname === '/subspacetv/upload'}
+                    >
+                      <Link to="/subspacetv/upload">
+                        <Upload className="h-4 w-4 mr-2" />
+                        <span>Upload</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton 
+                      asChild 
+                      isActive={location.pathname === '/subspacetv'}
+                    >
+                      <Link to="/subspacetv">
+                        <Search className="h-4 w-4 mr-2" />
+                        <span>Browse</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                </SidebarMenuSub>
+              </CollapsibleContent>
+            </Collapsible>
           </SidebarMenuItem>
           
           <SidebarMenuItem>
