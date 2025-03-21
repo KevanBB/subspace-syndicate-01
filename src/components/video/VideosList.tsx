@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Search, Filter } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 type VideoData = {
   id: string;
@@ -26,7 +27,7 @@ type VideoData = {
   duration: number;
   status: string;
   visibility: string;
-  profiles?: {
+  profile?: {
     username?: string;
     avatar_url?: string;
     bdsm_role?: string;
@@ -41,6 +42,8 @@ const VideosList = () => {
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [categoryFilter, setCategoryFilter] = useState<FilterOption>('all');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [videosWithProfiles, setVideosWithProfiles] = useState<VideoData[]>([]);
+  const { toast } = useToast();
 
   // Fetch videos
   const { data: videos, isLoading, error } = useQuery({
@@ -48,14 +51,7 @@ const VideosList = () => {
     queryFn: async () => {
       let query = supabase
         .from('videos')
-        .select(`
-          *,
-          profiles:user_id (
-            username,
-            avatar_url,
-            bdsm_role
-          )
-        `)
+        .select('*')
         .eq('visibility', 'public')
         .eq('status', 'ready');
 
@@ -83,22 +79,72 @@ const VideosList = () => {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching videos:', error);
+        throw error;
+      }
 
       return data as VideoData[];
     },
   });
 
+  // Fetch user profiles for each video
+  useEffect(() => {
+    if (!videos || videos.length === 0) return;
+
+    const fetchProfiles = async () => {
+      try {
+        // Get unique user IDs
+        const userIds = [...new Set(videos.map(video => video.user_id))];
+        
+        // Fetch profiles for these user IDs
+        const { data: profiles, error } = await supabase
+          .from('profiles')
+          .select('id, username, avatar_url, bdsm_role')
+          .in('id', userIds);
+        
+        if (error) {
+          console.error('Error fetching profiles:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load creator profiles",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Map profiles to videos
+        const videosWithProfileData = videos.map(video => {
+          const userProfile = profiles?.find(profile => profile.id === video.user_id);
+          return {
+            ...video,
+            profile: userProfile ? {
+              username: userProfile.username,
+              avatar_url: userProfile.avatar_url,
+              bdsm_role: userProfile.bdsm_role
+            } : undefined
+          };
+        });
+        
+        setVideosWithProfiles(videosWithProfileData);
+      } catch (err) {
+        console.error('Error in profile mapping:', err);
+      }
+    };
+
+    fetchProfiles();
+  }, [videos, toast]);
+
   // Filter videos by search query
-  const filteredVideos = videos?.filter(video => {
+  const filteredVideos = videosWithProfiles?.filter(video => {
     if (!searchQuery.trim()) return true;
     
     const query = searchQuery.toLowerCase();
     return (
       video.title.toLowerCase().includes(query) ||
-      video.description.toLowerCase().includes(query) ||
-      video.tags.toLowerCase().includes(query) ||
-      (video.profiles?.username && video.profiles.username.toLowerCase().includes(query))
+      video.description?.toLowerCase().includes(query) ||
+      video.tags?.toLowerCase().includes(query) ||
+      (video.profile?.username && video.profile.username.toLowerCase().includes(query))
     );
   });
 

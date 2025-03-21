@@ -21,7 +21,7 @@ type VideoCardProps = {
     category: string;
     tags: string;
     duration: number;
-    profiles?: {
+    profile?: {
       username?: string;
       avatar_url?: string;
       bdsm_role?: string;
@@ -30,9 +30,9 @@ type VideoCardProps = {
 };
 
 const VideoCard: React.FC<VideoCardProps> = ({ video }) => {
-  const username = video.profiles?.username || 'User';
-  const avatarUrl = video.profiles?.avatar_url;
-  const bdsmRole = video.profiles?.bdsm_role || 'Exploring';
+  const username = video.profile?.username || 'User';
+  const avatarUrl = video.profile?.avatar_url;
+  const bdsmRole = video.profile?.bdsm_role || 'Exploring';
   const formattedDate = formatDistanceToNow(new Date(video.created_at), { addSuffix: true });
   
   // Format duration (seconds to MM:SS)

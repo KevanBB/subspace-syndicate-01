@@ -11,6 +11,7 @@ import { Eye, Clock, Heart, Tag, User, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { useVideoStatus } from '@/hooks/useVideoStatus';
+import { useToast } from '@/hooks/use-toast';
 
 type VideoData = {
   id: string;
@@ -27,7 +28,7 @@ type VideoData = {
   duration: number;
   status: string;
   visibility: string;
-  profiles?: {
+  creator?: {
     username?: string;
     avatar_url?: string;
     bdsm_role?: string;
@@ -38,23 +39,17 @@ const VideoWatchPage = () => {
   const { id } = useParams<{ id: string }>();
   const [incrementedView, setIncrementedView] = useState(false);
   const { status, metadata } = useVideoStatus({ videoId: id || '' });
+  const { toast } = useToast();
 
-  // Fetch the video and creator details
-  const { data: video, isLoading, error } = useQuery({
+  // Fetch the video details
+  const { data: video, isLoading: videoLoading, error: videoError } = useQuery({
     queryKey: ['video', id],
     queryFn: async () => {
       if (!id) throw new Error('No video ID provided');
 
       const { data, error } = await supabase
         .from('videos')
-        .select(`
-          *,
-          profiles:user_id (
-            username,
-            avatar_url,
-            bdsm_role
-          )
-        `)
+        .select('*')
         .eq('id', id)
         .single();
 
@@ -63,6 +58,34 @@ const VideoWatchPage = () => {
     },
     enabled: !!id,
   });
+
+  // Fetch creator details separately
+  const { data: creator, isLoading: creatorLoading } = useQuery({
+    queryKey: ['video-creator', video?.user_id],
+    queryFn: async () => {
+      if (!video?.user_id) throw new Error('No user ID available');
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username, avatar_url, bdsm_role')
+        .eq('id', video.user_id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching creator profile:', error);
+        return null;
+      }
+
+      return data;
+    },
+    enabled: !!video?.user_id,
+  });
+
+  // Combine video and creator data
+  const videoWithCreator = video ? {
+    ...video,
+    creator: creator || undefined
+  } : undefined;
 
   // Increment view count
   useEffect(() => {
@@ -92,7 +115,7 @@ const VideoWatchPage = () => {
   };
 
   // Loading and error states
-  if (isLoading) {
+  if (videoLoading) {
     return (
       <AuthenticatedLayout pageTitle="Loading...">
         <div className="max-w-5xl mx-auto p-4">
@@ -106,7 +129,7 @@ const VideoWatchPage = () => {
     );
   }
 
-  if (error || !video) {
+  if (videoError || !video) {
     return (
       <AuthenticatedLayout pageTitle="Error">
         <div className="max-w-5xl mx-auto p-4">
@@ -153,14 +176,14 @@ const VideoWatchPage = () => {
           <CardContent className="space-y-4 pt-0">
             <div className="flex items-center gap-3 py-4 border-t border-b border-white/10">
               <Avatar className="h-12 w-12 border border-crimson/30">
-                <AvatarImage src={video.profiles?.avatar_url || "/placeholder.svg"} alt={video.profiles?.username || "User"} />
+                <AvatarImage src={videoWithCreator?.creator?.avatar_url || "/placeholder.svg"} alt={videoWithCreator?.creator?.username || "User"} />
                 <AvatarFallback className="bg-crimson/20 text-white">
-                  {(video.profiles?.username || "User").substring(0, 2).toUpperCase()}
+                  {(videoWithCreator?.creator?.username || "User").substring(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h3 className="font-medium text-white">{video.profiles?.username || "User"}</h3>
-                <p className="text-sm text-white/60">{video.profiles?.bdsm_role || "Exploring"}</p>
+                <h3 className="font-medium text-white">{videoWithCreator?.creator?.username || "User"}</h3>
+                <p className="text-sm text-white/60">{videoWithCreator?.creator?.bdsm_role || "Exploring"}</p>
               </div>
             </div>
             
