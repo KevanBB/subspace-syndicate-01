@@ -24,11 +24,11 @@ const ProfileTabsView: React.FC<ProfileTabsViewProps> = ({ profileId, profile })
       </TabsContent>
       
       <TabsContent value="feed" className="mt-6">
-        <FeedTab userId={profileId} />
+        <FeedTab />
       </TabsContent>
       
       <TabsContent value="media" className="mt-6">
-        <MediaTab userId={profileId} />
+        <MediaTab />
       </TabsContent>
     </Tabs>
   );

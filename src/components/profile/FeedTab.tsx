@@ -5,7 +5,11 @@ import PostForm from './PostForm';
 import PostsList from './PostsList';
 import { useAuth } from '@/contexts/AuthContext';
 
-const FeedTab: React.FC = () => {
+interface FeedTabProps {
+  userId?: string;
+}
+
+const FeedTab: React.FC<FeedTabProps> = ({ userId }) => {
   const { user } = useAuth();
 
   return (

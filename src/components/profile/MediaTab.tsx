@@ -8,7 +8,11 @@ import { Upload, Image, Film, X, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-const MediaTab: React.FC = () => {
+interface MediaTabProps {
+  userId?: string;
+}
+
+const MediaTab: React.FC<MediaTabProps> = ({ userId }) => {
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
