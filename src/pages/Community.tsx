@@ -11,6 +11,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Shield, Heart, SwitchCamera, HelpCircle } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import { useActivity } from '@/utils/useActivity';
+import OnlineIndicator from '@/components/community/OnlineIndicator';
 
 type Profile = {
   id: string;
@@ -18,12 +20,16 @@ type Profile = {
   user_role: string | null;
   bdsm_role: string | null;
   created_at: string | null;
-  last_active?: string | null;
+  last_active: string | null;
+  avatar_url: string | null;
 };
 
 const Community = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const membersPerPage = 12;
+  
+  // Use the activity hook to track user activity
+  useActivity();
   
   // Fetch all members
   const { data: allMembers, isLoading: loadingMembers } = useQuery({
@@ -31,34 +37,52 @@ const Community = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, user_role, bdsm_role, created_at')
+        .select('id, username, user_role, bdsm_role, created_at, last_active, avatar_url')
         .order('created_at', { ascending: false });
         
       if (error) throw error;
       return data as Profile[];
-    }
+    },
+    refetchInterval: 60000, // Refetch every minute to update online status
   });
   
-  // For the purpose of this demo, we'll randomly select some members as "recently active"
-  // In a real app, you'd track last_active in the database
+  // Find recently active members (active in the last 5 minutes)
   const { data: recentlyActiveMembers, isLoading: loadingActive } = useQuery({
     queryKey: ['recentlyActiveMembers'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, user_role, bdsm_role, created_at')
-        .limit(6)
-        .order('created_at', { ascending: false });
+        .select('id, username, user_role, bdsm_role, created_at, last_active, avatar_url')
+        .order('last_active', { ascending: false })
+        .limit(6);
         
       if (error) throw error;
-      
-      // Add a mock last_active timestamp (in a real app, this would come from the database)
-      return data.map(member => ({
-        ...member,
-        last_active: new Date(Date.now() - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000)).toISOString()
-      })) as Profile[];
-    }
+      return data as Profile[];
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds for active users
   });
+  
+  // Set up real-time subscription for profile updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('profiles-channel')
+      .on('postgres_changes', 
+        { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'profiles' 
+        }, 
+        (payload) => {
+          // This will trigger a refetch of the data
+          console.log('Profile updated:', payload);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
   
   // Helper function to get BDSM role badge variant and icon
   const getBdsmRoleBadge = (role: string | null) => {
@@ -85,6 +109,17 @@ const Community = () => {
     }
     
     return { variant, Icon, bdsmRole };
+  };
+  
+  // Check if a user is online based on last_active
+  const isUserOnline = (lastActive: string | null) => {
+    if (!lastActive) return false;
+    
+    const lastActiveDate = new Date(lastActive);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - lastActiveDate.getTime()) / (1000 * 60));
+    
+    return diffInMinutes < 5; // Consider online if active in the last 5 minutes
   };
   
   // Pagination logic
@@ -151,6 +186,7 @@ const Community = () => {
                     user_role={member.user_role}
                     bdsm_role={member.bdsm_role}
                     last_active={member.last_active}
+                    avatar_url={member.avatar_url}
                   />
                 ))}
               </div>
@@ -172,6 +208,8 @@ const Community = () => {
                       username={member.username}
                       user_role={member.user_role}
                       bdsm_role={member.bdsm_role}
+                      last_active={member.last_active}
+                      avatar_url={member.avatar_url}
                     />
                   ))}
                 </div>
@@ -225,6 +263,7 @@ const Community = () => {
                   <TableRow className="hover:bg-black/40 border-white/10">
                     <TableHead className="text-white w-[50px]">#</TableHead>
                     <TableHead className="text-white">Username</TableHead>
+                    <TableHead className="text-white">Status</TableHead>
                     <TableHead className="text-white">Role</TableHead>
                     <TableHead className="text-white">BDSM Role</TableHead>
                     <TableHead className="text-white">Joined</TableHead>
@@ -240,13 +279,30 @@ const Community = () => {
                         </TableCell>
                         <TableCell className="text-white font-medium">
                           <div className="flex items-center gap-2">
-                            <Avatar className="h-8 w-8">
-                              <AvatarFallback className="bg-crimson text-white text-xs">
-                                {(member.username || 'AN').substring(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
+                            <div className="relative">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={member.avatar_url || "/placeholder.svg"} />
+                                <AvatarFallback className="bg-crimson text-white text-xs">
+                                  {(member.username || 'AN').substring(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <OnlineIndicator 
+                                lastActive={member.last_active} 
+                                className="absolute -top-1 -right-1 h-2 w-2 ring-1 ring-background" 
+                                showTooltip={false}
+                              />
+                            </div>
                             {member.username || 'Anonymous'}
                           </div>
+                        </TableCell>
+                        <TableCell className="text-white/70">
+                          {isUserOnline(member.last_active) ? (
+                            <span className="text-green-500">Online</span>
+                          ) : (
+                            <span className="text-white/50">
+                              {member.last_active ? 'Last active ' + new Date(member.last_active).toLocaleDateString() : 'Never'}
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell className="text-white/70">
                           {member.user_role || 'Member'}

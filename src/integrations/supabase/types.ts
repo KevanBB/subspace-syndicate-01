@@ -47,6 +47,7 @@ export type Database = {
           birthday: string | null
           created_at: string | null
           id: string
+          last_active: string | null
           location: string | null
           orientation: string | null
           show_online_status: boolean | null
@@ -61,6 +62,7 @@ export type Database = {
           birthday?: string | null
           created_at?: string | null
           id: string
+          last_active?: string | null
           location?: string | null
           orientation?: string | null
           show_online_status?: boolean | null
@@ -75,6 +77,7 @@ export type Database = {
           birthday?: string | null
           created_at?: string | null
           id?: string
+          last_active?: string | null
           location?: string | null
           orientation?: string | null
           show_online_status?: boolean | null

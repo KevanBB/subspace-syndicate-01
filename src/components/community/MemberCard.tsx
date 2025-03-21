@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 import { Shield, Heart, SwitchCamera, HelpCircle } from 'lucide-react';
+import OnlineIndicator from './OnlineIndicator';
 
 type MemberCardProps = {
   id: string;
@@ -63,12 +64,20 @@ const MemberCard: React.FC<MemberCardProps> = ({
       <Card className="overflow-hidden bg-black/20 border-white/10 backdrop-blur-md hover:border-crimson/30 transition-all duration-300">
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
-            <Avatar className="h-12 w-12 border-2 border-crimson/50">
-              <AvatarImage src={avatar_url || "/placeholder.svg"} alt={formattedUsername} />
-              <AvatarFallback className="bg-crimson text-white">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="h-12 w-12 border-2 border-crimson/50">
+                <AvatarImage src={avatar_url || "/placeholder.svg"} alt={formattedUsername} />
+                <AvatarFallback className="bg-crimson text-white">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              {last_active && (
+                <OnlineIndicator 
+                  lastActive={last_active} 
+                  className="absolute -top-1 -right-1 ring-2 ring-background" 
+                />
+              )}
+            </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <span className="font-medium text-white">{formattedUsername}</span>
