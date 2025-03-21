@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   Sidebar, 
@@ -25,6 +25,7 @@ import {
 
 const DashboardSidebar = () => {
   const { user, signOut } = useAuth();
+  const location = useLocation();
   const username = user?.user_metadata?.username || user?.email?.split('@')[0] || 'User';
   const bdsmRole = user?.user_metadata?.bdsm_role || 'Exploring';
   
@@ -42,7 +43,7 @@ const DashboardSidebar = () => {
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 border border-white/10">
-            <AvatarImage src="/placeholder.svg" alt={username} />
+            <AvatarImage src={user?.user_metadata?.avatar_url || "/placeholder.svg"} alt={username} />
             <AvatarFallback className="bg-crimson text-white">
               {username.substring(0, 2).toUpperCase()}
             </AvatarFallback>
@@ -70,7 +71,7 @@ const DashboardSidebar = () => {
       <SidebarContent>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={true}>
+            <SidebarMenuButton asChild isActive={location.pathname === '/dashboard'}>
               <Link to="/dashboard">
                 <LayoutDashboard />
                 <span>Dashboard</span>
@@ -79,7 +80,7 @@ const DashboardSidebar = () => {
           </SidebarMenuItem>
           
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton asChild isActive={location.pathname === '/profile'}>
               <Link to="/profile">
                 <UserRound />
                 <span>My Profile</span>
@@ -88,7 +89,7 @@ const DashboardSidebar = () => {
           </SidebarMenuItem>
           
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton asChild isActive={location.pathname === '/messages'}>
               <Link to="/messages">
                 <MessageSquare />
                 <span>Messages</span>
@@ -97,7 +98,7 @@ const DashboardSidebar = () => {
           </SidebarMenuItem>
           
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton asChild isActive={location.pathname === '/community'}>
               <Link to="/community">
                 <Users />
                 <span>Community</span>
@@ -106,7 +107,7 @@ const DashboardSidebar = () => {
           </SidebarMenuItem>
           
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton asChild isActive={location.pathname === '/explore'}>
               <Link to="/explore">
                 <Compass />
                 <span>Explore</span>
@@ -119,7 +120,7 @@ const DashboardSidebar = () => {
         
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton asChild isActive={location.pathname === '/settings'}>
               <Link to="/settings">
                 <Settings />
                 <span>Settings</span>
