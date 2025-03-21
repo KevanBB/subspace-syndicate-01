@@ -9,45 +9,7 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      profiles: {
-        Row: {
-          avatar_url: string | null
-          bio: string | null
-          birthday: string
-          id: string
-          location: string
-          orientation: Database["public"]["Enums"]["user_orientation"]
-          updated_at: string | null
-          user_role: Database["public"]["Enums"]["user_role"]
-          username: string
-          visibility: Database["public"]["Enums"]["profile_visibility"]
-        }
-        Insert: {
-          avatar_url?: string | null
-          bio?: string | null
-          birthday: string
-          id: string
-          location: string
-          orientation: Database["public"]["Enums"]["user_orientation"]
-          updated_at?: string | null
-          user_role: Database["public"]["Enums"]["user_role"]
-          username: string
-          visibility?: Database["public"]["Enums"]["profile_visibility"]
-        }
-        Update: {
-          avatar_url?: string | null
-          bio?: string | null
-          birthday?: string
-          id?: string
-          location?: string
-          orientation?: Database["public"]["Enums"]["user_orientation"]
-          updated_at?: string | null
-          user_role?: Database["public"]["Enums"]["user_role"]
-          username?: string
-          visibility?: Database["public"]["Enums"]["profile_visibility"]
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
@@ -56,22 +18,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      profile_visibility: "Public" | "Followers-Only" | "Private"
-      user_orientation:
-        | "Straight"
-        | "Gay"
-        | "Lesbian"
-        | "Bisexual"
-        | "Pansexual"
-        | "Asexual"
-        | "Other"
-      user_role:
-        | "Dominant"
-        | "Submissive"
-        | "Switch"
-        | "Voyeur"
-        | "Experimental"
-        | "Not Sure Yet"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
