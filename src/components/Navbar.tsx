@@ -123,10 +123,11 @@ const Navbar = () => {
 
 const Logo = () => (
   <motion.div 
-    className="text-2xl font-bold text-white flex items-center"
+    className="text-2xl font-bold text-white flex items-center gap-2"
     whileHover={{ scale: 1.05 }}
     transition={{ type: "spring", stiffness: 400, damping: 10 }}
   >
+    <img src="/logo.svg" alt="SubSpace Logo" className="h-7 w-auto" />
     <span className="text-gradient font-poppins">SubSpace</span>
   </motion.div>
 );

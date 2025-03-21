@@ -21,6 +21,15 @@ const Hero = () => {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="space-y-4"
           >
+            <motion.div 
+              className="flex justify-center mb-4"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <img src="/logo.svg" alt="SubSpace Crown Logo" className="w-32 h-auto" />
+            </motion.div>
+            
             <div className="inline-block glass px-3 py-1 rounded-full mb-6">
               <span className="text-white/80 text-sm font-medium">Invite-Only Access</span>
             </div>
@@ -28,7 +37,7 @@ const Hero = () => {
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight tracking-tight">
               <span className="block">Unleash.</span>
               <span className="block delay-200">Connect.</span>
-              <span className="text-gradient block delay-400">Dominate.</span>
+              <span className="text-[#E9C846] block delay-400">Dominate.</span>
             </h1>
             
             <motion.p 
@@ -48,7 +57,7 @@ const Hero = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.5 }}
           >
-            <Button className="bg-crimson hover:bg-crimson/90 text-white w-full sm:w-auto px-8 py-6 rounded-md text-lg">
+            <Button className="bg-[#E9C846] hover:bg-[#E9C846]/90 text-black w-full sm:w-auto px-8 py-6 rounded-md text-lg">
               Request Invitation
             </Button>
             <Button variant="outline" className="border-white/20 text-white hover:bg-white/5 w-full sm:w-auto px-8 py-6 rounded-md text-lg">
@@ -89,7 +98,7 @@ const Particles = () => {
         return (
           <motion.div
             key={i}
-            className="absolute rounded-full bg-crimson/20"
+            className="absolute rounded-full bg-[#E9C846]/20"
             style={{
               width: size + 'px',
               height: size + 'px',

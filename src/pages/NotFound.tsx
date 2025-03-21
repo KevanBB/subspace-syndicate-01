@@ -23,6 +23,9 @@ const NotFound = () => {
       className="min-h-screen flex items-center justify-center bg-abyss px-4"
     >
       <div className="text-center max-w-md">
+        <div className="mb-6">
+          <img src="/logo.svg" alt="SubSpace Logo" className="h-16 w-auto mx-auto mb-4" />
+        </div>
         <div className="glass px-3 py-1 rounded-full inline-block mb-6">
           <span className="text-white/80 text-sm font-medium">404 Error</span>
         </div>
@@ -32,7 +35,7 @@ const NotFound = () => {
         </p>
         <Button 
           asChild 
-          className="bg-crimson hover:bg-crimson/90 text-white px-8 py-6 rounded-md text-lg"
+          className="bg-[#E9C846] hover:bg-[#E9C846]/90 text-black px-8 py-6 rounded-md text-lg"
         >
           <a href="/">Return to Home</a>
         </Button>
@@ -41,7 +44,7 @@ const NotFound = () => {
       {/* Background elements */}
       <div className="absolute inset-0 bg-gradient-to-b from-abyss via-abyss/95 to-abyss z-0"></div>
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-4xl max-h-4xl">
-        <div className="absolute inset-0 bg-crimson/10 rounded-full blur-[150px]"></div>
+        <div className="absolute inset-0 bg-[#E9C846]/10 rounded-full blur-[150px]"></div>
       </div>
     </motion.div>
   );

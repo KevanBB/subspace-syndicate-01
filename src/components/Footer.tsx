@@ -8,7 +8,8 @@ const Footer = () => {
       <div className="container mx-auto px-4 md:px-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           <div className="md:col-span-2">
-            <div className="text-2xl font-bold text-white mb-4 flex items-center">
+            <div className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+              <img src="/logo.svg" alt="SubSpace Logo" className="h-6 w-auto" />
               <span className="text-gradient font-poppins">SubSpace</span>
             </div>
             <p className="text-white/70 mb-6 max-w-md">
@@ -20,7 +21,7 @@ const Footer = () => {
                 <a 
                   key={link.name} 
                   href={link.url} 
-                  className="text-white/70 hover:text-crimson transition-colors"
+                  className="text-white/70 hover:text-[#E9C846] transition-colors"
                   aria-label={link.name}
                 >
                   {link.icon}

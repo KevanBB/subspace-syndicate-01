@@ -68,10 +68,14 @@ const DashboardSidebar = () => {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <img src="/logo.svg" alt="SubSpace Logo" className="h-5 w-auto" />
+          <span className="text-[#E9C846] font-semibold text-lg">SubSpace</span>
+        </div>
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 border border-white/10">
             <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={username} />
-            <AvatarFallback className="bg-crimson text-white">
+            <AvatarFallback className="bg-[#E9C846] text-black">
               {username.substring(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
