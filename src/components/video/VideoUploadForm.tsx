@@ -205,12 +205,12 @@ const VideoUploadForm = () => {
       // Get the upload URL from Supabase
       const { data: uploadData } = await supabase.storage.from('videos').createSignedUploadUrl(videoPath);
       
-      if (!uploadData?.signedURL) {
+      if (!uploadData?.signedUrl) {
         throw new Error('Failed to get upload URL');
       }
       
       // Configure XHR request
-      xhr.open('PUT', uploadData.signedURL);
+      xhr.open('PUT', uploadData.signedUrl);
       xhr.setRequestHeader('Content-Type', videoFile.type);
       xhr.send(videoFile);
       
