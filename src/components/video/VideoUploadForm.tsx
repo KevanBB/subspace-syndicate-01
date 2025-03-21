@@ -129,16 +129,28 @@ const VideoUploadForm = () => {
       const videoFileName = `${videoId}.${videoFile.name.split('.').pop()}`;
       const videoPath = `${user.id}/${videoFileName}`;
       
+      // Track upload progress manually
+      const uploadProgressCallback = (progress: number) => {
+        setUploadProgress(progress);
+      };
+      
+      // Using XMLHttpRequest to track upload progress
+      const xhr = new XMLHttpRequest();
+      let startTime = new Date().getTime();
+      
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const percentComplete = Math.round((event.loaded / event.total) * 100);
+          uploadProgressCallback(percentComplete);
+        }
+      });
+      
       // Upload video to storage
       const { error: videoUploadError, data: videoData } = await supabase.storage
         .from('videos')
         .upload(videoPath, videoFile, {
           cacheControl: '3600',
-          upsert: false,
-          onUploadProgress: (progress) => {
-            const percentage = Math.round((progress.loaded / progress.total) * 100);
-            setUploadProgress(percentage);
-          }
+          upsert: false
         });
 
       if (videoUploadError) throw videoUploadError;

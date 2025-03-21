@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -26,9 +26,11 @@ type VideoData = {
   duration: number;
   status: string;
   visibility: string;
-  username?: string;
-  avatar_url?: string;
-  bdsm_role?: string;
+  profiles?: {
+    username?: string;
+    avatar_url?: string;
+    bdsm_role?: string;
+  };
 };
 
 type SortOption = 'newest' | 'oldest' | 'popular' | 'trending';
