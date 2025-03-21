@@ -47,12 +47,40 @@ const MessageView: React.FC<MessageViewProps> = ({
   const [isSending, setIsSending] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState<{
+    username: string;
+    avatar_url?: string;
+    last_active?: string;
+  } | null>(null);
   
   const otherParticipant = conversation.participants?.find(p => p.user_id !== currentUserId);
   const username = otherParticipant?.profile?.username || 'User';
   const avatarUrl = otherParticipant?.profile?.avatar_url;
   const lastActive = otherParticipant?.profile?.last_active;
   const initials = username.substring(0, 2).toUpperCase();
+
+  // Fetch current user profile on component mount
+  useEffect(() => {
+    const fetchCurrentUserProfile = async () => {
+      if (!currentUserId) return;
+      
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('username, avatar_url, last_active')
+          .eq('id', currentUserId)
+          .single();
+          
+        if (data) {
+          setCurrentUserProfile(data);
+        }
+      } catch (error) {
+        console.error('Error fetching current user profile:', error);
+      }
+    };
+    
+    fetchCurrentUserProfile();
+  }, [currentUserId]);
 
   useEffect(() => {
     fetchMessages();
@@ -68,29 +96,32 @@ const MessageView: React.FC<MessageViewProps> = ({
           filter: `conversation_id=eq.${conversation.id}`
         }, 
         (payload) => {
-          // Fetch the sender info to attach to the message
-          const fetchSenderInfo = async () => {
-            const { data } = await supabase
-              .from('profiles')
-              .select('username, avatar_url, last_active')
-              .eq('id', payload.new.sender_id)
-              .single();
+          // Only add the message if it's not already in the list (avoid duplicates from optimistic updates)
+          if (!messages.some(msg => msg.id === payload.new.id)) {
+            // Fetch the sender info to attach to the message
+            const fetchSenderInfo = async () => {
+              const { data } = await supabase
+                .from('profiles')
+                .select('username, avatar_url, last_active')
+                .eq('id', payload.new.sender_id)
+                .single();
+                
+              const newMsg: MessageWithSender = {
+                id: payload.new.id,
+                conversation_id: payload.new.conversation_id,
+                sender_id: payload.new.sender_id,
+                content: payload.new.content,
+                read: payload.new.read || false,
+                created_at: payload.new.created_at,
+                updated_at: payload.new.updated_at,
+                sender: data || null
+              };
               
-            const newMsg: MessageWithSender = {
-              id: payload.new.id,
-              conversation_id: payload.new.conversation_id,
-              sender_id: payload.new.sender_id,
-              content: payload.new.content,
-              read: payload.new.read || false,
-              created_at: payload.new.created_at,
-              updated_at: payload.new.updated_at,
-              sender: data || null
+              setMessages(prev => [...prev, newMsg]);
             };
             
-            setMessages(prev => [...prev, newMsg]);
-          };
-          
-          fetchSenderInfo();
+            fetchSenderInfo();
+          }
         }
       )
       .subscribe();
@@ -185,17 +216,49 @@ const MessageView: React.FC<MessageViewProps> = ({
     try {
       setIsSending(true);
       
-      const { error } = await supabase
+      // Create a temporary message ID for optimistic update
+      const tempId = crypto.randomUUID();
+      const messageContent = newMessage.trim();
+      
+      // Add optimistic message
+      const optimisticMessage: MessageWithSender = {
+        id: tempId,
+        conversation_id: conversation.id,
+        sender_id: currentUserId,
+        content: messageContent,
+        read: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        sender: currentUserProfile
+      };
+      
+      // Add message to state immediately (optimistic update)
+      setMessages(prev => [...prev, optimisticMessage]);
+      
+      // Clear input
+      setNewMessage('');
+      
+      // Scroll to bottom
+      scrollToBottom();
+      
+      // Send to server
+      const { data, error } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversation.id,
           sender_id: currentUserId,
-          content: newMessage.trim(),
-        });
+          content: messageContent,
+        })
+        .select();
         
       if (error) throw error;
       
-      setNewMessage('');
+      // Update the conversation's updated_at timestamp
+      await supabase
+        .from('conversations')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', conversation.id);
+        
     } catch (error: any) {
       console.error('Error sending message:', error);
       toast({
@@ -260,6 +323,7 @@ const MessageView: React.FC<MessageViewProps> = ({
     }
   };
 
+  
   return (
     <>
       <div className="p-4 border-b border-white/10 flex items-center gap-3">
@@ -406,4 +470,3 @@ const MessageView: React.FC<MessageViewProps> = ({
 };
 
 export default MessageView;
-

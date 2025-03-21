@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,9 +30,9 @@ const Messages = () => {
     if (user) {
       fetchConversations();
       
-      // Set up real-time subscription for new conversations
-      const channel = supabase
-        .channel('conversations-channel')
+      // Set up real-time subscription for changes to conversations
+      const conversationsChannel = supabase
+        .channel('conversations-updates')
         .on('postgres_changes', 
           { 
             event: '*', 
@@ -45,11 +46,102 @@ const Messages = () => {
         )
         .subscribe();
         
+      // Set up real-time subscription for new messages to update conversation list ordering
+      const messagesChannel = supabase
+        .channel('messages-updates')
+        .on('postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages'
+          },
+          (payload) => {
+            // If the message belongs to one of our conversations, update the conversation list
+            if (conversations.some(c => c.id === payload.new.conversation_id)) {
+              fetchConversations();
+              
+              // If the new message is for our currently selected conversation and from the other user,
+              // update the selected conversation object to include this message
+              if (selectedConversation?.id === payload.new.conversation_id && 
+                  payload.new.sender_id !== user.id) {
+                updateSelectedConversation(selectedConversation.id);
+              }
+            }
+          }
+        )
+        .subscribe();
+        
       return () => {
-        supabase.removeChannel(channel);
+        supabase.removeChannel(conversationsChannel);
+        supabase.removeChannel(messagesChannel);
       };
     }
-  }, [user, loading]);
+  }, [user, loading, conversations]);
+
+  const updateSelectedConversation = async (conversationId: string) => {
+    if (!conversationId) return;
+    
+    try {
+      const { data: conversation } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('id', conversationId)
+        .single();
+        
+      if (!conversation) return;
+      
+      // Fetch participants
+      const { data: participants } = await supabase
+        .from('conversation_participants')
+        .select(`
+          id, 
+          conversation_id, 
+          user_id, 
+          created_at
+        `);
+        
+      // Separately fetch profiles data for each participant
+      const processedParticipants = await Promise.all(
+        participants?.map(async (p) => {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('username, avatar_url, last_active')
+            .eq('id', p.user_id)
+            .single();
+            
+          return {
+            id: p.id,
+            conversation_id: p.conversation_id,
+            user_id: p.user_id,
+            created_at: p.created_at,
+            profile: {
+              username: profileData?.username || 'Unknown',
+              avatar_url: profileData?.avatar_url,
+              last_active: profileData?.last_active
+            }
+          };
+        }) || []
+      );
+        
+      // Get latest message
+      const { data: messages } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+        
+      const updatedConversation = {
+        ...conversation,
+        participants: processedParticipants,
+        lastMessage: messages && messages.length > 0 ? messages[0] : undefined
+      };
+      
+      setSelectedConversation(updatedConversation);
+    } catch (error) {
+      console.error("Error updating selected conversation:", error);
+    }
+  };
 
   const fetchConversations = async () => {
     if (!user) return;
@@ -152,6 +244,25 @@ const Messages = () => {
     fetchConversations();
   };
 
+  const handleSelectConversation = (conversation: Conversation) => {
+    setSelectedConversation(conversation);
+    
+    // Mark unread messages as read when selecting a conversation
+    if (conversation.lastMessage && !conversation.lastMessage.read && 
+        conversation.lastMessage.sender_id !== user?.id) {
+      supabase
+        .from('messages')
+        .update({ read: true })
+        .eq('conversation_id', conversation.id)
+        .eq('read', false)
+        .neq('sender_id', user?.id)
+        .then(() => {
+          // Update the conversation in the list to show message as read
+          fetchConversations();
+        });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-abyss via-abyss/95 to-abyss">
       <div className="container mx-auto py-6 px-4">
@@ -171,7 +282,7 @@ const Messages = () => {
               <ConversationsList 
                 conversations={conversations} 
                 selectedConversation={selectedConversation}
-                onSelectConversation={setSelectedConversation}
+                onSelectConversation={handleSelectConversation}
                 isLoading={isLoading}
                 currentUserId={user?.id || ''}
               />
