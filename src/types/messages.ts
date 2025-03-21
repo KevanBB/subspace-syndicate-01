@@ -15,6 +15,7 @@ export interface ConversationParticipant {
   profile?: {
     username: string;
     avatar_url?: string;
+    last_active?: string;
   };
 }
 
@@ -29,5 +30,6 @@ export interface Message {
   sender?: {
     username: string;
     avatar_url?: string;
+    last_active?: string;
   };
 }
