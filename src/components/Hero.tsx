@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -27,7 +26,7 @@ const Hero = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              <img src="/logo.svg" alt="SubSpace Crown Logo" className="w-32 h-auto" />
+              <img src="/logo.svg" alt="SubSpace Logo" className="w-32 h-auto" />
             </motion.div>
             
             <div className="inline-block glass px-3 py-1 rounded-full mb-6">
