@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -93,7 +92,7 @@ const NewConversationButton: React.FC<NewConversationButtonProps> = ({ onConvers
         }
       }
       
-      // Create new conversation
+      // Create new conversation - enforcing the two-participant model
       const { data: newConversation, error: conversationError } = await supabase
         .from('conversations')
         .insert({})
@@ -102,7 +101,7 @@ const NewConversationButton: React.FC<NewConversationButtonProps> = ({ onConvers
         
       if (conversationError) throw conversationError;
       
-      // Add participants
+      // Add exactly two participants: current user and the selected user
       const { error: participantsError } = await supabase
         .from('conversation_participants')
         .insert([

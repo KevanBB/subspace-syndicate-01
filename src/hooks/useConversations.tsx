@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -53,11 +52,17 @@ export const useConversations = () => {
               conversation_id, 
               user_id, 
               created_at
-            `);
+            `)
+            .eq('conversation_id', conversation.id);
             
+          // Skip conversations that don't have exactly two participants
+          if (!participants || participants.length !== 2) {
+            return null;
+          }
+          
           // Separately fetch profiles data for each participant
           const processedParticipants = await Promise.all(
-            participants?.map(async (p) => {
+            participants.map(async (p) => {
               const { data: profileData } = await supabase
                 .from('profiles')
                 .select('username, avatar_url, last_active')
@@ -75,9 +80,9 @@ export const useConversations = () => {
                   last_active: profileData?.last_active
                 }
               };
-            }) || []
+            })
           );
-            
+          
           // Get latest message
           const { data: messages } = await supabase
             .from('messages')
@@ -85,7 +90,7 @@ export const useConversations = () => {
             .eq('conversation_id', conversation.id)
             .order('created_at', { ascending: false })
             .limit(1);
-            
+          
           return {
             ...conversation,
             participants: processedParticipants,
@@ -94,7 +99,12 @@ export const useConversations = () => {
         })
       );
       
-      setConversations(conversationsWithDetails);
+      // Filter out null values (conversations without exactly 2 participants)
+      const validConversations = conversationsWithDetails.filter(
+        conversation => conversation !== null
+      ) as Conversation[];
+      
+      setConversations(validConversations);
     } catch (error: any) {
       console.error('Error fetching conversations:', error);
       toast({

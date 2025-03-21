@@ -37,8 +37,9 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
     );
   }
 
+  // Function to get the other participant (not the current user)
   const getOtherParticipant = (conversation: Conversation) => {
-    if (!conversation.participants) return null;
+    if (!conversation.participants || conversation.participants.length !== 2) return null;
     return conversation.participants.find(p => p.user_id !== currentUserId);
   };
 
@@ -46,9 +47,13 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
     <div className="overflow-y-auto max-h-[calc(80vh-64px)]">
       {conversations.map(conversation => {
         const otherParticipant = getOtherParticipant(conversation);
-        const username = otherParticipant?.profile?.username || 'User';
-        const avatarUrl = otherParticipant?.profile?.avatar_url;
-        const lastActive = otherParticipant?.profile?.last_active;
+        
+        // Skip rendering this conversation if we can't find the other participant
+        if (!otherParticipant) return null;
+        
+        const username = otherParticipant.profile?.username || 'User';
+        const avatarUrl = otherParticipant.profile?.avatar_url;
+        const lastActive = otherParticipant.profile?.last_active;
         const initials = username.substring(0, 2).toUpperCase();
         const isSelected = selectedConversation?.id === conversation.id;
         const lastMessageText = conversation.lastMessage?.content || 'No messages yet';

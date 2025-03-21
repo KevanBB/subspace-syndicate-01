@@ -15,9 +15,14 @@ const FloatingChatsContainer: React.FC<FloatingChatsContainerProps> = ({
   currentUserId,
   onCloseConversation,
 }) => {
+  // Filter to ensure each conversation has exactly two participants
+  const validConversations = openConversations.filter(
+    conversation => conversation.participants && conversation.participants.length === 2
+  );
+
   return (
     <AnimatePresence>
-      {openConversations.map((conversation, index) => (
+      {validConversations.map((conversation, index) => (
         <FloatingChatHead
           key={conversation.id}
           conversation={conversation}

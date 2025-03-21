@@ -48,7 +48,13 @@ const Messages = () => {
     if (conversationId && user) {
       const convo = conversations.find(c => c.id === conversationId);
       if (convo) {
-        openConversation(convo);
+        // Check if this conversation has exactly two participants
+        if (convo.participants && convo.participants.length === 2) {
+          openConversation(convo);
+        } else {
+          console.warn("Invalid conversation structure: must have exactly 2 participants");
+          navigate('/messages', { replace: true });
+        }
       } else if (conversations.length > 0) {
         // If conversation not found but we have conversations, try to load it
         updateSelectedConversation(conversationId);
@@ -57,6 +63,12 @@ const Messages = () => {
   }, [conversationId, conversations, user]);
 
   const openConversation = (conversation: Conversation) => {
+    // Validate that the conversation has exactly two participants
+    if (!conversation.participants || conversation.participants.length !== 2) {
+      console.warn("Cannot open conversation: must have exactly 2 participants");
+      return;
+    }
+    
     // Check if conversation is already open
     if (!openConversations.some(c => c.id === conversation.id)) {
       setOpenConversations(prev => [...prev, conversation]);
@@ -76,6 +88,12 @@ const Messages = () => {
   };
 
   const handleConversationClick = (conversation: Conversation) => {
+    // Validate that the conversation has exactly two participants
+    if (!conversation.participants || conversation.participants.length !== 2) {
+      console.warn("Cannot open conversation: must have exactly 2 participants");
+      return;
+    }
+    
     handleSelectConversation(conversation); // Mark as read if needed
     openConversation(conversation);
   };
@@ -103,7 +121,7 @@ const Messages = () => {
             </div>
             
             <ConversationsList 
-              conversations={conversations} 
+              conversations={conversations.filter(c => c.participants && c.participants.length === 2)} 
               selectedConversation={selectedConversation}
               onSelectConversation={handleConversationClick}
               isLoading={isLoading}

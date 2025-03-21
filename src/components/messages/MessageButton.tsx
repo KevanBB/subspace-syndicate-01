@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -53,12 +52,12 @@ const MessageButton: React.FC<MessageButtonProps> = ({ recipientId, className })
           
         if (participations && participations.length > 0) {
           // Conversation exists, redirect to it
-          navigate('/messages');
+          navigate(`/messages/${participations[0].conversation_id}`);
           return;
         }
       }
       
-      // Create new conversation
+      // Create new conversation with exactly two participants
       const { data: conversation, error: conversationError } = await supabase
         .from('conversations')
         .insert({})
@@ -67,7 +66,7 @@ const MessageButton: React.FC<MessageButtonProps> = ({ recipientId, className })
         
       if (conversationError) throw conversationError;
       
-      // Add participants
+      // Add exactly two participants: current user and recipient
       const { error: participantsError } = await supabase
         .from('conversation_participants')
         .insert([
@@ -83,8 +82,8 @@ const MessageButton: React.FC<MessageButtonProps> = ({ recipientId, className })
         
       if (participantsError) throw participantsError;
       
-      // Navigate to messages
-      navigate('/messages');
+      // Navigate to the specific conversation
+      navigate(`/messages/${conversation.id}`);
     } catch (error: any) {
       console.error('Error creating conversation:', error);
       toast({
