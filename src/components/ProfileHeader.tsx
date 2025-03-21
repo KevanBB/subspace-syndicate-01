@@ -1,13 +1,42 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Edit, Camera } from 'lucide-react';
 
 const ProfileHeader: React.FC = () => {
   const { user } = useAuth();
-  const username = user?.user_metadata?.username || user?.email?.split('@')[0] || 'User';
+  const [profileData, setProfileData] = useState<any>(null);
+  
+  useEffect(() => {
+    if (user?.id) {
+      const fetchProfileData = async () => {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+          
+        if (error) {
+          console.error('Error fetching profile:', error);
+          return;
+        }
+        
+        if (data) {
+          setProfileData(data);
+        }
+      };
+      
+      fetchProfileData();
+    }
+  }, [user]);
+  
+  const username = profileData?.username || user?.user_metadata?.username || user?.email?.split('@')[0] || 'User';
+  const orientation = profileData?.orientation || user?.user_metadata?.orientation;
+  const location = profileData?.location || user?.user_metadata?.location;
+  const avatarUrl = profileData?.avatar_url || user?.user_metadata?.avatar_url;
   
   return (
     <div className="relative">
@@ -31,7 +60,7 @@ const ProfileHeader: React.FC = () => {
       <div className="relative px-4 sm:px-6 -mt-12 flex flex-col items-center sm:items-start">
         <div className="relative">
           <Avatar className="w-24 h-24 border-4 border-background shadow-md">
-            <AvatarImage src="/placeholder.svg" alt={username} />
+            <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={username} />
             <AvatarFallback className="bg-crimson text-white text-xl">
               {username.substring(0, 2).toUpperCase()}
             </AvatarFallback>
@@ -54,7 +83,7 @@ const ProfileHeader: React.FC = () => {
             </Button>
           </div>
           <p className="text-gray-400 mt-1">
-            {user?.user_metadata?.orientation || 'No orientation set'} • {user?.user_metadata?.location || 'No location set'}
+            {orientation || 'No orientation set'} • {location || 'No location set'}
           </p>
         </div>
       </div>

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -20,13 +20,43 @@ import { Upload, X } from 'lucide-react';
 const ProfileSettings = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [username, setUsername] = useState(user?.user_metadata?.username || '');
-  const [location, setLocation] = useState(user?.user_metadata?.location || '');
-  const [birthday, setBirthday] = useState(user?.user_metadata?.birthday || '');
-  const [orientation, setOrientation] = useState(user?.user_metadata?.orientation || 'straight');
-  const [bdsmRole, setBdsmRole] = useState(user?.user_metadata?.bdsm_role || 'Exploring');
+  const [profileData, setProfileData] = useState<any>(null);
+  const [username, setUsername] = useState('');
+  const [location, setLocation] = useState('');
+  const [birthday, setBirthday] = useState('');
+  const [orientation, setOrientation] = useState('straight');
+  const [bdsmRole, setBdsmRole] = useState('Exploring');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  
+  // Fetch profile data from the profiles table
+  useEffect(() => {
+    if (user?.id) {
+      const fetchProfileData = async () => {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+          
+        if (error) {
+          console.error('Error fetching profile:', error);
+          return;
+        }
+        
+        if (data) {
+          setProfileData(data);
+          setUsername(data.username || user?.user_metadata?.username || '');
+          setLocation(data.location || user?.user_metadata?.location || '');
+          setBirthday(data.birthday || user?.user_metadata?.birthday || '');
+          setOrientation(data.orientation || user?.user_metadata?.orientation || 'straight');
+          setBdsmRole(data.bdsm_role || user?.user_metadata?.bdsm_role || 'Exploring');
+        }
+      };
+      
+      fetchProfileData();
+    }
+  }, [user]);
   
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -46,7 +76,7 @@ const ProfileSettings = () => {
     setLoading(true);
     
     try {
-      // Update metadata
+      // Update metadata in auth.users
       const { error: updateError } = await supabase.auth.updateUser({
         data: {
           username,
@@ -58,6 +88,20 @@ const ProfileSettings = () => {
       });
       
       if (updateError) throw updateError;
+      
+      // Update profile in profiles table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          username,
+          location,
+          birthday,
+          orientation,
+          bdsm_role: bdsmRole
+        })
+        .eq('id', user?.id);
+        
+      if (profileError) throw profileError;
       
       // Update avatar if a new one was uploaded
       if (avatarFile) {
@@ -82,12 +126,19 @@ const ProfileSettings = () => {
           .from('avatars')
           .getPublicUrl(fileName);
           
-        // Update the avatar URL in metadata
+        // Update the avatar URL in metadata and profile
         await supabase.auth.updateUser({
           data: {
             avatar_url: publicUrlData.publicUrl
           }
         });
+        
+        await supabase
+          .from('profiles')
+          .update({
+            avatar_url: publicUrlData.publicUrl
+          })
+          .eq('id', user?.id);
       }
       
       toast({

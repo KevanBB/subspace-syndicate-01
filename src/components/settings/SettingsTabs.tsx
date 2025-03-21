@@ -1,5 +1,7 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import ProfileSettings from './ProfileSettings';
@@ -7,6 +9,15 @@ import AccountSettings from './AccountSettings';
 import PrivacySettings from './PrivacySettings';
 
 const SettingsTabs = () => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
+  
   return (
     <Tabs defaultValue="profile" className="w-full">
       <TabsList className="grid grid-cols-3 mb-6 bg-black/20 border border-white/10">

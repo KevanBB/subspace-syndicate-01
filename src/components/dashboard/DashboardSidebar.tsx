@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Sidebar, 
   SidebarHeader, 
@@ -26,8 +27,34 @@ import {
 const DashboardSidebar = () => {
   const { user, signOut } = useAuth();
   const location = useLocation();
-  const username = user?.user_metadata?.username || user?.email?.split('@')[0] || 'User';
-  const bdsmRole = user?.user_metadata?.bdsm_role || 'Exploring';
+  const [profileData, setProfileData] = useState<any>(null);
+  
+  useEffect(() => {
+    if (user?.id) {
+      const fetchProfileData = async () => {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+          
+        if (error) {
+          console.error('Error fetching profile:', error);
+          return;
+        }
+        
+        if (data) {
+          setProfileData(data);
+        }
+      };
+      
+      fetchProfileData();
+    }
+  }, [user]);
+  
+  const username = profileData?.username || user?.user_metadata?.username || user?.email?.split('@')[0] || 'User';
+  const bdsmRole = profileData?.bdsm_role || user?.user_metadata?.bdsm_role || 'Exploring';
+  const avatarUrl = profileData?.avatar_url || user?.user_metadata?.avatar_url;
   
   const getBadgeVariant = (role: string) => {
     switch (role.toLowerCase()) {
@@ -43,7 +70,7 @@ const DashboardSidebar = () => {
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 border border-white/10">
-            <AvatarImage src={user?.user_metadata?.avatar_url || "/placeholder.svg"} alt={username} />
+            <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={username} />
             <AvatarFallback className="bg-crimson text-white">
               {username.substring(0, 2).toUpperCase()}
             </AvatarFallback>
@@ -57,7 +84,7 @@ const DashboardSidebar = () => {
               </Badge>
             </div>
             <Link 
-              to={`/profile/${user?.id}`} 
+              to="/profile" 
               className="text-xs text-gray-400 hover:text-white transition-colors"
             >
               View Profile

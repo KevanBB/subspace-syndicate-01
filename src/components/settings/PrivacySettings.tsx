@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -11,14 +11,41 @@ import { toast } from '@/hooks/use-toast';
 const PrivacySettings = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [visibility, setVisibility] = useState(user?.user_metadata?.visibility || 'Public');
-  const [showOnlineStatus, setShowOnlineStatus] = useState(user?.user_metadata?.show_online_status !== false);
-  const [allowMessages, setAllowMessages] = useState(user?.user_metadata?.allow_messages !== false);
+  const [visibility, setVisibility] = useState('Public');
+  const [showOnlineStatus, setShowOnlineStatus] = useState(true);
+  const [allowMessages, setAllowMessages] = useState(true);
+  
+  // Fetch privacy settings from profiles table
+  useEffect(() => {
+    if (user?.id) {
+      const fetchPrivacySettings = async () => {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('visibility, show_online_status, allow_messages')
+          .eq('id', user.id)
+          .single();
+          
+        if (error) {
+          console.error('Error fetching privacy settings:', error);
+          return;
+        }
+        
+        if (data) {
+          setVisibility(data.visibility || user?.user_metadata?.visibility || 'Public');
+          setShowOnlineStatus(data.show_online_status !== false && user?.user_metadata?.show_online_status !== false);
+          setAllowMessages(data.allow_messages !== false && user?.user_metadata?.allow_messages !== false);
+        }
+      };
+      
+      fetchPrivacySettings();
+    }
+  }, [user]);
   
   const updatePrivacySettings = async () => {
     setLoading(true);
     
     try {
+      // Update auth metadata
       const { error } = await supabase.auth.updateUser({
         data: {
           visibility,
@@ -28,6 +55,18 @@ const PrivacySettings = () => {
       });
       
       if (error) throw error;
+      
+      // Update profiles table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          visibility,
+          show_online_status: showOnlineStatus,
+          allow_messages: allowMessages
+        })
+        .eq('id', user?.id);
+        
+      if (profileError) throw profileError;
       
       toast({
         title: "Privacy settings updated",

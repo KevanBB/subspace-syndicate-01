@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -67,7 +66,6 @@ const AccountSettings = () => {
     setLoading(true);
     
     try {
-      // First verify the current password
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: user?.email || '',
         password: currentPassword,
@@ -75,7 +73,6 @@ const AccountSettings = () => {
       
       if (signInError) throw new Error("Current password is incorrect");
       
-      // Then update to the new password
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       
       if (error) throw error;
@@ -85,13 +82,39 @@ const AccountSettings = () => {
         description: "Your password has been updated successfully.",
       });
       
-      // Clear password fields
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error: any) {
       toast({
         title: "Error updating password",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setLoading(true);
+    try {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', user?.id);
+        
+      if (profileError) throw profileError;
+      
+      toast({
+        title: "Account deleted",
+        description: "Your account has been deleted. You will be signed out.",
+      });
+      
+      await supabase.auth.signOut();
+    } catch (error: any) {
+      toast({
+        title: "Error deleting account",
         description: error.message,
         variant: "destructive",
       });
@@ -209,7 +232,9 @@ const AccountSettings = () => {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel className="bg-black/50 text-white hover:bg-black/70">Cancel</AlertDialogCancel>
-              <AlertDialogAction className="bg-red-700 hover:bg-red-800">Yes, delete my account</AlertDialogAction>
+              <AlertDialogAction className="bg-red-700 hover:bg-red-800" onClick={handleDeleteAccount}>
+                Yes, delete my account
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

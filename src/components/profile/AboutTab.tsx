@@ -1,6 +1,7 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Edit, CalendarDays, MapPin, Heart, Lock, User } from 'lucide-react';
@@ -8,7 +9,30 @@ import { Separator } from '@/components/ui/separator';
 
 const AboutTab: React.FC = () => {
   const { user } = useAuth();
-  const metadata = user?.user_metadata || {};
+  const [profileData, setProfileData] = useState<any>(null);
+  
+  useEffect(() => {
+    if (user?.id) {
+      const fetchProfileData = async () => {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+          
+        if (error) {
+          console.error('Error fetching profile:', error);
+          return;
+        }
+        
+        if (data) {
+          setProfileData(data);
+        }
+      };
+      
+      fetchProfileData();
+    }
+  }, [user]);
   
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Not specified';
@@ -22,6 +46,12 @@ const AboutTab: React.FC = () => {
       return dateString;
     }
   };
+
+  const username = profileData?.username || user?.user_metadata?.username || user?.email?.split('@')[0] || 'User';
+  const birthday = profileData?.birthday || user?.user_metadata?.birthday;
+  const location = profileData?.location || user?.user_metadata?.location;
+  const orientation = profileData?.orientation || user?.user_metadata?.orientation;
+  const visibility = profileData?.visibility || user?.user_metadata?.visibility || 'Public';
 
   return (
     <div className="space-y-6">
@@ -37,7 +67,7 @@ const AboutTab: React.FC = () => {
             <User className="h-5 w-5 text-crimson" />
             <div>
               <p className="text-sm text-white/50">Username</p>
-              <p>{metadata.username || user?.email?.split('@')[0] || 'Not set'}</p>
+              <p>{username}</p>
             </div>
           </div>
           
@@ -45,7 +75,7 @@ const AboutTab: React.FC = () => {
             <CalendarDays className="h-5 w-5 text-crimson" />
             <div>
               <p className="text-sm text-white/50">Birthday</p>
-              <p>{formatDate(metadata.birthday)}</p>
+              <p>{formatDate(birthday)}</p>
             </div>
           </div>
           
@@ -53,7 +83,7 @@ const AboutTab: React.FC = () => {
             <MapPin className="h-5 w-5 text-crimson" />
             <div>
               <p className="text-sm text-white/50">Location</p>
-              <p>{metadata.location || 'Not specified'}</p>
+              <p>{location || 'Not specified'}</p>
             </div>
           </div>
           
@@ -61,7 +91,7 @@ const AboutTab: React.FC = () => {
             <Heart className="h-5 w-5 text-crimson" />
             <div>
               <p className="text-sm text-white/50">Orientation</p>
-              <p>{metadata.orientation || 'Not specified'}</p>
+              <p>{orientation || 'Not specified'}</p>
             </div>
           </div>
           
@@ -69,7 +99,7 @@ const AboutTab: React.FC = () => {
             <Lock className="h-5 w-5 text-crimson" />
             <div>
               <p className="text-sm text-white/50">Profile Visibility</p>
-              <p>{metadata.visibility || 'Public'}</p>
+              <p>{visibility}</p>
             </div>
           </div>
         </CardContent>
