@@ -16,13 +16,15 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
 }) => {
   const [progress, setProgress] = React.useState(0);
   
-  const { status, isLoading, error } = useVideoStatus({
+  const { status, metadata, isLoading, error } = useVideoStatus({
     videoId,
-    onStatusChange: (newStatus) => {
+    onStatusChange: (newStatus, metadata) => {
       if (newStatus === 'ready' && onProcessingComplete) {
         toast({
           title: "Processing complete",
-          description: "Your video is now ready to view!",
+          description: `Your video is now ready to view! Duration: ${
+            metadata?.duration ? Math.floor(metadata.duration / 60) + 'm ' + (metadata.duration % 60) + 's' : 'Unknown'
+          }`,
         });
         onProcessingComplete();
       } else if (newStatus === 'failed') {
@@ -76,7 +78,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
       <div className="space-y-2">
         <div className="flex items-center space-x-2">
           <Clock className="h-4 w-4 text-amber-500" />
-          <span className="text-sm text-amber-500">Processing...</span>
+          <span className="text-sm text-amber-500">Processing: transcoding and generating thumbnails...</span>
         </div>
         <Progress value={progress} className="h-1" />
       </div>
@@ -87,7 +89,7 @@ const VideoProcessingStatus: React.FC<VideoProcessingStatusProps> = ({
     return (
       <div className="flex items-center space-x-2 text-green-500">
         <CheckCircle2 className="h-4 w-4" />
-        <span className="text-sm">Ready</span>
+        <span className="text-sm">Ready{metadata?.duration ? ` (${Math.floor(metadata.duration / 60)}m ${metadata.duration % 60}s)` : ''}</span>
       </div>
     );
   }

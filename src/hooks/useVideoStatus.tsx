@@ -4,13 +4,22 @@ import { supabase } from '@/integrations/supabase/client';
 
 type VideoStatus = 'processing' | 'ready' | 'failed';
 
+interface VideoMetadata {
+  duration?: number;
+  width?: number;
+  height?: number;
+  format?: string;
+  bitrate?: number;
+}
+
 interface UseVideoStatusProps {
   videoId: string;
-  onStatusChange?: (status: VideoStatus) => void;
+  onStatusChange?: (status: VideoStatus, metadata?: VideoMetadata) => void;
 }
 
 export function useVideoStatus({ videoId, onStatusChange }: UseVideoStatusProps) {
   const [status, setStatus] = useState<VideoStatus | null>(null);
+  const [metadata, setMetadata] = useState<VideoMetadata | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -22,7 +31,7 @@ export function useVideoStatus({ videoId, onStatusChange }: UseVideoStatusProps)
         setIsLoading(true);
         const { data, error } = await supabase
           .from('videos')
-          .select('status')
+          .select('status, duration, thumbnail_url')
           .eq('id', videoId)
           .single();
 
@@ -30,9 +39,16 @@ export function useVideoStatus({ videoId, onStatusChange }: UseVideoStatusProps)
         
         if (isMounted) {
           setStatus(data.status as VideoStatus);
+          
+          // Extract available metadata
+          const videoMetadata: VideoMetadata = {};
+          if (data.duration) videoMetadata.duration = data.duration;
+          
+          setMetadata(videoMetadata);
           setIsLoading(false);
+          
           if (onStatusChange && data.status) {
-            onStatusChange(data.status as VideoStatus);
+            onStatusChange(data.status as VideoStatus, videoMetadata);
           }
         }
       } catch (err) {
@@ -62,8 +78,15 @@ export function useVideoStatus({ videoId, onStatusChange }: UseVideoStatusProps)
           if (isMounted) {
             const newStatus = payload.new.status as VideoStatus;
             setStatus(newStatus);
+            
+            // Extract available metadata from the update
+            const videoMetadata: VideoMetadata = {};
+            if (payload.new.duration) videoMetadata.duration = payload.new.duration;
+            
+            setMetadata(videoMetadata);
+            
             if (onStatusChange) {
-              onStatusChange(newStatus);
+              onStatusChange(newStatus, videoMetadata);
             }
           }
         }
@@ -77,5 +100,5 @@ export function useVideoStatus({ videoId, onStatusChange }: UseVideoStatusProps)
     };
   }, [videoId, onStatusChange]);
 
-  return { status, isLoading, error };
+  return { status, metadata, isLoading, error };
 }
