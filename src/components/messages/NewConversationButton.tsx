@@ -3,8 +3,7 @@ import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Plus, Search, X } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -13,7 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import SearchBar from './SearchBar';
+import SearchResults from './SearchResults';
 
 interface UserProfile {
   id: string;
@@ -33,16 +33,17 @@ const NewConversationButton: React.FC<NewConversationButtonProps> = ({ onConvers
   const [isSearching, setIsSearching] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+  const handleSearch = async (query: string) => {
+    if (!query.trim()) return;
     
     try {
       setIsSearching(true);
+      setSearchQuery(query);
       
       const { data, error } = await supabase
         .from('profiles')
         .select('id, username, avatar_url')
-        .ilike('username', `%${searchQuery.trim()}%`)
+        .ilike('username', `%${query.trim()}%`)
         .neq('id', user?.id)
         .limit(10);
         
@@ -151,60 +152,18 @@ const NewConversationButton: React.FC<NewConversationButtonProps> = ({ onConvers
             <DialogTitle>New Conversation</DialogTitle>
           </DialogHeader>
           
-          <div className="flex items-center gap-2 my-4">
-            <div className="relative flex-1">
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="Search for username..."
-                className="bg-black/30 pr-8"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-white/60 hover:text-white/90"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-            <Button 
-              onClick={handleSearch}
-              disabled={!searchQuery.trim() || isSearching}
-            >
-              {isSearching ? (
-                <div className="animate-spin h-5 w-5 border-t-2 border-b-2 border-white rounded-full" />
-              ) : (
-                <Search className="h-5 w-5" />
-              )}
-            </Button>
-          </div>
+          <SearchBar 
+            onSearch={handleSearch}
+            isSearching={isSearching}
+          />
           
           <div className="max-h-80 overflow-y-auto">
-            {searchResults.length === 0 && searchQuery && !isSearching ? (
-              <div className="text-center text-white/60 py-8">
-                <p>No users found</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {searchResults.map(profile => (
-                  <div
-                    key={profile.id}
-                    className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-md cursor-pointer"
-                    onClick={() => startConversation(profile.id)}
-                  >
-                    <Avatar>
-                      <AvatarImage src={profile.avatar_url || "/placeholder.svg"} alt={profile.username} />
-                      <AvatarFallback className="bg-crimson text-white">
-                        {profile.username.substring(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="font-medium">{profile.username}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <SearchResults 
+              results={searchResults}
+              searchQuery={searchQuery}
+              isSearching={isSearching}
+              onSelectUser={startConversation}
+            />
           </div>
           
           <DialogFooter>
@@ -212,6 +171,7 @@ const NewConversationButton: React.FC<NewConversationButtonProps> = ({ onConvers
               variant="outline" 
               onClick={() => setIsOpen(false)}
               className="border-white/20 text-white"
+              disabled={isCreating}
             >
               Cancel
             </Button>
