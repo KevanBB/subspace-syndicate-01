@@ -54,7 +54,13 @@ const MessageView: React.FC<MessageViewProps> = ({
               .single();
               
             const newMsg: Message = {
-              ...payload.new,
+              id: payload.new.id,
+              conversation_id: payload.new.conversation_id,
+              sender_id: payload.new.sender_id,
+              content: payload.new.content,
+              read: payload.new.read || false,
+              created_at: payload.new.created_at,
+              updated_at: payload.new.updated_at,
               sender: data || undefined
             };
             
@@ -79,6 +85,7 @@ const MessageView: React.FC<MessageViewProps> = ({
     try {
       setIsLoading(true);
       
+      // Get messages with sender profiles using join
       const { data, error } = await supabase
         .from('messages')
         .select(`
@@ -89,7 +96,7 @@ const MessageView: React.FC<MessageViewProps> = ({
           read,
           created_at,
           updated_at,
-          sender:profiles!sender_id(
+          sender:profiles(
             username,
             avatar_url
           )
@@ -99,16 +106,24 @@ const MessageView: React.FC<MessageViewProps> = ({
         
       if (error) throw error;
       
-      const typedMessages: Message[] = data?.map(msg => ({
-        id: msg.id,
-        conversation_id: msg.conversation_id || '',
-        sender_id: msg.sender_id || '',
-        content: msg.content,
-        read: !!msg.read,
-        created_at: msg.created_at || '',
-        updated_at: msg.updated_at || '',
-        sender: msg.sender
-      })) || [];
+      // Process the data to ensure it matches our Message type
+      const typedMessages: Message[] = data?.map(msg => {
+        // Handle the case where sender might be an array due to the join
+        const senderData = msg.sender && Array.isArray(msg.sender) && msg.sender.length > 0 
+          ? msg.sender[0] 
+          : msg.sender;
+          
+        return {
+          id: msg.id,
+          conversation_id: msg.conversation_id || '',
+          sender_id: msg.sender_id || '',
+          content: msg.content,
+          read: !!msg.read,
+          created_at: msg.created_at || '',
+          updated_at: msg.updated_at || '',
+          sender: senderData
+        };
+      }) || [];
       
       setMessages(typedMessages);
       
