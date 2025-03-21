@@ -8,12 +8,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Shield, Heart, SwitchCamera, HelpCircle } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 
 type Profile = {
   id: string;
   username: string | null;
   user_role: string | null;
+  bdsm_role: string | null;
   created_at: string | null;
   last_active?: string | null;
 };
@@ -28,7 +31,7 @@ const Community = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, user_role, created_at')
+        .select('id, username, user_role, bdsm_role, created_at')
         .order('created_at', { ascending: false });
         
       if (error) throw error;
@@ -43,7 +46,7 @@ const Community = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, user_role, created_at')
+        .select('id, username, user_role, bdsm_role, created_at')
         .limit(6)
         .order('created_at', { ascending: false });
         
@@ -56,6 +59,33 @@ const Community = () => {
       })) as Profile[];
     }
   });
+  
+  // Helper function to get BDSM role badge variant and icon
+  const getBdsmRoleBadge = (role: string | null) => {
+    const bdsmRole = role || 'Exploring';
+    let variant = "exploring";
+    let Icon = HelpCircle;
+    
+    switch(bdsmRole) {
+      case 'Dominant':
+        variant = "dominant";
+        Icon = Shield;
+        break;
+      case 'submissive':
+        variant = "submissive";
+        Icon = Heart;
+        break;
+      case 'switch':
+        variant = "switch";
+        Icon = SwitchCamera;
+        break;
+      default:
+        variant = "exploring";
+        Icon = HelpCircle;
+    }
+    
+    return { variant, Icon, bdsmRole };
+  };
   
   // Pagination logic
   const totalPages = allMembers ? Math.ceil(allMembers.length / membersPerPage) : 0;
@@ -119,6 +149,7 @@ const Community = () => {
                     id={member.id}
                     username={member.username}
                     user_role={member.user_role}
+                    bdsm_role={member.bdsm_role}
                     last_active={member.last_active}
                   />
                 ))}
@@ -140,6 +171,7 @@ const Community = () => {
                       id={member.id}
                       username={member.username}
                       user_role={member.user_role}
+                      bdsm_role={member.bdsm_role}
                     />
                   ))}
                 </div>
@@ -194,39 +226,49 @@ const Community = () => {
                     <TableHead className="text-white w-[50px]">#</TableHead>
                     <TableHead className="text-white">Username</TableHead>
                     <TableHead className="text-white">Role</TableHead>
+                    <TableHead className="text-white">BDSM Role</TableHead>
                     <TableHead className="text-white">Joined</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedMembers?.map((member, index) => (
-                    <TableRow key={member.id} className="hover:bg-black/40 border-white/10">
-                      <TableCell className="text-white/70">
-                        {(currentPage - 1) * membersPerPage + index + 1}
-                      </TableCell>
-                      <TableCell className="text-white font-medium">
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback className="bg-crimson text-white text-xs">
-                              {(member.username || 'AN').substring(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          {member.username || 'Anonymous'}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-white/70">
-                        {member.user_role || 'Member'}
-                      </TableCell>
-                      <TableCell className="text-white/70">
-                        {member.created_at 
-                          ? new Date(member.created_at).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })
-                          : 'Unknown'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {paginatedMembers?.map((member, index) => {
+                    const { variant, Icon, bdsmRole } = getBdsmRoleBadge(member.bdsm_role);
+                    return (
+                      <TableRow key={member.id} className="hover:bg-black/40 border-white/10">
+                        <TableCell className="text-white/70">
+                          {(currentPage - 1) * membersPerPage + index + 1}
+                        </TableCell>
+                        <TableCell className="text-white font-medium">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="bg-crimson text-white text-xs">
+                                {(member.username || 'AN').substring(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            {member.username || 'Anonymous'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-white/70">
+                          {member.user_role || 'Member'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={variant as any} className="flex items-center gap-1 text-xs">
+                            <Icon size={12} />
+                            {bdsmRole}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-white/70">
+                          {member.created_at 
+                            ? new Date(member.created_at).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })
+                            : 'Unknown'}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

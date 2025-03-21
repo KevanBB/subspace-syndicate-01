@@ -41,6 +41,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          bdsm_role: string
           birthday: string | null
           created_at: string | null
           id: string
@@ -51,6 +52,7 @@ export type Database = {
           visibility: string | null
         }
         Insert: {
+          bdsm_role?: string
           birthday?: string | null
           created_at?: string | null
           id: string
@@ -61,6 +63,7 @@ export type Database = {
           visibility?: string | null
         }
         Update: {
+          bdsm_role?: string
           birthday?: string | null
           created_at?: string | null
           id?: string
