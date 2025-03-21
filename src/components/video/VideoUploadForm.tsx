@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -10,28 +10,77 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/components/ui/use-toast';
 import { FileUploader } from '@/components/ui/file-uploader';
-import { Tag, Upload, FileVideo, Image as ImageIcon, X, Loader2 } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { FileVideo, Image as ImageIcon, X, Upload, Loader2, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { v4 as uuidv4 } from 'uuid';
+import { useNavigate } from 'react-router-dom';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 type VideoVisibility = 'public' | 'private' | 'unlisted';
-type VideoCategory = 'tutorial' | 'scene' | 'event' | 'other';
 
 const VideoUploadForm = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState<VideoCategory>('other');
   const [visibility, setVisibility] = useState<VideoVisibility>('public');
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isPageLeaveDialogOpen, setIsPageLeaveDialogOpen] = useState(false);
+  const [leavePage, setLeavePage] = useState(false);
+  const [leaveDestination, setLeaveDestination] = useState('');
   
   const tagInputRef = useRef<HTMLInputElement>(null);
+
+  // Prevent navigation if upload is in progress
+  useEffect(() => {
+    const preventNavigation = (e: BeforeUnloadEvent) => {
+      if (uploading) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+
+    window.addEventListener('beforeunload', preventNavigation);
+    
+    return () => {
+      window.removeEventListener('beforeunload', preventNavigation);
+    };
+  }, [uploading]);
+
+  // Handle attempted navigation
+  const handleNavigation = (destination: string) => {
+    if (uploading) {
+      setLeaveDestination(destination);
+      setIsPageLeaveDialogOpen(true);
+      return false;
+    }
+    return true;
+  };
+
+  // Effect to navigate if confirmed
+  useEffect(() => {
+    if (leavePage && leaveDestination) {
+      navigate(leaveDestination);
+    }
+  }, [leavePage, leaveDestination, navigate]);
 
   const handleVideoSelect = (files: FileList | null) => {
     if (files && files.length > 0) {
@@ -123,42 +172,53 @@ const VideoUploadForm = () => {
 
     try {
       setUploading(true);
+      setUploadProgress(0);
       
       // Generate unique IDs for storage paths
       const videoId = uuidv4();
       const videoFileName = `${videoId}.${videoFile.name.split('.').pop()}`;
       const videoPath = `${user.id}/${videoFileName}`;
       
-      // Track upload progress manually
-      const uploadProgressCallback = (progress: number) => {
-        setUploadProgress(progress);
-      };
-      
-      // Using XMLHttpRequest to track upload progress
+      // Upload video to storage with progress tracking
       const xhr = new XMLHttpRequest();
-      let startTime = new Date().getTime();
       
+      // Set up progress tracking
       xhr.upload.addEventListener('progress', (event) => {
         if (event.lengthComputable) {
           const percentComplete = Math.round((event.loaded / event.total) * 100);
-          uploadProgressCallback(percentComplete);
+          setUploadProgress(percentComplete);
         }
       });
       
-      // Upload video to storage
-      const { error: videoUploadError, data: videoData } = await supabase.storage
-        .from('videos')
-        .upload(videoPath, videoFile, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (videoUploadError) throw videoUploadError;
-
+      // Create a promise to track the XHR upload
+      const uploadPromise = new Promise<void>((resolve, reject) => {
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            reject(new Error(`Upload failed with status ${xhr.status}`));
+          }
+        };
+        xhr.onerror = () => reject(new Error('Upload failed'));
+      });
+      
+      // Get the upload URL from Supabase
+      const { data: uploadData } = await supabase.storage.from('videos').createSignedUploadUrl(videoPath);
+      
+      if (!uploadData?.signedURL) {
+        throw new Error('Failed to get upload URL');
+      }
+      
+      // Configure XHR request
+      xhr.open('PUT', uploadData.signedURL);
+      xhr.setRequestHeader('Content-Type', videoFile.type);
+      xhr.send(videoFile);
+      
+      // Wait for upload to complete
+      await uploadPromise;
+      
       // Get video URL
-      const { data: videoUrl } = supabase.storage
-        .from('videos')
-        .getPublicUrl(videoPath);
+      const { data: videoUrl } = supabase.storage.from('videos').getPublicUrl(videoPath);
 
       // Handle thumbnail
       let thumbnailUrl = null;
@@ -191,7 +251,6 @@ const VideoUploadForm = () => {
           description,
           video_url: videoUrl.publicUrl,
           thumbnail_url: thumbnailUrl,
-          category,
           visibility,
           tags: tags.join(','),
           duration: 0, // This would be set by a processing function in a real app
@@ -212,10 +271,12 @@ const VideoUploadForm = () => {
       setThumbnailPreview(null);
       setTitle('');
       setDescription('');
-      setCategory('other');
       setVisibility('public');
       setTags([]);
       setCurrentTag('');
+      
+      // Navigate to My Content page
+      navigate('/subspacetv/my-content');
       
     } catch (error: any) {
       console.error('Upload error:', error);
@@ -234,7 +295,6 @@ const VideoUploadForm = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white mb-4">Upload New Video</h2>
-        <p className="text-white/70">Share your BDSM tutorials, scenes, or event recordings with the community.</p>
       </div>
 
       {!videoFile ? (
@@ -307,25 +367,6 @@ const VideoUploadForm = () => {
           </div>
           
           <div>
-            <Label htmlFor="category">Category</Label>
-            <Select 
-              value={category} 
-              onValueChange={(value: VideoCategory) => setCategory(value)}
-              disabled={uploading}
-            >
-              <SelectTrigger className="bg-black/30 border-white/20 text-white">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="tutorial">Tutorial</SelectItem>
-                <SelectItem value="scene">Scene</SelectItem>
-                <SelectItem value="event">Event</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div>
             <Label htmlFor="tags">Tags (up to 5)</Label>
             <div className="flex items-center gap-2 mb-2">
               {tags.map(tag => (
@@ -339,7 +380,6 @@ const VideoUploadForm = () => {
               ))}
             </div>
             <div className="flex items-center gap-2">
-              <Tag className="h-5 w-5 text-white/50" />
               <Input 
                 ref={tagInputRef}
                 value={currentTag}
@@ -415,20 +455,18 @@ const VideoUploadForm = () => {
           
           <div className="pt-4">
             {uploading ? (
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm text-white/70">Uploading...</span>
                   <span className="text-sm font-medium text-white">{uploadProgress}%</span>
                 </div>
-                <div className="w-full bg-white/10 rounded-full h-2.5">
-                  <div 
-                    className="bg-crimson h-2.5 rounded-full" 
-                    style={{ width: `${uploadProgress}%` }}
-                  ></div>
+                <Progress value={uploadProgress} className="h-2" />
+                <div className="flex items-center p-3 bg-black/40 rounded-md border border-white/10">
+                  <AlertTriangle className="h-5 w-5 text-amber-400 mr-2" />
+                  <p className="text-sm text-white/80">
+                    Please do not close this page until your video is fully uploaded
+                  </p>
                 </div>
-                <p className="text-xs text-white/50 mt-2">
-                  Please do not close this page while your video is uploading
-                </p>
               </div>
             ) : (
               <Button 
@@ -442,6 +480,25 @@ const VideoUploadForm = () => {
           </div>
         </div>
       </div>
+
+      {/* Alert Dialog for preventing navigation */}
+      <AlertDialog open={isPageLeaveDialogOpen} onOpenChange={setIsPageLeaveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Upload in Progress</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your video is still uploading. If you leave now, the upload will be canceled.
+              Are you sure you want to leave?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Stay on Page</AlertDialogCancel>
+            <AlertDialogAction onClick={() => setLeavePage(true)}>
+              Leave Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
