@@ -1,19 +1,30 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Conversation, Message } from '@/types/messages';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Send, ChevronLeft } from 'lucide-react';
+import { Send, ChevronLeft, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
 import OnlineIndicator from '@/components/community/OnlineIndicator';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface MessageViewProps {
   conversation: Conversation;
   currentUserId: string;
   onBack: () => void;
+  onConversationDeleted?: () => void;
 }
 
 interface MessageWithSender extends Message {
@@ -27,12 +38,14 @@ interface MessageWithSender extends Message {
 const MessageView: React.FC<MessageViewProps> = ({
   conversation,
   currentUserId,
-  onBack
+  onBack,
+  onConversationDeleted
 }) => {
   const [messages, setMessages] = useState<MessageWithSender[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const otherParticipant = conversation.participants?.find(p => p.user_id !== currentUserId);
@@ -195,6 +208,58 @@ const MessageView: React.FC<MessageViewProps> = ({
     }
   };
 
+  const handleDeleteConversation = async () => {
+    try {
+      setIsDeleting(true);
+      
+      // 1. Delete all messages in the conversation
+      const { error: messagesError } = await supabase
+        .from('messages')
+        .delete()
+        .eq('conversation_id', conversation.id);
+        
+      if (messagesError) throw messagesError;
+      
+      // 2. Delete all conversation participants
+      const { error: participantsError } = await supabase
+        .from('conversation_participants')
+        .delete()
+        .eq('conversation_id', conversation.id);
+        
+      if (participantsError) throw participantsError;
+      
+      // 3. Delete the conversation itself
+      const { error: conversationError } = await supabase
+        .from('conversations')
+        .delete()
+        .eq('id', conversation.id);
+        
+      if (conversationError) throw conversationError;
+      
+      toast({
+        title: "Conversation deleted",
+        description: "The conversation has been successfully deleted.",
+      });
+      
+      // Call the callback to notify parent component
+      if (onConversationDeleted) {
+        onConversationDeleted();
+      }
+      
+      // Go back to conversation list
+      onBack();
+    } catch (error: any) {
+      console.error('Error deleting conversation:', error);
+      toast({
+        title: 'Error deleting conversation',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <>
       <div className="p-4 border-b border-white/10 flex items-center gap-3">
@@ -221,7 +286,7 @@ const MessageView: React.FC<MessageViewProps> = ({
           )}
         </div>
         
-        <div>
+        <div className="flex-1">
           <h3 className="font-medium text-white">{username}</h3>
           {lastActive && (
             <p className="text-xs text-white/60">
@@ -231,6 +296,38 @@ const MessageView: React.FC<MessageViewProps> = ({
             </p>
           )}
         </div>
+        
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-white/70 hover:text-white hover:bg-red-500/20"
+            >
+              <Trash2 className="h-5 w-5" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="bg-gray-900 border-white/10 text-white">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
+              <AlertDialogDescription className="text-white/70">
+                Are you sure you want to delete this conversation? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="bg-gray-800 text-white border-white/10 hover:bg-gray-700">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteConversation}
+                disabled={isDeleting}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -309,3 +406,4 @@ const MessageView: React.FC<MessageViewProps> = ({
 };
 
 export default MessageView;
+

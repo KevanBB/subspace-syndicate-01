@@ -141,6 +141,11 @@ const Messages = () => {
     }
   };
 
+  const handleConversationDeleted = () => {
+    setSelectedConversation(null);
+    fetchConversations();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-abyss via-abyss/95 to-abyss">
       <div className="container mx-auto py-6 px-4">
@@ -172,6 +177,7 @@ const Messages = () => {
                   conversation={selectedConversation}
                   currentUserId={user?.id || ''}
                   onBack={() => setSelectedConversation(null)}
+                  onConversationDeleted={handleConversationDeleted}
                 />
               ) : (
                 <div className="flex-1 flex items-center justify-center">
