@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -48,7 +47,6 @@ const VideoUploadForm = () => {
   
   const tagInputRef = useRef<HTMLInputElement>(null);
 
-  // Prevent navigation if upload is in progress
   useEffect(() => {
     const preventNavigation = (e: BeforeUnloadEvent) => {
       if (uploading) {
@@ -65,7 +63,6 @@ const VideoUploadForm = () => {
     };
   }, [uploading]);
 
-  // Handle attempted navigation
   const handleNavigation = (destination: string) => {
     if (uploading) {
       setLeaveDestination(destination);
@@ -75,7 +72,6 @@ const VideoUploadForm = () => {
     return true;
   };
 
-  // Effect to navigate if confirmed
   useEffect(() => {
     if (leavePage && leaveDestination) {
       navigate(leaveDestination);
@@ -85,7 +81,6 @@ const VideoUploadForm = () => {
   const handleVideoSelect = (files: FileList | null) => {
     if (files && files.length > 0) {
       const file = files[0];
-      // Check if the file type is supported
       if (!['video/mp4', 'video/quicktime', 'video/avi', 'video/x-msvideo'].includes(file.type)) {
         toast({
           title: "Unsupported video format",
@@ -101,7 +96,6 @@ const VideoUploadForm = () => {
   const handleThumbnailSelect = (files: FileList | null) => {
     if (files && files.length > 0) {
       const file = files[0];
-      // Check if the file type is an image
       if (!file.type.startsWith('image/')) {
         toast({
           title: "Unsupported file format",
@@ -113,7 +107,6 @@ const VideoUploadForm = () => {
       
       setThumbnailFile(file);
       
-      // Create a preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setThumbnailPreview(reader.result as string);
@@ -174,15 +167,12 @@ const VideoUploadForm = () => {
       setUploading(true);
       setUploadProgress(0);
       
-      // Generate unique IDs for storage paths
       const videoId = uuidv4();
       const videoFileName = `${videoId}.${videoFile.name.split('.').pop()}`;
       const videoPath = `${user.id}/${videoFileName}`;
       
-      // Upload video to storage with progress tracking
       const xhr = new XMLHttpRequest();
       
-      // Set up progress tracking
       xhr.upload.addEventListener('progress', (event) => {
         if (event.lengthComputable) {
           const percentComplete = Math.round((event.loaded / event.total) * 100);
@@ -190,7 +180,6 @@ const VideoUploadForm = () => {
         }
       });
       
-      // Create a promise to track the XHR upload
       const uploadPromise = new Promise<void>((resolve, reject) => {
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
@@ -202,25 +191,20 @@ const VideoUploadForm = () => {
         xhr.onerror = () => reject(new Error('Upload failed'));
       });
       
-      // Get the upload URL from Supabase
       const { data: uploadData } = await supabase.storage.from('videos').createSignedUploadUrl(videoPath);
       
       if (!uploadData?.signedUrl) {
         throw new Error('Failed to get upload URL');
       }
       
-      // Configure XHR request
       xhr.open('PUT', uploadData.signedUrl);
       xhr.setRequestHeader('Content-Type', videoFile.type);
       xhr.send(videoFile);
       
-      // Wait for upload to complete
       await uploadPromise;
       
-      // Get video URL
       const { data: videoUrl } = supabase.storage.from('videos').getPublicUrl(videoPath);
 
-      // Handle thumbnail
       let thumbnailUrl = null;
       if (thumbnailFile) {
         const thumbnailFileName = `${videoId}-thumb.${thumbnailFile.name.split('.').pop()}`;
@@ -242,8 +226,14 @@ const VideoUploadForm = () => {
         thumbnailUrl = thumbUrl.publicUrl;
       }
 
-      // Save video metadata to database
-      const { error: insertError } = await supabase
+      toast({
+        title: "Upload complete",
+        description: "Your video is now being processed.",
+      });
+      
+      setUploadProgress(100);
+
+      const { data: videoRecord, error: insertError } = await supabase
         .from('videos')
         .insert({
           user_id: user.id,
@@ -253,19 +243,48 @@ const VideoUploadForm = () => {
           thumbnail_url: thumbnailUrl,
           visibility,
           tags: tags.join(','),
-          duration: 0, // This would be set by a processing function in a real app
-          status: 'processing' // Initially set to processing until a backend job completes processing
-        });
+          duration: 0,
+          status: 'processing',
+          category: 'other'
+        })
+        .select()
+        .single();
 
       if (insertError) throw insertError;
 
-      // Success
+      console.log("Video record inserted:", videoRecord);
+
+      try {
+        const processResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-video`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ videoId: videoRecord.id }),
+        });
+
+        if (!processResponse.ok) {
+          const errorData = await processResponse.json();
+          console.error("Video processing error:", errorData);
+          toast({
+            title: "Processing started",
+            description: "Your video is being processed in the background. You can check its status in My Content.",
+          });
+        }
+      } catch (processError) {
+        console.error("Error initiating video processing:", processError);
+        toast({
+          title: "Processing queued",
+          description: "Your video will be processed shortly. You can check its status in My Content.",
+        });
+      }
+
       toast({
         title: "Upload successful!",
         description: "Your video has been uploaded and is being processed.",
       });
       
-      // Reset form
       setVideoFile(null);
       setThumbnailFile(null);
       setThumbnailPreview(null);
@@ -275,7 +294,6 @@ const VideoUploadForm = () => {
       setTags([]);
       setCurrentTag('');
       
-      // Navigate to My Content page
       navigate('/subspacetv/my-content');
       
     } catch (error: any) {
@@ -287,7 +305,6 @@ const VideoUploadForm = () => {
       });
     } finally {
       setUploading(false);
-      setUploadProgress(0);
     }
   };
 
@@ -481,7 +498,6 @@ const VideoUploadForm = () => {
         </div>
       </div>
 
-      {/* Alert Dialog for preventing navigation */}
       <AlertDialog open={isPageLeaveDialogOpen} onOpenChange={setIsPageLeaveDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
