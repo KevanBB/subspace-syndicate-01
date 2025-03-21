@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, CalendarDays, MapPin, Heart, Lock, User } from 'lucide-react';
+import { Edit, CalendarDays, MapPin, Heart, Lock, User, FileText } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 const AboutTab: React.FC = () => {
@@ -52,6 +52,7 @@ const AboutTab: React.FC = () => {
   const location = profileData?.location || user?.user_metadata?.location;
   const orientation = profileData?.orientation || user?.user_metadata?.orientation;
   const visibility = profileData?.visibility || user?.user_metadata?.visibility || 'Public';
+  const bio = profileData?.bio || user?.user_metadata?.bio;
 
   return (
     <div className="space-y-6">
@@ -113,7 +114,10 @@ const AboutTab: React.FC = () => {
           </Button>
         </CardHeader>
         <CardContent className="text-white/80">
-          <p>No bio information provided yet. Tell others about yourself!</p>
+          <div className="flex items-start gap-3">
+            <FileText className="h-5 w-5 text-crimson shrink-0 mt-1" />
+            <p className="whitespace-pre-wrap">{bio || 'No bio information provided yet. Tell others about yourself!'}</p>
+          </div>
         </CardContent>
       </Card>
     </div>

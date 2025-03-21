@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
 import { 
   Select,
   SelectContent,
@@ -26,6 +27,7 @@ const ProfileSettings = () => {
   const [birthday, setBirthday] = useState('');
   const [orientation, setOrientation] = useState('straight');
   const [bdsmRole, setBdsmRole] = useState('Exploring');
+  const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   
@@ -51,6 +53,7 @@ const ProfileSettings = () => {
           setBirthday(data.birthday || user?.user_metadata?.birthday || '');
           setOrientation(data.orientation || user?.user_metadata?.orientation || 'straight');
           setBdsmRole(data.bdsm_role || user?.user_metadata?.bdsm_role || 'Exploring');
+          setBio(data.bio || user?.user_metadata?.bio || '');
           setAvatarUrl(data.avatar_url || user?.user_metadata?.avatar_url || null);
         }
       };
@@ -84,7 +87,8 @@ const ProfileSettings = () => {
           location,
           birthday,
           orientation,
-          bdsm_role: bdsmRole
+          bdsm_role: bdsmRole,
+          bio
         }
       });
       
@@ -99,7 +103,8 @@ const ProfileSettings = () => {
           birthday,
           orientation,
           bdsm_role: bdsmRole,
-          avatar_url: avatarUrl // This is now valid since we added the column
+          bio,
+          avatar_url: avatarUrl
         })
         .eq('id', user?.id);
         
@@ -110,23 +115,17 @@ const ProfileSettings = () => {
         const fileExt = avatarFile.name.split('.').pop();
         const fileName = `${user?.id}-avatar.${fileExt}`;
         
-        // Create a bucket if it doesn't exist already
-        const { error: bucketError } = await supabase.storage.createBucket('avatars', {
-          public: true,
-          fileSizeLimit: 1024 * 1024 * 2 // 2MB limit
-        });
-        
-        // Upload the file
+        // Upload to the media bucket we just created
         const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, avatarFile, { upsert: true });
+          .from('media')
+          .upload(`avatars/${fileName}`, avatarFile, { upsert: true });
           
         if (uploadError) throw uploadError;
         
         // Get the public URL
         const { data: publicUrlData } = supabase.storage
-          .from('avatars')
-          .getPublicUrl(fileName);
+          .from('media')
+          .getPublicUrl(`avatars/${fileName}`);
           
         // Update the avatar URL in metadata and profile
         await supabase.auth.updateUser({
@@ -141,6 +140,8 @@ const ProfileSettings = () => {
             avatar_url: publicUrlData.publicUrl
           })
           .eq('id', user?.id);
+          
+        setAvatarUrl(publicUrlData.publicUrl);
       }
       
       toast({
@@ -284,6 +285,17 @@ const ProfileSettings = () => {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="bio">Bio</Label>
+              <Textarea
+                id="bio"
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                className="bg-black/30 border-white/10 min-h-[120px]"
+                placeholder="Tell others about yourself..."
+              />
             </div>
           </div>
         </div>

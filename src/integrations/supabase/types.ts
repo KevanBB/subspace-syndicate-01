@@ -44,11 +44,13 @@ export type Database = {
           allow_messages: boolean | null
           avatar_url: string | null
           bdsm_role: string
+          bio: string | null
           birthday: string | null
           created_at: string | null
           id: string
           last_active: string | null
           location: string | null
+          media_visibility: string | null
           orientation: string | null
           show_online_status: boolean | null
           user_role: string | null
@@ -59,11 +61,13 @@ export type Database = {
           allow_messages?: boolean | null
           avatar_url?: string | null
           bdsm_role?: string
+          bio?: string | null
           birthday?: string | null
           created_at?: string | null
           id: string
           last_active?: string | null
           location?: string | null
+          media_visibility?: string | null
           orientation?: string | null
           show_online_status?: boolean | null
           user_role?: string | null
@@ -74,11 +78,13 @@ export type Database = {
           allow_messages?: boolean | null
           avatar_url?: string | null
           bdsm_role?: string
+          bio?: string | null
           birthday?: string | null
           created_at?: string | null
           id?: string
           last_active?: string | null
           location?: string | null
+          media_visibility?: string | null
           orientation?: string | null
           show_online_status?: boolean | null
           user_role?: string | null
