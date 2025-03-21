@@ -2,17 +2,21 @@
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import MessageButton from '@/components/messages/MessageButton';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProfileHeaderViewProps {
   profile: any;
 }
 
 const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({ profile }) => {
+  const { user } = useAuth();
   const username = profile?.username || 'User';
   const orientation = profile?.orientation || '';
   const location = profile?.location || '';
   const avatarUrl = profile?.avatar_url || '';
   const bdsmRole = profile?.bdsm_role || 'Exploring';
+  const profileId = profile?.id || '';
   
   const getBadgeVariant = (role: string) => {
     switch (role.toLowerCase()) {
@@ -22,6 +26,8 @@ const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({ profile }) => {
       default: return 'exploring';
     }
   };
+  
+  const isCurrentUser = user?.id === profileId;
   
   return (
     <div className="relative">
@@ -55,6 +61,12 @@ const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({ profile }) => {
           <p className="text-gray-400 mt-1">
             {orientation || 'No orientation set'} • {location || 'No location set'}
           </p>
+          
+          {!isCurrentUser && (
+            <div className="mt-4">
+              <MessageButton recipientId={profileId} />
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -11,6 +11,7 @@ import ProfileView from "./pages/ProfileView";
 import Dashboard from "./pages/Dashboard";
 import Community from "./pages/Community";
 import Settings from "./pages/Settings";
+import Messages from "./pages/Messages";
 import NotFound from "./pages/NotFound";
 import { AnimatePresence } from "framer-motion";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -40,6 +41,7 @@ const App = () => (
                 <Route path="/profile/:username" element={<ProfileView />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/community" element={<Community />} />
+                <Route path="/messages" element={<Messages />} />
                 <Route path="/settings" element={<Settings />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
