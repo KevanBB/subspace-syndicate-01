@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -34,7 +33,6 @@ const PostItem: React.FC<PostItemProps> = ({ post }) => {
   const formattedDate = post.created_at ? format(new Date(post.created_at), 'MMM d, yyyy • h:mm a') : '';
   const bdsmRole = post.bdsm_role || 'Exploring';
 
-  // Parse media URLs and types
   const mediaUrls = post.media_url ? post.media_url.split(',') : [];
   const mediaTypes = post.media_type ? post.media_type.split(',') : [];
   
@@ -71,7 +69,6 @@ const PostItem: React.FC<PostItemProps> = ({ post }) => {
     }
   };
 
-  // Get the appropriate badge style and icon based on BDSM role
   const getBdsmRoleBadgeVariant = () => {
     switch(bdsmRole) {
       case 'Dominant': return "dominant";
@@ -85,7 +82,7 @@ const PostItem: React.FC<PostItemProps> = ({ post }) => {
     <Card className="bg-black/20 border-white/10 backdrop-blur-md">
       <CardHeader className="pb-3 space-y-0">
         <div className="flex items-center gap-3">
-          <Link to={`/profile/${post.user_id}`}>
+          <Link to={`/profile/${post.username}`}>
             <Avatar className="h-12 w-12 border-2 border-crimson/50">
               <AvatarImage src={post.avatar_url || "/placeholder.svg"} alt={username} />
               <AvatarFallback className="bg-crimson text-white">
@@ -95,7 +92,7 @@ const PostItem: React.FC<PostItemProps> = ({ post }) => {
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <Link to={`/profile/${post.user_id}`} className="font-medium text-white hover:text-crimson transition-colors">
+              <Link to={`/profile/${post.username}`} className="font-medium text-white hover:text-crimson transition-colors">
                 {username}
               </Link>
               <Badge variant={getBdsmRoleBadgeVariant()} className="text-xs">
@@ -179,7 +176,6 @@ const PostItem: React.FC<PostItemProps> = ({ post }) => {
           </div>
         )}
         
-        {/* Lightbox component */}
         <Lightbox 
           isOpen={lightboxOpen}
           onClose={() => setLightboxOpen(false)}

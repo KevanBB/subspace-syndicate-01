@@ -13,6 +13,7 @@ import { Shield, Heart, SwitchCamera, HelpCircle } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { useActivity } from '@/utils/useActivity';
 import OnlineIndicator from '@/components/community/OnlineIndicator';
+import { Link } from 'react-router-dom';
 
 type Profile = {
   id: string;
@@ -272,6 +273,7 @@ const Community = () => {
                 <TableBody>
                   {paginatedMembers?.map((member, index) => {
                     const { variant, Icon, bdsmRole } = getBdsmRoleBadge(member.bdsm_role);
+                    const username = member.username || 'Anonymous';
                     return (
                       <TableRow key={member.id} className="hover:bg-black/40 border-white/10">
                         <TableCell className="text-white/70">
@@ -280,19 +282,23 @@ const Community = () => {
                         <TableCell className="text-white font-medium">
                           <div className="flex items-center gap-2">
                             <div className="relative">
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={member.avatar_url || "/placeholder.svg"} />
-                                <AvatarFallback className="bg-crimson text-white text-xs">
-                                  {(member.username || 'AN').substring(0, 2).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <OnlineIndicator 
-                                lastActive={member.last_active} 
-                                className="absolute -top-1 -right-1 h-2 w-2 ring-1 ring-background" 
-                                showTooltip={false}
-                              />
+                              <Link to={`/profile/${username}`}>
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={member.avatar_url || "/placeholder.svg"} />
+                                  <AvatarFallback className="bg-crimson text-white text-xs">
+                                    {(member.username || 'AN').substring(0, 2).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <OnlineIndicator 
+                                  lastActive={member.last_active} 
+                                  className="absolute -top-1 -right-1 h-2 w-2 ring-1 ring-background" 
+                                  showTooltip={false}
+                                />
+                              </Link>
                             </div>
-                            {member.username || 'Anonymous'}
+                            <Link to={`/profile/${username}`} className="hover:text-crimson transition-colors">
+                              {username}
+                            </Link>
                           </div>
                         </TableCell>
                         <TableCell className="text-white/70">

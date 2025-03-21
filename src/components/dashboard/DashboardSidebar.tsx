@@ -88,7 +88,7 @@ const DashboardSidebar = () => {
               </Badge>
             </div>
             <Link 
-              to="/profile" 
+              to={`/profile/${username}`}
               className="text-xs text-gray-400 hover:text-white transition-colors"
             >
               View Profile
