@@ -3,6 +3,7 @@ import React from 'react';
 import { Conversation } from '@/types/messages';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
+import OnlineIndicator from '@/components/community/OnlineIndicator';
 
 interface ConversationsListProps {
   conversations: Conversation[];
@@ -47,6 +48,7 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
         const otherParticipant = getOtherParticipant(conversation);
         const username = otherParticipant?.profile?.username || 'User';
         const avatarUrl = otherParticipant?.profile?.avatar_url;
+        const lastActive = otherParticipant?.profile?.last_active;
         const initials = username.substring(0, 2).toUpperCase();
         const isSelected = selectedConversation?.id === conversation.id;
         const lastMessageText = conversation.lastMessage?.content || 'No messages yet';
@@ -63,10 +65,18 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
             onClick={() => onSelectConversation(conversation)}
           >
             <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={username} />
-                <AvatarFallback className="bg-crimson text-white">{initials}</AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={username} />
+                  <AvatarFallback className="bg-crimson text-white">{initials}</AvatarFallback>
+                </Avatar>
+                {lastActive && (
+                  <OnlineIndicator 
+                    lastActive={lastActive} 
+                    className="absolute -bottom-1 -right-1 border-2 border-gray-900" 
+                  />
+                )}
+              </div>
               
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-center">

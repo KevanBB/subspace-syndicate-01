@@ -19,6 +19,7 @@ interface UserProfile {
   id: string;
   username: string;
   avatar_url?: string;
+  last_active?: string;
 }
 
 interface NewConversationButtonProps {
@@ -42,7 +43,7 @@ const NewConversationButton: React.FC<NewConversationButtonProps> = ({ onConvers
       
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, avatar_url')
+        .select('id, username, avatar_url, last_active')
         .ilike('username', `%${query.trim()}%`)
         .neq('id', user?.id)
         .limit(10);

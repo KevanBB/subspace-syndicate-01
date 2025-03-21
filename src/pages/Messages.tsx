@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import ConversationsList from '@/components/messages/ConversationsList';
 import MessageView from '@/components/messages/MessageView';
 import NewConversationButton from '@/components/messages/NewConversationButton';
+import { useActivity } from '@/utils/useActivity';
 
 const Messages = () => {
   const { user, loading } = useAuth();
@@ -16,6 +17,9 @@ const Messages = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Track user activity for online status
+  useActivity();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -92,7 +96,8 @@ const Messages = () => {
               created_at,
               profile:profiles(
                 username, 
-                avatar_url
+                avatar_url,
+                last_active
               )
             `)
             .eq('conversation_id', conversation.id);

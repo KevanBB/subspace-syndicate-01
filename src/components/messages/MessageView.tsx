@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Send, ChevronLeft } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
+import OnlineIndicator from '@/components/community/OnlineIndicator';
 
 interface MessageViewProps {
   conversation: Conversation;
@@ -36,6 +37,7 @@ const MessageView: React.FC<MessageViewProps> = ({
   const otherParticipant = conversation.participants?.find(p => p.user_id !== currentUserId);
   const username = otherParticipant?.profile?.username || 'User';
   const avatarUrl = otherParticipant?.profile?.avatar_url;
+  const lastActive = otherParticipant?.profile?.last_active;
   const initials = username.substring(0, 2).toUpperCase();
 
   useEffect(() => {
@@ -204,10 +206,19 @@ const MessageView: React.FC<MessageViewProps> = ({
           <ChevronLeft className="h-5 w-5" />
         </Button>
         
-        <Avatar className="h-10 w-10">
-          <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={username} />
-          <AvatarFallback className="bg-crimson text-white">{initials}</AvatarFallback>
-        </Avatar>
+        <div className="relative">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={username} />
+            <AvatarFallback className="bg-crimson text-white">{initials}</AvatarFallback>
+          </Avatar>
+          
+          {lastActive && (
+            <OnlineIndicator 
+              lastActive={lastActive} 
+              className="absolute -bottom-1 -right-1 border-2 border-gray-900" 
+            />
+          )}
+        </div>
         
         <div>
           <h3 className="font-medium text-white">{username}</h3>
