@@ -1,24 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Conversation, Message } from '@/types/messages';
 import { supabase } from '@/integrations/supabase/client';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Send, ChevronLeft, Trash2 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
-import OnlineIndicator from '@/components/community/OnlineIndicator';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import MessageHeader from './MessageHeader';
+import MessageList from './MessageList';
+import MessageInput from './MessageInput';
 
 interface MessageViewProps {
   conversation: Conversation;
@@ -42,22 +29,14 @@ const MessageView: React.FC<MessageViewProps> = ({
   onConversationDeleted
 }) => {
   const [messages, setMessages] = useState<MessageWithSender[]>([]);
-  const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<{
     username: string;
     avatar_url?: string;
     last_active?: string;
   } | null>(null);
-  
-  const otherParticipant = conversation.participants?.find(p => p.user_id !== currentUserId);
-  const username = otherParticipant?.profile?.username || 'User';
-  const avatarUrl = otherParticipant?.profile?.avatar_url;
-  const lastActive = otherParticipant?.profile?.last_active;
-  const initials = username.substring(0, 2).toUpperCase();
 
   // Fetch current user profile on component mount
   useEffect(() => {
@@ -130,10 +109,6 @@ const MessageView: React.FC<MessageViewProps> = ({
       supabase.removeChannel(channel);
     };
   }, [conversation.id]);
-  
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
 
   const fetchMessages = async () => {
     try {
@@ -204,21 +179,12 @@ const MessageView: React.FC<MessageViewProps> = ({
     }
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newMessage.trim()) return;
-    
+  const handleSendMessage = async (messageContent: string) => {
     try {
       setIsSending(true);
       
       // Create a temporary message ID for optimistic update
       const tempId = crypto.randomUUID();
-      const messageContent = newMessage.trim();
       
       // Add optimistic message
       const optimisticMessage: MessageWithSender = {
@@ -234,12 +200,6 @@ const MessageView: React.FC<MessageViewProps> = ({
       
       // Add message to state immediately (optimistic update)
       setMessages(prev => [...prev, optimisticMessage]);
-      
-      // Clear input
-      setNewMessage('');
-      
-      // Scroll to bottom
-      scrollToBottom();
       
       // Send to server
       const { data, error } = await supabase
@@ -323,148 +283,26 @@ const MessageView: React.FC<MessageViewProps> = ({
     }
   };
 
-  
   return (
     <>
-      <div className="p-4 border-b border-white/10 flex items-center gap-3">
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={onBack}
-          className="md:hidden"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        
-        <div className="relative">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={username} />
-            <AvatarFallback className="bg-crimson text-white">{initials}</AvatarFallback>
-          </Avatar>
-          
-          {lastActive && (
-            <OnlineIndicator 
-              lastActive={lastActive} 
-              className="absolute -bottom-1 -right-1 border-2 border-gray-900" 
-            />
-          )}
-        </div>
-        
-        <div className="flex-1">
-          <h3 className="font-medium text-white">{username}</h3>
-          {lastActive && (
-            <p className="text-xs text-white/60">
-              {new Date(lastActive).getTime() > Date.now() - 5 * 60 * 1000
-                ? 'Online now'
-                : `Last active ${formatDistanceToNow(new Date(lastActive), { addSuffix: true })}`}
-            </p>
-          )}
-        </div>
-        
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="text-white/70 hover:text-white hover:bg-red-500/20"
-            >
-              <Trash2 className="h-5 w-5" />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent className="bg-gray-900 border-white/10 text-white">
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
-              <AlertDialogDescription className="text-white/70">
-                Are you sure you want to delete this conversation? This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel className="bg-gray-800 text-white border-white/10 hover:bg-gray-700">
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={handleDeleteConversation}
-                disabled={isDeleting}
-                className="bg-red-600 hover:bg-red-700 text-white"
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
+      <MessageHeader 
+        conversation={conversation}
+        currentUserId={currentUserId}
+        onBack={onBack}
+        onDeleteConversation={handleDeleteConversation}
+        isDeleting={isDeleting}
+      />
       
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {isLoading ? (
-          <div className="flex justify-center items-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-crimson"></div>
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="text-center text-white/60 my-8">
-            <p>No messages yet</p>
-            <p className="text-sm mt-2">Start the conversation!</p>
-          </div>
-        ) : (
-          messages.map(message => {
-            const isMine = message.sender_id === currentUserId;
-            const messageDate = new Date(message.created_at);
-            const timeAgo = formatDistanceToNow(messageDate, { addSuffix: true });
-            
-            return (
-              <div 
-                key={message.id}
-                className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
-              >
-                <div className="flex max-w-[75%]">
-                  {!isMine && (
-                    <Avatar className="h-8 w-8 mr-2 mt-1">
-                      <AvatarImage src={message.sender?.avatar_url || "/placeholder.svg"} />
-                      <AvatarFallback className="bg-crimson text-white text-xs">
-                        {(message.sender?.username || 'U').substring(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                  
-                  <div>
-                    <div
-                      className={`rounded-2xl px-4 py-2 ${
-                        isMine 
-                          ? 'bg-crimson text-white' 
-                          : 'bg-gray-800 text-white'
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap break-words">{message.content}</p>
-                    </div>
-                    <div className="text-xs text-white/50 mt-1 px-2">
-                      {timeAgo}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })
-        )}
-        <div ref={messagesEndRef} />
-      </div>
+      <MessageList 
+        messages={messages}
+        currentUserId={currentUserId}
+        isLoading={isLoading}
+      />
       
-      <div className="p-4 border-t border-white/10">
-        <form onSubmit={handleSendMessage} className="flex gap-2">
-          <Input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type a message..."
-            className="bg-black/30"
-            disabled={isSending}
-          />
-          <Button 
-            type="submit" 
-            disabled={!newMessage.trim() || isSending}
-            className="bg-crimson hover:bg-crimson/80"
-          >
-            <Send className="h-5 w-5" />
-          </Button>
-        </form>
-      </div>
+      <MessageInput 
+        onSendMessage={handleSendMessage}
+        isSending={isSending}
+      />
     </>
   );
 };
