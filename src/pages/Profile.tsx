@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import UserProfile from '@/components/UserProfile';
-import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
+import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 
 const Profile = () => {
   const { user, loading } = useAuth();
@@ -52,17 +52,9 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-abyss via-abyss/95 to-abyss">
-      <div className="container mx-auto px-4 py-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <UserProfile />
-        </motion.div>
-      </div>
-    </div>
+    <AuthenticatedLayout>
+      <UserProfile />
+    </AuthenticatedLayout>
   );
 };
 

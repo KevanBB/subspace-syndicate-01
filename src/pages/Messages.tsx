@@ -6,6 +6,7 @@ import { useActivity } from '@/utils/useActivity';
 import { useConversations } from '@/hooks/useConversations';
 import RealtimeSubscriptions from '@/components/messages/RealtimeSubscriptions';
 import MessagesContainer from '@/components/messages/MessagesContainer';
+import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 
 const Messages = () => {
   const { user, loading } = useAuth();
@@ -44,7 +45,7 @@ const Messages = () => {
   if (!user) return null;
 
   return (
-    <>
+    <AuthenticatedLayout pageTitle="Messages" showSidebar={true}>
       {/* Component to handle all real-time subscriptions */}
       <RealtimeSubscriptions 
         userId={user.id}
@@ -65,7 +66,7 @@ const Messages = () => {
         onConversationDeleted={handleConversationDeleted}
         onBack={() => setSelectedConversation(null)}
       />
-    </>
+    </AuthenticatedLayout>
   );
 };
 

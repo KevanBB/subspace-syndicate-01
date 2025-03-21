@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
@@ -10,10 +9,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Shield, Heart, SwitchCamera, HelpCircle } from 'lucide-react';
-import Navbar from '@/components/Navbar';
 import { useActivity } from '@/utils/useActivity';
 import OnlineIndicator from '@/components/community/OnlineIndicator';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
+import Navbar from '@/components/Navbar';
 
 type Profile = {
   id: string;
@@ -28,6 +29,7 @@ type Profile = {
 const Community = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const membersPerPage = 12;
+  const { user } = useAuth();
   
   // Use the activity hook to track user activity
   useActivity();
@@ -143,43 +145,63 @@ const Community = () => {
       pageNumbers.push('ellipsis');
     }
   }
-  
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-abyss via-abyss/95 to-abyss">
-      <Navbar />
+
+  const communityContent = (
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="mb-8"
+      >
+        <h1 className="text-4xl font-bold text-white mb-2">Community</h1>
+        <p className="text-white/70">Connect with members of the SubSpace community</p>
+      </motion.div>
       
-      <div className="container mx-auto px-4 pt-24 pb-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8"
-        >
-          <h1 className="text-4xl font-bold text-white mb-2">Community</h1>
-          <p className="text-white/70">Connect with members of the SubSpace community</p>
-        </motion.div>
+      <Tabs defaultValue="recent" className="w-full">
+        <TabsList className="bg-black/30 border border-white/10 mb-6">
+          <TabsTrigger value="recent" className="data-[state=active]:bg-crimson/20">
+            Recently Active
+          </TabsTrigger>
+          <TabsTrigger value="all" className="data-[state=active]:bg-crimson/20">
+            All Members
+          </TabsTrigger>
+          <TabsTrigger value="table" className="data-[state=active]:bg-crimson/20">
+            Table View
+          </TabsTrigger>
+        </TabsList>
         
-        <Tabs defaultValue="recent" className="w-full">
-          <TabsList className="bg-black/30 border border-white/10 mb-6">
-            <TabsTrigger value="recent" className="data-[state=active]:bg-crimson/20">
-              Recently Active
-            </TabsTrigger>
-            <TabsTrigger value="all" className="data-[state=active]:bg-crimson/20">
-              All Members
-            </TabsTrigger>
-            <TabsTrigger value="table" className="data-[state=active]:bg-crimson/20">
-              Table View
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="recent" className="mt-0">
-            {loadingActive ? (
-              <div className="flex justify-center p-10">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-crimson"></div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {recentlyActiveMembers?.map(member => (
+        <TabsContent value="recent" className="mt-0">
+          {loadingActive ? (
+            <div className="flex justify-center p-10">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-crimson"></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {recentlyActiveMembers?.map(member => (
+                <MemberCard 
+                  key={member.id}
+                  id={member.id}
+                  username={member.username}
+                  user_role={member.user_role}
+                  bdsm_role={member.bdsm_role}
+                  last_active={member.last_active}
+                  avatar_url={member.avatar_url}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="all" className="mt-0">
+          {loadingMembers ? (
+            <div className="flex justify-center p-10">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-crimson"></div>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                {paginatedMembers?.map(member => (
                   <MemberCard 
                     key={member.id}
                     id={member.id}
@@ -191,190 +213,179 @@ const Community = () => {
                   />
                 ))}
               </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="all" className="mt-0">
-            {loadingMembers ? (
-              <div className="flex justify-center p-10">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-crimson"></div>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-                  {paginatedMembers?.map(member => (
-                    <MemberCard 
-                      key={member.id}
-                      id={member.id}
-                      username={member.username}
-                      user_role={member.user_role}
-                      bdsm_role={member.bdsm_role}
-                      last_active={member.last_active}
-                      avatar_url={member.avatar_url}
-                    />
-                  ))}
-                </div>
-                
-                {totalPages > 1 && (
-                  <Pagination className="mt-8">
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious 
-                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                          className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
-                        />
-                      </PaginationItem>
-                      
-                      {pageNumbers.map((page, index) => (
-                        <React.Fragment key={index}>
-                          {page === 'ellipsis' ? (
-                            <PaginationItem>
-                              <span className="px-4 py-2">...</span>
-                            </PaginationItem>
-                          ) : (
-                            <PaginationItem>
-                              <PaginationLink
-                                onClick={() => setCurrentPage(page as number)}
-                                isActive={currentPage === page}
-                              >
-                                {page}
-                              </PaginationLink>
-                            </PaginationItem>
-                          )}
-                        </React.Fragment>
-                      ))}
-                      
-                      <PaginationItem>
-                        <PaginationNext 
-                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                          className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                )}
-              </>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="table" className="mt-0">
-            <div className="rounded-md border border-white/10 backdrop-blur-md overflow-hidden">
-              <Table>
-                <TableHeader className="bg-black/30">
-                  <TableRow className="hover:bg-black/40 border-white/10">
-                    <TableHead className="text-white w-[50px]">#</TableHead>
-                    <TableHead className="text-white">Username</TableHead>
-                    <TableHead className="text-white">Status</TableHead>
-                    <TableHead className="text-white">Role</TableHead>
-                    <TableHead className="text-white">BDSM Role</TableHead>
-                    <TableHead className="text-white">Joined</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedMembers?.map((member, index) => {
-                    const { variant, Icon, bdsmRole } = getBdsmRoleBadge(member.bdsm_role);
-                    const username = member.username || 'Anonymous';
-                    return (
-                      <TableRow key={member.id} className="hover:bg-black/40 border-white/10">
-                        <TableCell className="text-white/70">
-                          {(currentPage - 1) * membersPerPage + index + 1}
-                        </TableCell>
-                        <TableCell className="text-white font-medium">
-                          <div className="flex items-center gap-2">
-                            <div className="relative">
-                              <Link to={`/profile/${username}`}>
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage src={member.avatar_url || "/placeholder.svg"} />
-                                  <AvatarFallback className="bg-crimson text-white text-xs">
-                                    {(member.username || 'AN').substring(0, 2).toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <OnlineIndicator 
-                                  lastActive={member.last_active} 
-                                  className="absolute -top-1 -right-1 h-2 w-2 ring-1 ring-background" 
-                                  showTooltip={false}
-                                />
-                              </Link>
-                            </div>
-                            <Link to={`/profile/${username}`} className="hover:text-crimson transition-colors">
-                              {username}
+              
+              {totalPages > 1 && (
+                <Pagination className="mt-8">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+                    
+                    {pageNumbers.map((page, index) => (
+                      <React.Fragment key={index}>
+                        {page === 'ellipsis' ? (
+                          <PaginationItem>
+                            <span className="px-4 py-2">...</span>
+                          </PaginationItem>
+                        ) : (
+                          <PaginationItem>
+                            <PaginationLink
+                              onClick={() => setCurrentPage(page as number)}
+                              isActive={currentPage === page}
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        )}
+                      </React.Fragment>
+                    ))}
+                    
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
+            </>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="table" className="mt-0">
+          <div className="rounded-md border border-white/10 backdrop-blur-md overflow-hidden">
+            <Table>
+              <TableHeader className="bg-black/30">
+                <TableRow className="hover:bg-black/40 border-white/10">
+                  <TableHead className="text-white w-[50px]">#</TableHead>
+                  <TableHead className="text-white">Username</TableHead>
+                  <TableHead className="text-white">Status</TableHead>
+                  <TableHead className="text-white">Role</TableHead>
+                  <TableHead className="text-white">BDSM Role</TableHead>
+                  <TableHead className="text-white">Joined</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedMembers?.map((member, index) => {
+                  const { variant, Icon, bdsmRole } = getBdsmRoleBadge(member.bdsm_role);
+                  const username = member.username || 'Anonymous';
+                  return (
+                    <TableRow key={member.id} className="hover:bg-black/40 border-white/10">
+                      <TableCell className="text-white/70">
+                        {(currentPage - 1) * membersPerPage + index + 1}
+                      </TableCell>
+                      <TableCell className="text-white font-medium">
+                        <div className="flex items-center gap-2">
+                          <div className="relative">
+                            <Link to={`/profile/${username}`}>
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={member.avatar_url || "/placeholder.svg"} />
+                                <AvatarFallback className="bg-crimson text-white text-xs">
+                                  {(member.username || 'AN').substring(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <OnlineIndicator 
+                                lastActive={member.last_active} 
+                                className="absolute -top-1 -right-1 h-2 w-2 ring-1 ring-background" 
+                                showTooltip={false}
+                              />
                             </Link>
                           </div>
-                        </TableCell>
-                        <TableCell className="text-white/70">
-                          {isUserOnline(member.last_active) ? (
-                            <span className="text-green-500">Online</span>
-                          ) : (
-                            <span className="text-white/50">
-                              {member.last_active ? 'Last active ' + new Date(member.last_active).toLocaleDateString() : 'Never'}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-white/70">
-                          {member.user_role || 'Member'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={variant as any} className="flex items-center gap-1 text-xs">
-                            <Icon size={12} />
-                            {bdsmRole}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-white/70">
-                          {member.created_at 
-                            ? new Date(member.created_at).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                              })
-                            : 'Unknown'}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-            
-            {totalPages > 1 && (
-              <Pagination className="mt-8">
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious 
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
-                    />
-                  </PaginationItem>
-                  
-                  {pageNumbers.map((page, index) => (
-                    <React.Fragment key={index}>
-                      {page === 'ellipsis' ? (
-                        <PaginationItem>
-                          <span className="px-4 py-2">...</span>
-                        </PaginationItem>
-                      ) : (
-                        <PaginationItem>
-                          <PaginationLink
-                            onClick={() => setCurrentPage(page as number)}
-                            isActive={currentPage === page}
-                          >
-                            {page}
-                          </PaginationLink>
-                        </PaginationItem>
-                      )}
-                    </React.Fragment>
-                  ))}
-                  
-                  <PaginationItem>
-                    <PaginationNext 
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            )}
-          </TabsContent>
-        </Tabs>
+                          <Link to={`/profile/${username}`} className="hover:text-crimson transition-colors">
+                            {username}
+                          </Link>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-white/70">
+                        {isUserOnline(member.last_active) ? (
+                          <span className="text-green-500">Online</span>
+                        ) : (
+                          <span className="text-white/50">
+                            {member.last_active ? 'Last active ' + new Date(member.last_active).toLocaleDateString() : 'Never'}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-white/70">
+                        {member.user_role || 'Member'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={variant as any} className="flex items-center gap-1 text-xs">
+                          <Icon size={12} />
+                          {bdsmRole}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-white/70">
+                        {member.created_at 
+                          ? new Date(member.created_at).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })
+                          : 'Unknown'}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+          
+          {totalPages > 1 && (
+            <Pagination className="mt-8">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                  />
+                </PaginationItem>
+                
+                {pageNumbers.map((page, index) => (
+                  <React.Fragment key={index}>
+                    {page === 'ellipsis' ? (
+                      <PaginationItem>
+                        <span className="px-4 py-2">...</span>
+                      </PaginationItem>
+                    ) : (
+                      <PaginationItem>
+                        <PaginationLink
+                          onClick={() => setCurrentPage(page as number)}
+                          isActive={currentPage === page}
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    )}
+                  </React.Fragment>
+                ))}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </TabsContent>
+      </Tabs>
+    </>
+  );
+  
+  return user ? (
+    <AuthenticatedLayout pageTitle="Community">
+      {communityContent}
+    </AuthenticatedLayout>
+  ) : (
+    <div className="min-h-screen bg-gradient-to-b from-abyss via-abyss/95 to-abyss">
+      <Navbar />
+      <div className="container mx-auto px-4 pt-24 pb-10">
+        {communityContent}
       </div>
     </div>
   );

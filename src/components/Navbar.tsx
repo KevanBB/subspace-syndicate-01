@@ -41,9 +41,15 @@ const Navbar = () => {
         </div>
         
         <nav className="hidden md:flex items-center space-x-8">
-          {['About', 'Features', 'Creators', 'Join'].map((item, index) => (
-            <NavItem key={item} label={item} delay={index * 0.1} />
-          ))}
+          <a href="#about" className="text-white/90 hover:text-white transition-colors text-sm font-medium">
+            About
+          </a>
+          <a href="#features" className="text-white/90 hover:text-white transition-colors text-sm font-medium">
+            Features
+          </a>
+          <a href="#creators" className="text-white/90 hover:text-white transition-colors text-sm font-medium">
+            Creators
+          </a>
           <Link to="/community" className="text-white/90 hover:text-white transition-colors text-sm font-medium">
             Community
           </Link>
@@ -80,16 +86,27 @@ const Navbar = () => {
           className="md:hidden glass shadow-md"
         >
           <div className="container mx-auto px-4 py-4 flex flex-col space-y-4">
-            {['About', 'Features', 'Creators', 'Join'].map((item) => (
-              <a 
-                key={item}
-                href={`#${item.toLowerCase()}`}
-                className="text-white hover:text-crimson py-2 transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {item}
-              </a>
-            ))}
+            <a 
+              href="#about"
+              className="text-white hover:text-crimson py-2 transition-colors"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              About
+            </a>
+            <a 
+              href="#features"
+              className="text-white hover:text-crimson py-2 transition-colors"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Features
+            </a>
+            <a 
+              href="#creators"
+              className="text-white hover:text-crimson py-2 transition-colors"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Creators
+            </a>
             <Link 
               to="/community"
               className="text-white hover:text-crimson py-2 transition-colors"
@@ -130,18 +147,6 @@ const Logo = () => (
     <img src="/logo.svg" alt="SubSpace Logo" className="h-7 w-auto" />
     <span className="text-gradient font-poppins">SubSpace</span>
   </motion.div>
-);
-
-const NavItem = ({ label, delay = 0 }: { label: string; delay?: number }) => (
-  <motion.a
-    initial={{ opacity: 0, y: -20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5, delay }}
-    href={`#${label.toLowerCase()}`}
-    className="text-white/90 hover:text-white transition-colors text-sm font-medium"
-  >
-    {label}
-  </motion.a>
 );
 
 export default Navbar;

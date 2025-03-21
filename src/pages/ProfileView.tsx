@@ -1,15 +1,17 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { motion } from 'framer-motion';
 import UserProfileView from '@/components/UserProfileView';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 
 const ProfileView = () => {
   const { username } = useParams();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   // Query to get the profile by username
   const { data: profileData, isLoading: profileLoading, error } = useQuery({
@@ -62,17 +64,17 @@ const ProfileView = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-abyss via-abyss/95 to-abyss">
-      <div className="container mx-auto px-4 py-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
+    user ? (
+      <AuthenticatedLayout>
+        <UserProfileView profileId={profileData.id} profile={profileData} />
+      </AuthenticatedLayout>
+    ) : (
+      <div className="min-h-screen bg-gradient-to-b from-abyss via-abyss/95 to-abyss">
+        <div className="container mx-auto px-4 py-6">
           <UserProfileView profileId={profileData.id} profile={profileData} />
-        </motion.div>
+        </div>
       </div>
-    </div>
+    )
   );
 };
 
