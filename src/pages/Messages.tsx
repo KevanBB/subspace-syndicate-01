@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -93,14 +92,31 @@ const Messages = () => {
               id, 
               conversation_id, 
               user_id, 
-              created_at,
-              profiles:profiles(
-                username, 
-                avatar_url,
-                last_active
-              )
-            `)
-            .eq('conversation_id', conversation.id);
+              created_at
+            `);
+            
+          // Separately fetch profiles data for each participant
+          const processedParticipants = await Promise.all(
+            participants?.map(async (p) => {
+              const { data: profileData } = await supabase
+                .from('profiles')
+                .select('username, avatar_url, last_active')
+                .eq('id', p.user_id)
+                .single();
+                
+              return {
+                id: p.id,
+                conversation_id: p.conversation_id,
+                user_id: p.user_id,
+                created_at: p.created_at,
+                profile: {
+                  username: profileData?.username || 'Unknown',
+                  avatar_url: profileData?.avatar_url,
+                  last_active: profileData?.last_active
+                }
+              };
+            }) || []
+          );
             
           // Get latest message
           const { data: messages } = await supabase
@@ -109,19 +125,6 @@ const Messages = () => {
             .eq('conversation_id', conversation.id)
             .order('created_at', { ascending: false })
             .limit(1);
-            
-          // Fix the participants data structure
-          const processedParticipants = participants?.map(p => ({
-            id: p.id,
-            conversation_id: p.conversation_id,
-            user_id: p.user_id,
-            created_at: p.created_at,
-            profile: {
-              username: p.profiles?.username || 'Unknown',
-              avatar_url: p.profiles?.avatar_url,
-              last_active: p.profiles?.last_active
-            }
-          }));
             
           return {
             ...conversation,
