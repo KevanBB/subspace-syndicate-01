@@ -53,12 +53,12 @@ const MessageView: React.FC<MessageViewProps> = ({
               .eq('id', payload.new.sender_id)
               .single();
               
-            const newMessage = {
+            const newMsg: Message = {
               ...payload.new,
-              sender: data
+              sender: data || undefined
             };
             
-            setMessages(prev => [...prev, newMessage]);
+            setMessages(prev => [...prev, newMsg]);
           };
           
           fetchSenderInfo();
@@ -82,8 +82,14 @@ const MessageView: React.FC<MessageViewProps> = ({
       const { data, error } = await supabase
         .from('messages')
         .select(`
-          *,
-          sender:sender_id (
+          id,
+          conversation_id,
+          sender_id,
+          content,
+          read,
+          created_at,
+          updated_at,
+          sender:profiles!sender_id(
             username,
             avatar_url
           )
@@ -93,11 +99,22 @@ const MessageView: React.FC<MessageViewProps> = ({
         
       if (error) throw error;
       
-      setMessages(data || []);
+      const typedMessages: Message[] = data?.map(msg => ({
+        id: msg.id,
+        conversation_id: msg.conversation_id || '',
+        sender_id: msg.sender_id || '',
+        content: msg.content,
+        read: !!msg.read,
+        created_at: msg.created_at || '',
+        updated_at: msg.updated_at || '',
+        sender: msg.sender
+      })) || [];
+      
+      setMessages(typedMessages);
       
       // Mark unread messages as read
-      if (data && data.length > 0) {
-        const unreadMessages = data.filter(msg => !msg.read && msg.sender_id !== currentUserId);
+      if (typedMessages.length > 0) {
+        const unreadMessages = typedMessages.filter(msg => !msg.read && msg.sender_id !== currentUserId);
         
         if (unreadMessages.length > 0) {
           const unreadIds = unreadMessages.map(msg => msg.id);

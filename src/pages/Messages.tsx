@@ -90,7 +90,7 @@ const Messages = () => {
               conversation_id, 
               user_id, 
               created_at,
-              profiles:user_id (
+              profile:profiles(
                 username, 
                 avatar_url
               )
@@ -105,13 +105,20 @@ const Messages = () => {
             .order('created_at', { ascending: false })
             .limit(1);
             
+          const processedParticipants = participants?.map(p => ({
+            id: p.id,
+            conversation_id: p.conversation_id,
+            user_id: p.user_id,
+            created_at: p.created_at,
+            profile: p.profile && Array.isArray(p.profile) && p.profile.length > 0 
+              ? p.profile[0] 
+              : p.profile
+          }));
+            
           return {
             ...conversation,
-            participants: participants?.map(p => ({
-              ...p,
-              profile: p.profiles
-            })),
-            lastMessage: messages && messages.length > 0 ? messages[0] : null
+            participants: processedParticipants,
+            lastMessage: messages && messages.length > 0 ? messages[0] : undefined
           };
         })
       );
