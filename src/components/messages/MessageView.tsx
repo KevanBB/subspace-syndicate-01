@@ -20,6 +20,7 @@ interface MessageWithSender extends Message {
   sender: {
     username: string;
     avatar_url?: string;
+    last_active?: string;
   } | null;
 }
 
@@ -58,7 +59,7 @@ const MessageView: React.FC<MessageViewProps> = ({
           const fetchSenderInfo = async () => {
             const { data } = await supabase
               .from('profiles')
-              .select('username, avatar_url')
+              .select('username, avatar_url, last_active')
               .eq('id', payload.new.sender_id)
               .single();
               
@@ -222,6 +223,13 @@ const MessageView: React.FC<MessageViewProps> = ({
         
         <div>
           <h3 className="font-medium text-white">{username}</h3>
+          {lastActive && (
+            <p className="text-xs text-white/60">
+              {new Date(lastActive).getTime() > Date.now() - 5 * 60 * 1000
+                ? 'Online now'
+                : `Last active ${formatDistanceToNow(new Date(lastActive), { addSuffix: true })}`}
+            </p>
+          )}
         </div>
       </div>
       
