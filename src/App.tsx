@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,7 +13,8 @@ import Settings from "./pages/Settings";
 import Messages from "./pages/Messages";
 import NotFound from "./pages/NotFound";
 import HashtagSearch from "./pages/HashtagSearch";
-import SubSpaceTV from "./pages/SubSpaceTV";
+import SubSpaceTVBrowse from "./pages/SubSpaceTVBrowse";
+import SubSpaceTVUpload from "./pages/SubSpaceTVUpload";
 import VideoPage from "./pages/VideoPage";
 import { AnimatePresence } from "framer-motion";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -47,7 +47,8 @@ const App = () => (
                 <Route path="/messages" element={<Messages />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/hashtag/:tag" element={<HashtagSearch />} />
-                <Route path="/subspacetv" element={<SubSpaceTV />} />
+                <Route path="/subspacetv" element={<SubSpaceTVBrowse />} />
+                <Route path="/subspacetv/upload" element={<SubSpaceTVUpload />} />
                 <Route path="/subspacetv/watch/:videoId" element={<VideoPage />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
