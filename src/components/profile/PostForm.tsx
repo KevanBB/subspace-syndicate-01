@@ -1,5 +1,4 @@
-
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -27,12 +26,41 @@ const PostForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Rich text state and handlers
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   const username = user?.user_metadata?.username || user?.email?.split('@')[0] || 'User';
+
+  // Fetch user avatar
+  useEffect(() => {
+    const fetchUserAvatar = async () => {
+      if (user) {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('avatar_url')
+            .eq('id', user.id)
+            .single();
+            
+          if (error) {
+            console.error('Error fetching avatar:', error);
+            return;
+          }
+          
+          if (data && data.avatar_url) {
+            setAvatarUrl(data.avatar_url);
+          }
+        } catch (error) {
+          console.error('Error fetching avatar:', error);
+        }
+      }
+    };
+    
+    fetchUserAvatar();
+  }, [user]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -198,7 +226,7 @@ const PostForm: React.FC = () => {
     <div className="space-y-4">
       <div className="flex items-start gap-3">
         <Avatar>
-          <AvatarImage src="/placeholder.svg" alt={username} />
+          <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={username} />
           <AvatarFallback className="bg-crimson text-white">
             {username.substring(0, 2).toUpperCase()}
           </AvatarFallback>

@@ -27,7 +27,7 @@ const PostsList: React.FC = () => {
           data.map(async (post) => {
             const { data: profileData } = await supabase
               .from('profiles')
-              .select('username, bdsm_role')
+              .select('username, bdsm_role, avatar_url')
               .eq('id', post.user_id)
               .single();
               
@@ -35,6 +35,7 @@ const PostsList: React.FC = () => {
               ...post,
               username: profileData?.username,
               bdsm_role: profileData?.bdsm_role,
+              avatar_url: profileData?.avatar_url,
             };
           })
         );
@@ -61,8 +62,24 @@ const PostsList: React.FC = () => {
         }, 
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            // Add the new post to the list
-            setPosts(prevPosts => [payload.new, ...prevPosts]);
+            // When a new post is inserted, fetch its profile data
+            const fetchNewPostWithProfile = async () => {
+              const { data: profileData } = await supabase
+                .from('profiles')
+                .select('username, bdsm_role, avatar_url')
+                .eq('id', payload.new.user_id)
+                .single();
+                
+              // Add the new post with profile data to the list
+              setPosts(prevPosts => [{
+                ...payload.new,
+                username: profileData?.username,
+                bdsm_role: profileData?.bdsm_role,
+                avatar_url: profileData?.avatar_url,
+              }, ...prevPosts]);
+            };
+            
+            fetchNewPostWithProfile();
           }
         }
       )
