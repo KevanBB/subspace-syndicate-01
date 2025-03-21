@@ -27,13 +27,14 @@ const PostsList: React.FC = () => {
           data.map(async (post) => {
             const { data: profileData } = await supabase
               .from('profiles')
-              .select('username')
+              .select('username, bdsm_role')
               .eq('id', post.user_id)
               .single();
               
             return {
               ...post,
               username: profileData?.username,
+              bdsm_role: profileData?.bdsm_role,
             };
           })
         );
