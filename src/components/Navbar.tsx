@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -43,12 +44,20 @@ const Navbar = () => {
           {['About', 'Features', 'Creators', 'Join'].map((item, index) => (
             <NavItem key={item} label={item} delay={index * 0.1} />
           ))}
+          <Link to="/community" className="text-white/90 hover:text-white transition-colors text-sm font-medium">
+            Community
+          </Link>
+          <Link to="/dashboard" className="text-white/90 hover:text-white transition-colors text-sm font-medium">
+            Dashboard
+          </Link>
         </nav>
         
         <div className="hidden md:flex items-center space-x-4">
-          <Button variant="ghost" className="text-white hover:text-crimson transition-colors">
-            Login
-          </Button>
+          <Link to="/auth">
+            <Button variant="ghost" className="text-white hover:text-crimson transition-colors">
+              Login
+            </Button>
+          </Link>
           <Button className="bg-crimson hover:bg-crimson/90 text-white">
             Get Invited
           </Button>
@@ -81,10 +90,26 @@ const Navbar = () => {
                 {item}
               </a>
             ))}
+            <Link 
+              to="/community"
+              className="text-white hover:text-crimson py-2 transition-colors"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Community
+            </Link>
+            <Link 
+              to="/dashboard"
+              className="text-white hover:text-crimson py-2 transition-colors"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Dashboard
+            </Link>
             <div className="flex flex-col space-y-2 pt-2 border-t border-white/10">
-              <Button variant="ghost" className="text-white hover:text-crimson justify-start">
-                Login
-              </Button>
+              <Link to="/auth">
+                <Button variant="ghost" className="text-white hover:text-crimson justify-start">
+                  Login
+                </Button>
+              </Link>
               <Button className="bg-crimson hover:bg-crimson/90 text-white w-full">
                 Get Invited
               </Button>
