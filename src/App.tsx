@@ -13,6 +13,7 @@ import Community from "./pages/Community";
 import Settings from "./pages/Settings";
 import Messages from "./pages/Messages";
 import NotFound from "./pages/NotFound";
+import HashtagSearch from "./pages/HashtagSearch";
 import { AnimatePresence } from "framer-motion";
 import { AuthProvider } from "./contexts/AuthContext";
 import { useActivity } from "./utils/useActivity";
@@ -43,6 +44,7 @@ const App = () => (
                 <Route path="/community" element={<Community />} />
                 <Route path="/messages" element={<Messages />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/hashtag/:tag" element={<HashtagSearch />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

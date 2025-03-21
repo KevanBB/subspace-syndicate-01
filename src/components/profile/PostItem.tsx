@@ -8,6 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Lightbox } from '@/components/ui/lightbox';
+import { formatTextWithHashtags } from '@/utils/hashtags';
 
 type PostItemProps = {
   post: {
@@ -106,7 +107,9 @@ const PostItem: React.FC<PostItemProps> = ({ post }) => {
       
       <CardContent className="text-white/80">
         <div className="prose prose-invert prose-sm max-w-none">
-          <ReactMarkdown>{post.content}</ReactMarkdown>
+          <div className="whitespace-pre-wrap">
+            {formatTextWithHashtags(post.content)}
+          </div>
         </div>
         
         {mediaUrls.length > 0 && (

@@ -14,11 +14,13 @@ import {
   Underline, 
   Heading, 
   List, 
-  ListOrdered 
+  ListOrdered,
+  Hash
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import { Input } from '@/components/ui/input';
+import { formatTextWithHashtags } from '@/utils/hashtags';
 
 const PostForm: React.FC = () => {
   const { user } = useAuth();
@@ -28,13 +30,10 @@ const PostForm: React.FC = () => {
   const [previews, setPreviews] = useState<string[]>([]);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Rich text state and handlers
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  
+  const [showPreview, setShowPreview] = useState(false);
+
   const username = user?.user_metadata?.username || user?.email?.split('@')[0] || 'User';
 
-  // Fetch user avatar
   useEffect(() => {
     const fetchUserAvatar = async () => {
       if (user) {
@@ -67,7 +66,6 @@ const PostForm: React.FC = () => {
       const newFiles = Array.from(e.target.files);
       setMediaFiles(prev => [...prev, ...newFiles]);
       
-      // Generate previews for all selected files
       newFiles.forEach(file => {
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -119,12 +117,15 @@ const PostForm: React.FC = () => {
         formattedText = `\n1. ${selectedText}`;
         cursorPosition = start + 4;
         break;
+      case 'hashtag':
+        formattedText = `#${selectedText}`;
+        cursorPosition = start + 1;
+        break;
     }
     
     const newContent = content.substring(0, start) + formattedText + content.substring(end);
     setContent(newContent);
     
-    // Set focus back to textarea and cursor position
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(
@@ -150,13 +151,11 @@ const PostForm: React.FC = () => {
       let mediaUrls: string[] = [];
       let mediaTypes: string[] = [];
 
-      // Upload all files
       if (mediaFiles.length > 0) {
         const uploadPromises = mediaFiles.map(async (file) => {
           const fileExt = file.name.split('.').pop();
           const filePath = `${user!.id}/${uuidv4()}.${fileExt}`;
           
-          // Determine media type
           let mediaType = 'other';
           if (file.type.startsWith('image/')) {
             mediaType = 'image';
@@ -172,7 +171,6 @@ const PostForm: React.FC = () => {
             throw uploadError;
           }
 
-          // Get the public URL
           const { data: { publicUrl } } = supabase.storage
             .from('post_media')
             .getPublicUrl(filePath);
@@ -185,7 +183,6 @@ const PostForm: React.FC = () => {
         mediaTypes = uploadResults.map(result => result.type);
       }
 
-      // Insert the post
       const { error: insertError } = await supabase
         .from('posts')
         .insert({
@@ -199,7 +196,6 @@ const PostForm: React.FC = () => {
         throw insertError;
       }
 
-      // Clear form after successful submission
       setContent('');
       setMediaFiles([]);
       setPreviews([]);
@@ -232,7 +228,6 @@ const PostForm: React.FC = () => {
           </AvatarFallback>
         </Avatar>
         <div className="flex-1">
-          {/* Rich text toolbar */}
           <div className="bg-black/30 border-white/10 border rounded-t-md p-2 flex gap-1 flex-wrap">
             <Button 
               variant="ghost" 
@@ -288,6 +283,24 @@ const PostForm: React.FC = () => {
             >
               <ListOrdered size={16} />
             </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
+              onClick={() => applyTextFormat('hashtag')}
+              type="button"
+            >
+              <Hash size={16} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-white/70 hover:text-white hover:bg-white/10 ml-auto h-8"
+              onClick={() => setShowPreview(!showPreview)}
+              type="button"
+            >
+              {showPreview ? "Hide Preview" : "Preview"}
+            </Button>
           </div>
           
           <Textarea 
@@ -296,9 +309,15 @@ const PostForm: React.FC = () => {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             ref={textareaRef}
+            style={{ display: showPreview ? 'none' : 'block' }}
           />
           
-          {/* Preview area for selected media */}
+          {showPreview && (
+            <div className="bg-black/30 border-white/10 border-t-0 rounded-t-none p-4 text-white min-h-[120px] whitespace-pre-wrap">
+              {formatTextWithHashtags(content)}
+            </div>
+          )}
+          
           {previews.length > 0 && (
             <div className="mt-2 grid grid-cols-2 gap-2">
               {previews.map((preview, index) => (
@@ -339,6 +358,15 @@ const PostForm: React.FC = () => {
               </Button>
               <Button variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/10">
                 <Smile size={20} />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-white/70 hover:text-white hover:bg-white/10"
+                onClick={() => applyTextFormat('hashtag')}
+                type="button"
+              >
+                <Hash size={20} />
               </Button>
             </div>
             <Button 
