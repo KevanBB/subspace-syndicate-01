@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,11 +12,9 @@ import {
   SidebarSeparator,
   SidebarMenuSub,
   SidebarMenuSubItem,
-  SidebarMenuSubButton,
-  Collapsible,
-  CollapsibleTrigger,
-  CollapsibleContent
+  SidebarMenuSubButton
 } from '@/components/ui/sidebar';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -64,7 +61,6 @@ const DashboardSidebar = () => {
     }
   }, [user]);
 
-  // Check if current route is part of SubSpaceTV section
   useEffect(() => {
     if (location.pathname.includes('/subspacetv')) {
       setExpandedMenu('subspacetv');
@@ -151,7 +147,6 @@ const DashboardSidebar = () => {
             </SidebarMenuButton>
           </SidebarMenuItem>
           
-          {/* SubSpaceTV Menu Item with Submenu */}
           <SidebarMenuItem>
             <Collapsible open={expandedMenu === 'subspacetv'} onOpenChange={() => toggleMenu('subspacetv')}>
               <CollapsibleTrigger asChild>
