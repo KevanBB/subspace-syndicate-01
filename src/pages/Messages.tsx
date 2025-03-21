@@ -94,7 +94,7 @@ const Messages = () => {
               conversation_id, 
               user_id, 
               created_at,
-              profile:profiles(
+              profiles:profiles(
                 username, 
                 avatar_url,
                 last_active
@@ -110,14 +110,17 @@ const Messages = () => {
             .order('created_at', { ascending: false })
             .limit(1);
             
+          // Fix the participants data structure
           const processedParticipants = participants?.map(p => ({
             id: p.id,
             conversation_id: p.conversation_id,
             user_id: p.user_id,
             created_at: p.created_at,
-            profile: p.profile && Array.isArray(p.profile) && p.profile.length > 0 
-              ? p.profile[0] 
-              : p.profile
+            profile: {
+              username: p.profiles?.username || 'Unknown',
+              avatar_url: p.profiles?.avatar_url,
+              last_active: p.profiles?.last_active
+            }
           }));
             
           return {
