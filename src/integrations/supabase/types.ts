@@ -180,10 +180,13 @@ export type Database = {
       }
       videos: {
         Row: {
+          bitrate: number | null
           category: string
           created_at: string
           description: string | null
           duration: number | null
+          format: string | null
+          height: number | null
           id: string
           likes: number
           status: string
@@ -195,12 +198,16 @@ export type Database = {
           video_url: string
           views: number
           visibility: string
+          width: number | null
         }
         Insert: {
+          bitrate?: number | null
           category?: string
           created_at?: string
           description?: string | null
           duration?: number | null
+          format?: string | null
+          height?: number | null
           id?: string
           likes?: number
           status?: string
@@ -212,12 +219,16 @@ export type Database = {
           video_url: string
           views?: number
           visibility?: string
+          width?: number | null
         }
         Update: {
+          bitrate?: number | null
           category?: string
           created_at?: string
           description?: string | null
           duration?: number | null
+          format?: string | null
+          height?: number | null
           id?: string
           likes?: number
           status?: string
@@ -229,6 +240,7 @@ export type Database = {
           video_url?: string
           views?: number
           visibility?: string
+          width?: number | null
         }
         Relationships: []
       }

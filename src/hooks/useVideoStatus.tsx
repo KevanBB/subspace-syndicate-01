@@ -37,7 +37,7 @@ export function useVideoStatus({ videoId, onStatusChange }: UseVideoStatusProps)
 
         if (error) throw error;
         
-        if (isMounted) {
+        if (isMounted && data) {
           setStatus(data.status as VideoStatus);
           
           // Extract available metadata
@@ -79,7 +79,7 @@ export function useVideoStatus({ videoId, onStatusChange }: UseVideoStatusProps)
           filter: `id=eq.${videoId}`,
         },
         (payload) => {
-          if (isMounted) {
+          if (isMounted && payload.new) {
             const newStatus = payload.new.status as VideoStatus;
             setStatus(newStatus);
             
