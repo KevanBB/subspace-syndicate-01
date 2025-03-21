@@ -30,6 +30,21 @@ interface PostWithProfile {
   bdsm_role?: string;
 }
 
+// Define the structure of what Supabase returns
+interface SupabasePost {
+  id: string;
+  content: string;
+  created_at: string | null;
+  user_id: string;
+  media_url: string | null;
+  media_type: string | null;
+  profiles?: {
+    username?: string;
+    avatar_url?: string;
+    bdsm_role?: string;
+  };
+}
+
 const HashtagSearch = () => {
   const { tag } = useParams<{ tag: string }>();
   const { toast } = useToast();
@@ -58,7 +73,7 @@ const HashtagSearch = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data || [];
+      return data as SupabasePost[] || [];
     },
     enabled: !!decodedTag
   });
@@ -140,7 +155,7 @@ const HashtagSearch = () => {
                   <Loader2 className="h-8 w-8 animate-spin text-white/70" />
                 </div>
               ) : posts && posts.length > 0 ? (
-                posts.map((post: PostWithProfile) => (
+                posts.map((post) => (
                   <PostItem 
                     key={post.id} 
                     post={{
