@@ -41,34 +41,43 @@ export type Database = {
       }
       profiles: {
         Row: {
+          allow_messages: boolean | null
+          avatar_url: string | null
           bdsm_role: string
           birthday: string | null
           created_at: string | null
           id: string
           location: string | null
           orientation: string | null
+          show_online_status: boolean | null
           user_role: string | null
           username: string | null
           visibility: string | null
         }
         Insert: {
+          allow_messages?: boolean | null
+          avatar_url?: string | null
           bdsm_role?: string
           birthday?: string | null
           created_at?: string | null
           id: string
           location?: string | null
           orientation?: string | null
+          show_online_status?: boolean | null
           user_role?: string | null
           username?: string | null
           visibility?: string | null
         }
         Update: {
+          allow_messages?: boolean | null
+          avatar_url?: string | null
           bdsm_role?: string
           birthday?: string | null
           created_at?: string | null
           id?: string
           location?: string | null
           orientation?: string | null
+          show_online_status?: boolean | null
           user_role?: string | null
           username?: string | null
           visibility?: string | null

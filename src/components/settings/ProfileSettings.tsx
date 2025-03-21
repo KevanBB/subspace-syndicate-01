@@ -51,6 +51,7 @@ const ProfileSettings = () => {
           setBirthday(data.birthday || user?.user_metadata?.birthday || '');
           setOrientation(data.orientation || user?.user_metadata?.orientation || 'straight');
           setBdsmRole(data.bdsm_role || user?.user_metadata?.bdsm_role || 'Exploring');
+          setAvatarUrl(data.avatar_url || user?.user_metadata?.avatar_url || null);
         }
       };
       
@@ -97,7 +98,8 @@ const ProfileSettings = () => {
           location,
           birthday,
           orientation,
-          bdsm_role: bdsmRole
+          bdsm_role: bdsmRole,
+          avatar_url: avatarUrl // This is now valid since we added the column
         })
         .eq('id', user?.id);
         
