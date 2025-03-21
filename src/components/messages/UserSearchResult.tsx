@@ -16,7 +16,6 @@ interface UserSearchResultProps {
 const UserSearchResult: React.FC<UserSearchResultProps> = ({ profile, onSelect }) => {
   return (
     <div
-      key={profile.id}
       className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-md cursor-pointer"
       onClick={() => onSelect(profile.id)}
     >

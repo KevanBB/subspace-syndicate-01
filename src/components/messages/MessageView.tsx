@@ -15,12 +15,19 @@ interface MessageViewProps {
   onBack: () => void;
 }
 
+interface MessageWithSender extends Message {
+  sender: {
+    username: string;
+    avatar_url?: string;
+  } | null;
+}
+
 const MessageView: React.FC<MessageViewProps> = ({
   conversation,
   currentUserId,
   onBack
 }) => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<MessageWithSender[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
@@ -53,7 +60,7 @@ const MessageView: React.FC<MessageViewProps> = ({
               .eq('id', payload.new.sender_id)
               .single();
               
-            const newMsg: Message = {
+            const newMsg: MessageWithSender = {
               id: payload.new.id,
               conversation_id: payload.new.conversation_id,
               sender_id: payload.new.sender_id,
@@ -61,7 +68,7 @@ const MessageView: React.FC<MessageViewProps> = ({
               read: payload.new.read || false,
               created_at: payload.new.created_at,
               updated_at: payload.new.updated_at,
-              sender: data || undefined
+              sender: data || null
             };
             
             setMessages(prev => [...prev, newMsg]);
@@ -85,51 +92,49 @@ const MessageView: React.FC<MessageViewProps> = ({
     try {
       setIsLoading(true);
       
-      // Get messages with sender profiles using join
-      const { data, error } = await supabase
+      // Fetch messages first
+      const { data: messagesData, error: messagesError } = await supabase
         .from('messages')
-        .select(`
-          id,
-          conversation_id,
-          sender_id,
-          content,
-          read,
-          created_at,
-          updated_at,
-          sender:profiles(
-            username,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('conversation_id', conversation.id)
         .order('created_at', { ascending: true });
         
-      if (error) throw error;
+      if (messagesError) throw messagesError;
       
-      // Process the data to ensure it matches our Message type
-      const typedMessages: Message[] = data?.map(msg => {
-        // Handle the case where sender might be an array due to the join
-        const senderData = msg.sender && Array.isArray(msg.sender) && msg.sender.length > 0 
-          ? msg.sender[0] 
-          : msg.sender;
-          
-        return {
-          id: msg.id,
-          conversation_id: msg.conversation_id || '',
-          sender_id: msg.sender_id || '',
-          content: msg.content,
-          read: !!msg.read,
-          created_at: msg.created_at || '',
-          updated_at: msg.updated_at || '',
-          sender: senderData
-        };
-      }) || [];
+      if (!messagesData || messagesData.length === 0) {
+        setMessages([]);
+        setIsLoading(false);
+        return;
+      }
       
-      setMessages(typedMessages);
+      // Extract unique sender IDs
+      const senderIds = [...new Set(messagesData.map(msg => msg.sender_id))];
+      
+      // Fetch sender profiles in a single query
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url')
+        .in('id', senderIds);
+        
+      if (profilesError) throw profilesError;
+      
+      // Create a map of profiles by ID for easy lookup
+      const profilesMap = new Map();
+      profilesData?.forEach(profile => {
+        profilesMap.set(profile.id, profile);
+      });
+      
+      // Combine messages with sender information
+      const messagesWithSenders: MessageWithSender[] = messagesData.map(msg => ({
+        ...msg,
+        sender: profilesMap.get(msg.sender_id) || null
+      }));
+      
+      setMessages(messagesWithSenders);
       
       // Mark unread messages as read
-      if (typedMessages.length > 0) {
-        const unreadMessages = typedMessages.filter(msg => !msg.read && msg.sender_id !== currentUserId);
+      if (messagesWithSenders.length > 0) {
+        const unreadMessages = messagesWithSenders.filter(msg => !msg.read && msg.sender_id !== currentUserId);
         
         if (unreadMessages.length > 0) {
           const unreadIds = unreadMessages.map(msg => msg.id);
