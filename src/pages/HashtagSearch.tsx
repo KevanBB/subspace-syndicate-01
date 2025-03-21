@@ -11,6 +11,25 @@ import { useToast } from '@/components/ui/use-toast';
 import { Loader2, Users, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
+interface ProfileData {
+  username?: string;
+  avatar_url?: string;
+  bdsm_role?: string;
+}
+
+interface PostWithProfile {
+  id: string;
+  content: string;
+  created_at: string | null;
+  user_id: string;
+  media_url: string | null;
+  media_type: string | null;
+  profiles?: ProfileData;
+  username?: string;
+  avatar_url?: string;
+  bdsm_role?: string;
+}
+
 const HashtagSearch = () => {
   const { tag } = useParams<{ tag: string }>();
   const { toast } = useToast();
@@ -121,7 +140,7 @@ const HashtagSearch = () => {
                   <Loader2 className="h-8 w-8 animate-spin text-white/70" />
                 </div>
               ) : posts && posts.length > 0 ? (
-                posts.map((post) => (
+                posts.map((post: PostWithProfile) => (
                   <PostItem 
                     key={post.id} 
                     post={{
