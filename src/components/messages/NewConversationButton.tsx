@@ -67,22 +67,21 @@ const NewConversationButton: React.FC<NewConversationButtonProps> = ({ onConvers
     try {
       setIsCreating(true);
       
-      // Check if conversation already exists
-      const { data: existingParticipants } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('user_id', user.id);
-        
-      if (existingParticipants && existingParticipants.length > 0) {
-        const conversationIds = existingParticipants.map(p => p.conversation_id);
-        
-        const { data: otherParticipants } = await supabase
+      // Check if conversation already exists using RPC
+      const { data: existingConversations } = await supabase.rpc(
+        'get_user_conversations',
+        { user_id: user.id }
+      );
+      
+      if (existingConversations && existingConversations.length > 0) {
+        // Check if the recipient is in any of these conversations
+        const { data: participations } = await supabase
           .from('conversation_participants')
           .select('conversation_id')
           .eq('user_id', otherUserId)
-          .in('conversation_id', conversationIds);
+          .in('conversation_id', existingConversations);
           
-        if (otherParticipants && otherParticipants.length > 0) {
+        if (participations && participations.length > 0) {
           toast({
             title: 'Conversation already exists',
             description: 'You already have a conversation with this user.',

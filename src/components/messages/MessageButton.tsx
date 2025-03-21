@@ -38,21 +38,20 @@ const MessageButton: React.FC<MessageButtonProps> = ({ recipientId, className })
     
     try {
       // Check if conversation already exists
-      const { data: userParticipations } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('user_id', user.id);
+      const { data: existingConversations } = await supabase.rpc(
+        'get_user_conversations',
+        { user_id: user.id }
+      );
       
-      if (userParticipations && userParticipations.length > 0) {
-        const conversationIds = userParticipations.map(p => p.conversation_id);
-        
-        const { data: recipientParticipations } = await supabase
+      if (existingConversations && existingConversations.length > 0) {
+        // Check if the recipient is in any of these conversations
+        const { data: participations } = await supabase
           .from('conversation_participants')
           .select('conversation_id')
           .eq('user_id', recipientId)
-          .in('conversation_id', conversationIds);
+          .in('conversation_id', existingConversations);
           
-        if (recipientParticipations && recipientParticipations.length > 0) {
+        if (participations && participations.length > 0) {
           // Conversation exists, redirect to it
           navigate('/messages');
           return;
