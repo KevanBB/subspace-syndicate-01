@@ -1,8 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import PostItem from './PostItem';
 import { Card, CardContent } from '@/components/ui/card';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 
 const PostsList: React.FC = () => {
   const [posts, setPosts] = useState<any[]>([]);
@@ -92,9 +93,10 @@ const PostsList: React.FC = () => {
 
   if (loading) {
     return (
-      <Card className="bg-black/20 border-white/10 backdrop-blur-md">
-        <CardContent className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-crimson"></div>
+      <Card className="bg-black/30 border-white/10 backdrop-blur-md shadow-lg shadow-crimson/5">
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="h-10 w-10 text-crimson animate-spin mb-4" />
+          <p className="text-white/70">Loading your feed...</p>
         </CardContent>
       </Card>
     );
@@ -102,9 +104,10 @@ const PostsList: React.FC = () => {
 
   if (error) {
     return (
-      <Card className="bg-black/20 border-white/10 backdrop-blur-md">
-        <CardContent className="flex justify-center py-8 text-white/70">
-          <p>Error loading posts: {error}</p>
+      <Card className="bg-black/30 border-white/10 backdrop-blur-md shadow-lg shadow-crimson/5">
+        <CardContent className="flex flex-col items-center justify-center py-12 text-white/70">
+          <p className="text-lg mb-2">😕 Something went wrong</p>
+          <p className="text-sm text-white/50">Error loading posts: {error}</p>
         </CardContent>
       </Card>
     );
@@ -112,20 +115,33 @@ const PostsList: React.FC = () => {
 
   if (posts.length === 0) {
     return (
-      <Card className="bg-black/20 border-white/10 backdrop-blur-md">
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <p className="text-white/70 text-center">No posts yet. Create your first post above!</p>
+      <Card className="bg-black/30 border-white/10 backdrop-blur-md shadow-lg shadow-crimson/5">
+        <CardContent className="flex flex-col items-center justify-center py-16">
+          <div className="w-16 h-16 rounded-full bg-black/40 flex items-center justify-center mb-4">
+            <span className="text-2xl">🔍</span>
+          </div>
+          <h3 className="text-xl font-semibold text-white mb-2">No Posts Yet</h3>
+          <p className="text-white/70 text-center max-w-md">
+            Your feed is empty. Create your first post above to get started!
+          </p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {posts.map((post) => (
-        <PostItem key={post.id} post={post} />
-      ))}
-    </div>
+    <AnimatePresence>
+      <motion.div 
+        className="space-y-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ staggerChildren: 0.1 }}
+      >
+        {posts.map((post) => (
+          <PostItem key={post.id} post={post} />
+        ))}
+      </motion.div>
+    </AnimatePresence>
   );
 };
 
