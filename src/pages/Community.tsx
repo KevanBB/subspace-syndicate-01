@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,7 +15,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Search, UserPlus, Shield, SwitchCamera, HelpCircle } from 'lucide-react';
+import { Search, User, Shield, SwitchCamera, HelpCircle } from 'lucide-react';
 import MemberCard from '@/components/community/MemberCard';
 import OnlineIndicator from '@/components/community/OnlineIndicator';
 import GroupChatButton from '@/components/community/GroupChatButton';
@@ -161,7 +162,7 @@ const Community: React.FC = () => {
             </div>
             
             <Button className="bg-crimson hover:bg-crimson/90">
-              <UserPlus className="mr-2 h-4 w-4" /> Find New Connections
+              <User className="mr-2 h-4 w-4" /> Find New Connections
             </Button>
           </div>
         </div>

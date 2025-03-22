@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Send, Users, X, Image, Play, Loader2, XCircle as CircleX, Paperclip as Clip } from 'lucide-react';
+import { Send, Users, X, Image, Play, Loader2, Circle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import OnlineIndicator from './OnlineIndicator';
 import { v4 as uuidv4 } from 'uuid';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { Clip } from '@/components/ui/icons';
 
 interface ChatMessage {
   id: string;
@@ -223,11 +224,6 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
         upsert: false
       };
       
-      const progressCallback = (progress: { loaded: number; total: number }) => {
-        const percent = Math.round((progress.loaded / progress.total) * 100);
-        setUploadProgress(percent);
-      };
-      
       const { data, error } = await supabase.storage
         .from('media')
         .upload(filePath, file, options);
@@ -307,7 +303,7 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
           className="absolute top-1 right-1 h-6 w-6 rounded-full bg-black/60 z-10"
           onClick={handleRemoveSelectedFile}
         >
-          <CircleX className="h-4 w-4" />
+          <Circle className="h-4 w-4" />
         </Button>
         
         {isImage ? (
