@@ -204,27 +204,6 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
   const [showNetwork2, setShowNetwork2] = useState(false);
   const [showCommunity2, setShowCommunity2] = useState(false);
   const [showGroup2, setShowGroup2] = useState(false);
-  const [showChannel2, setShowChannel2] = useState(false);
-  const [showPage2, setShowPage2] = useState(false);
-  const [showEvent2, setShowEvent2] = useState(false);
-  const [showLocation2, setShowLocation2] = useState(false);
-  const [showPlace2, setShowPlace2] = useState(false);
-  const [showVenue2, setShowVenue2] = useState(false);
-  const [showAddress2, setShowAddress2] = useState(false);
-  const [showCity2, setShowCity2] = useState(false);
-  const [showState2, setShowState2] = useState(false);
-  const [showCountry2, setShowCountry2] = useState(false);
-  const [showZip2, setShowZip2] = useState(false);
-  const [showPhone2, setShowPhone2] = useState(false);
-  const [showEmail2, setShowEmail2] = useState(false);
-  const [showWebsite2, setShowWebsite2] = useState(false);
-  const [showSocial2, setShowSocial2] = useState(false);
-  const [showLinks2, setShowLinks2] = useState(false);
-  const [showTags2, setShowTags2] = useState(false);
-  const [showCategories2, setShowCategories2] = useState(false);
-  const [showKeywords2, setShowKeywords2] = useState(false);
-  const [showDescription2, setShowDescription2] = useState(false);
-  const [showSummary2, setShowSummary2] = useState(false);
 
   useEffect(() => {
     loadComments();
@@ -1045,3 +1024,64 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
   };
 
   const toggleGroup2 = () => {
+    setShowGroup2(!showGroup2);
+  };
+
+  const toggleChannel2 = () => {
+    setShowChannel2(!showChannel2);
+  };
+
+  const togglePage2 = () => {
+    setShowPage2(!showPage2);
+  };
+
+  const toggleEvent2 = () => {
+    setShowEvent2(!showEvent2);
+  };
+
+  const toggleLocation2 = () => {
+    setShowLocation2(!showLocation2);
+  };
+
+  const togglePlace2 = () => {
+    setShowPlace2(!showPlace2);
+  };
+
+  const toggleVenue2 = () => {
+    setShowVenue2(!showVenue2);
+  };
+
+  const toggleAddress2 = () => {
+    setShowAddress2(!showAddress2);
+  };
+
+  const toggleCity2 = () => {
+    setShowCity2(!showCity2);
+  };
+
+  const toggleState2 = () => {
+    setShowState2(!showState2);
+  };
+
+  const toggleCountry2 = () => {
+    setShowCountry2(!showCountry2);
+  };
+
+  const toggleZip2 = () => {
+    setShowZip2(!showZip2);
+  };
+
+  const togglePhone2 = () => {
+    setShowPhone2(!showPhone2);
+  };
+
+  const toggleEmail2 = () => {
+    setShowEmail2(!showEmail2);
+  };
+
+  const toggleWebsite2 = () => {
+    setShowWebsite2(!showWebsite2);
+  };
+
+  const toggleSocial2 = () => {
+    setShowSocial2(!showSocial2);
