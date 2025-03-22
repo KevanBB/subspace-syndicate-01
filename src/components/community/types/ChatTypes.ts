@@ -27,4 +27,5 @@ export interface TypingIndicator {
   username?: string;
   avatar_url?: string;
   timestamp: string;
+  expired?: boolean; // Added to help remove typing indicators
 }

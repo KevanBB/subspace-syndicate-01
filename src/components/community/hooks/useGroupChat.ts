@@ -1,175 +1,79 @@
-import { useState, useEffect, useRef } from 'react';
+
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ChatMessage, MessageFromDB, TypingIndicator } from '../types/ChatTypes';
+import { ChatMessage, TypingIndicator } from '../types/ChatTypes';
+import { useChatSubscriptions } from './useChatSubscriptions';
+import { useMessageOperations } from './useMessageOperations';
+import { useMediaUpload } from './useMediaUpload';
+import { useTypingIndicator } from './useTypingIndicator';
 
 export const useGroupChat = (roomId: string, userId?: string) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [isSending, setIsSending] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [typingUsers, setTypingUsers] = useState<TypingIndicator[]>([]);
-  const typingTimeoutsRef = useRef<{[key: string]: NodeJS.Timeout}>({});
+
+  const { isSending, markMessageAsRead, sendMessageWithMedia } = useMessageOperations({ roomId, userId });
+  const { selectedFile, setSelectedFile, isUploading, uploadProgress, uploadMedia } = useMediaUpload({ roomId });
+  const { handleInputChange } = useTypingIndicator({ roomId, userId });
+
+  // Handle new messages from subscription
+  const handleNewMessage = (newMsg: ChatMessage) => {
+    setMessages(previous => [...previous, newMsg]);
+    
+    if (userId && userId !== newMsg.user_id) {
+      markMessageAsRead(newMsg.id);
+    }
+  };
+
+  // Handle typing indicator updates
+  const handleTypingUpdate = (typingUser: TypingIndicator) => {
+    setTypingUsers(prev => {
+      // If expired flag is set, remove the user
+      if (typingUser.expired) {
+        return prev.filter(user => user.user_id !== typingUser.user_id);
+      }
+      
+      const existingUserIndex = prev.findIndex(user => user.user_id === typingUser.user_id);
+      
+      if (existingUserIndex >= 0) {
+        const updatedUsers = [...prev];
+        updatedUsers[existingUserIndex] = typingUser;
+        return updatedUsers;
+      } else {
+        return [...prev, typingUser];
+      }
+    });
+  };
+
+  // Handle read receipts
+  const handleReadReceipt = (payload: any) => {
+    setMessages(prev => prev.map(msg => {
+      if (msg.id === payload.message_id) {
+        return {
+          ...msg,
+          read_by: [...(msg.read_by || []), payload.user_id]
+        };
+      }
+      return msg;
+    }));
+  };
+
+  // Set up all subscriptions
+  useChatSubscriptions({
+    roomId,
+    userId,
+    onNewMessage: handleNewMessage,
+    onTypingUpdate: handleTypingUpdate,
+    onReadReceipt: handleReadReceipt,
+    onOnlineStatusChange: fetchOnlineUsers
+  });
 
   useEffect(() => {
     fetchMessages();
     fetchOnlineUsers();
-    
-    const messageSubscription = supabase
-      .channel('public:community_chats')
-      .on('postgres_changes', 
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'community_chats',
-          filter: `room_id=eq.${roomId}`
-        }, 
-        async (payload) => {
-          const { data: userData } = await supabase
-            .from('profiles')
-            .select('username, avatar_url')
-            .eq('id', payload.new.user_id)
-            .single();
-            
-          const newMessage = {
-            ...payload.new,
-            username: userData?.username,
-            avatar_url: userData?.avatar_url,
-            read_by: [payload.new.user_id]
-          };
-          
-          setMessages(previous => [...previous, newMessage as ChatMessage]);
-          
-          if (userId && userId !== payload.new.user_id) {
-            markMessageAsRead(payload.new.id);
-          }
-        }
-      )
-      .subscribe();
-      
-    const presenceSubscription = supabase
-      .channel('online-users')
-      .on('presence', { event: 'sync' }, () => {
-        fetchOnlineUsers();
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED' && userId) {
-          await supabase
-            .from('profiles')
-            .update({ last_active: new Date().toISOString() })
-            .eq('id', userId);
-            
-          const channel = supabase.channel('online-users');
-          channel.track({
-            user_id: userId,
-            online_at: new Date().toISOString(),
-          });
-        }
-      });
-      
-    const typingChannel = supabase.channel('typing-indicator')
-      .on('broadcast', { event: 'typing' }, (payload) => {
-        if (payload.payload.user_id === userId) return;
-        
-        const fetchUserInfo = async () => {
-          const { data } = await supabase
-            .from('profiles')
-            .select('username, avatar_url')
-            .eq('id', payload.payload.user_id)
-            .single();
-            
-          const typingUser: TypingIndicator = {
-            user_id: payload.payload.user_id,
-            username: data?.username,
-            avatar_url: data?.avatar_url,
-            timestamp: payload.payload.timestamp
-          };
-          
-          setTypingUsers(prev => {
-            const existingUserIndex = prev.findIndex(user => user.user_id === typingUser.user_id);
-            
-            if (existingUserIndex >= 0) {
-              const updatedUsers = [...prev];
-              updatedUsers[existingUserIndex] = typingUser;
-              return updatedUsers;
-            } else {
-              return [...prev, typingUser];
-            }
-          });
-          
-          if (typingTimeoutsRef.current[typingUser.user_id]) {
-            clearTimeout(typingTimeoutsRef.current[typingUser.user_id]);
-          }
-          
-          typingTimeoutsRef.current[typingUser.user_id] = setTimeout(() => {
-            setTypingUsers(prev => prev.filter(user => user.user_id !== typingUser.user_id));
-          }, 3000);
-        };
-        
-        fetchUserInfo();
-      })
-      .subscribe();
-      
-    const readReceiptChannel = supabase.channel('read-receipts')
-      .on('broadcast', { event: 'message_read' }, (payload) => {
-        if (payload.payload.room_id === roomId) {
-          setMessages(prev => prev.map(msg => {
-            if (msg.id === payload.payload.message_id) {
-              return {
-                ...msg,
-                read_by: [...(msg.read_by || []), payload.payload.user_id]
-              };
-            }
-            return msg;
-          }));
-        }
-      })
-      .subscribe();
-    
-    return () => {
-      supabase.removeChannel(messageSubscription);
-      supabase.removeChannel(presenceSubscription);
-      supabase.removeChannel(typingChannel);
-      supabase.removeChannel(readReceiptChannel);
-      
-      Object.values(typingTimeoutsRef.current).forEach(timeout => {
-        clearTimeout(timeout);
-      });
-    };
   }, [userId, roomId]);
-
-  const markMessageAsRead = async (messageId: string) => {
-    if (!userId) return;
-    
-    try {
-      await supabase.channel('read-receipts')
-        .send({
-          type: 'broadcast',
-          event: 'message_read',
-          payload: {
-            message_id: messageId,
-            user_id: userId,
-            room_id: roomId,
-            timestamp: new Date().toISOString()
-          }
-        });
-        
-      setMessages(prev => prev.map(msg => {
-        if (msg.id === messageId && !msg.read_by?.includes(userId)) {
-          return {
-            ...msg,
-            read_by: [...(msg.read_by || []), userId]
-          };
-        }
-        return msg;
-      }));
-    } catch (error) {
-      console.error('Error marking message as read:', error);
-    }
-  };
 
   const fetchMessages = async () => {
     try {
@@ -247,47 +151,11 @@ export const useGroupChat = (roomId: string, userId?: string) => {
     }
   };
 
-  const uploadMedia = async (file: File) => {
-    try {
-      setIsUploading(true);
-      setUploadProgress(0);
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
-      const filePath = `community/${roomId}/${fileName}`;
-      
-      const options = {
-        cacheControl: '3600',
-        upsert: false
-      };
-      
-      const { data, error } = await supabase.storage
-        .from('media')
-        .upload(filePath, file, options);
-      
-      if (error) throw error;
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from('media')
-        .getPublicUrl(filePath);
-      
-      return { url: publicUrl, type: mediaType };
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      throw error;
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
-    }
-  };
-  
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!newMessage.trim() && !selectedFile) || !userId) return;
     
     try {
-      setIsSending(true);
-      
       let mediaUrl = null;
       let mediaType = null;
       
@@ -297,36 +165,26 @@ export const useGroupChat = (roomId: string, userId?: string) => {
         mediaType = uploadResult.type;
       }
       
-      const { error } = await supabase
-        .from('community_chats')
-        .insert({
-          room_id: roomId,
-          user_id: userId,
-          content: newMessage.trim(),
-          media_url: mediaUrl,
-          media_type: mediaType
-        });
-        
-      if (error) throw error;
+      const success = await sendMessageWithMedia(newMessage, mediaUrl, mediaType);
       
-      await supabase
-        .from('profiles')
-        .update({ last_active: new Date().toISOString() })
-        .eq('id', userId);
-      
-      setNewMessage('');
-      setSelectedFile(null);
+      if (success) {
+        setNewMessage('');
+        setSelectedFile(null);
+      }
     } catch (error) {
-      console.error('Error sending message:', error);
-    } finally {
-      setIsSending(false);
+      console.error('Error in send message process:', error);
     }
+  };
+
+  // Custom setNewMessage that also handles typing indicators
+  const updateNewMessage = (value: string) => {
+    setNewMessage(handleInputChange(value));
   };
 
   return {
     messages,
     newMessage,
-    setNewMessage,
+    setNewMessage: updateNewMessage,
     isLoading,
     isSending,
     onlineUsers,

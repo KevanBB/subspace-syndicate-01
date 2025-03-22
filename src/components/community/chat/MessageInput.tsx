@@ -63,7 +63,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   };
   
   const handleEmojiSelect = (emoji: string) => {
-    setNewMessage(prev => prev + emoji);
+    setNewMessage(newMessage + emoji);
   };
   
   const sendTypingIndicator = async () => {
