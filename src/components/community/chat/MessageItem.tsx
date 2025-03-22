@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ChatMessage } from '../types/ChatTypes';
 import MessageMedia from './MessageMedia';
-import { Check, CheckCheck } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 interface MessageItemProps {
   message: ChatMessage;
@@ -56,7 +56,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, currentUserId, onlin
             {isOwnMessage && (
               <span className="ml-2 flex items-center">
                 {readByOthers > 0 ? (
-                  <CheckCheck className="h-3 w-3 text-green-500" />
+                  <Check className="h-3 w-3 text-green-500" strokeWidth={3} />
                 ) : hasBeenRead ? (
                   <Check className="h-3 w-3 text-gray-400" />
                 ) : null}

@@ -60,6 +60,26 @@ export const useGroupChat = (roomId: string, userId?: string) => {
     }));
   };
 
+  // Function to fetch online users
+  const fetchOnlineUsers = async () => {
+    try {
+      const fiveMinutesAgo = new Date();
+      fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url, last_active')
+        .gt('last_active', fiveMinutesAgo.toISOString())
+        .limit(20);
+        
+      if (error) throw error;
+      
+      setOnlineUsers(data || []);
+    } catch (error) {
+      console.error('Error fetching online users:', error);
+    }
+  };
+
   // Set up all subscriptions
   useChatSubscriptions({
     roomId,
@@ -129,25 +149,6 @@ export const useGroupChat = (roomId: string, userId?: string) => {
       console.error('Error fetching messages:', error);
     } finally {
       setIsLoading(false);
-    }
-  };
-  
-  const fetchOnlineUsers = async () => {
-    try {
-      const fiveMinutesAgo = new Date();
-      fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_url, last_active')
-        .gt('last_active', fiveMinutesAgo.toISOString())
-        .limit(20);
-        
-      if (error) throw error;
-      
-      setOnlineUsers(data || []);
-    } catch (error) {
-      console.error('Error fetching online users:', error);
     }
   };
 
