@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -20,6 +21,9 @@ interface NotificationSettingsProps {
 }
 
 export default function NotificationSettings({ preferences, onPreferencesChange }: NotificationSettingsProps) {
+  // Ensure hashtags is always an array even if undefined
+  const hashtags = preferences.hashtags || [];
+  
   const handleToggleAllPosts = (checked: boolean) => {
     onPreferencesChange({
       ...preferences,
@@ -39,18 +43,18 @@ export default function NotificationSettings({ preferences, onPreferencesChange 
     const formattedTag = tag.startsWith('#') ? tag.substring(1).toLowerCase() : tag.toLowerCase();
     
     // Don't add if already exists
-    if (preferences.hashtags.includes(formattedTag)) return;
+    if (hashtags.includes(formattedTag)) return;
     
     onPreferencesChange({
       ...preferences,
-      hashtags: [...preferences.hashtags, formattedTag]
+      hashtags: [...hashtags, formattedTag]
     });
   };
   
   const handleRemoveHashtag = (tag: string) => {
     onPreferencesChange({
       ...preferences,
-      hashtags: preferences.hashtags.filter(t => t !== tag)
+      hashtags: hashtags.filter(t => t !== tag)
     });
   };
   
@@ -113,14 +117,14 @@ export default function NotificationSettings({ preferences, onPreferencesChange 
             <HashtagInput
               onAddHashtag={handleAddHashtag}
               maxHashtags={10}
-              currentCount={preferences.hashtags.length}
+              currentCount={hashtags.length}
               disabled={preferences.allPosts}
             />
           </div>
           
-          {preferences.hashtags.length > 0 ? (
+          {hashtags.length > 0 ? (
             <div className="flex flex-wrap gap-2 mt-2">
-              {preferences.hashtags.map(tag => (
+              {hashtags.map(tag => (
                 <Badge
                   key={tag}
                   className="bg-blue-900/30 text-blue-300 flex items-center gap-1"

@@ -168,6 +168,15 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
       const uploadedMedia: PostMedia[] = [];
       
       if (mediaItems.length > 0) {
+        const { error: bucketError } = await supabase.storage.createBucket('post-media', {
+          public: true,
+          fileSizeLimit: 52428800, // 50MB
+        });
+        
+        if (bucketError && bucketError.message !== 'Bucket already exists') {
+          console.error('Error creating bucket:', bucketError);
+        }
+        
         for (const item of mediaItems) {
           if (item.file) {
             const fileName = `${user?.id}/${uuidv4()}-${item.file.name}`;
@@ -219,7 +228,7 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
         if (mediaError) throw mediaError;
       }
       
-      if (hashtags.length > 0) {
+      if (hashtags && hashtags.length > 0) {
         const hashtagInserts = hashtags.map(tag => ({
           post_id: postData.id,
           hashtag: tag
@@ -306,7 +315,7 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
                 </div>
               )}
               
-              {hashtags.length > 0 && (
+              {hashtags && hashtags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-3 mb-4">
                   {hashtags.map(tag => (
                     <Badge
@@ -360,7 +369,7 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
                   <HashtagInput
                     onAddHashtag={handleAddHashtag}
                     maxHashtags={MAX_HASHTAGS}
-                    currentCount={hashtags.length}
+                    currentCount={hashtags ? hashtags.length : 0}
                     disabled={isPosting}
                   />
                 </div>

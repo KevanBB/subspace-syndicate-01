@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -100,10 +99,10 @@ const NewsFeed: React.FC = () => {
       // This requires a followed users table or implementation
       return false; // Placeholder
     }
-    if (notificationPrefs.hashtags.length > 0 && post.hashtags) {
+    if (notificationPrefs.hashtags && notificationPrefs.hashtags.length > 0 && post.hashtags) {
       // Check if any of the post's hashtags match the user's preferred hashtags
       return notificationPrefs.hashtags.some(tag => 
-        post.hashtags.includes(tag)
+        post.hashtags && post.hashtags.includes(tag)
       );
     }
     return false;

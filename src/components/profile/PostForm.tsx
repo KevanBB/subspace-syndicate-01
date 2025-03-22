@@ -153,6 +153,15 @@ const PostForm: React.FC = () => {
       let mediaTypes: string[] = [];
 
       if (mediaFiles.length > 0) {
+        const { error: bucketError } = await supabase.storage.createBucket('post_media', {
+          public: true,
+          fileSizeLimit: 52428800, // 50MB
+        });
+        
+        if (bucketError && bucketError.message !== 'Bucket already exists') {
+          console.error('Error creating bucket:', bucketError);
+        }
+
         const uploadPromises = mediaFiles.map(async (file) => {
           const fileExt = file.name.split('.').pop();
           const filePath = `${user!.id}/${uuidv4()}.${fileExt}`;
