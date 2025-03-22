@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { AlertCircle, Image as ImageIcon, Film as FilmIcon, Hash, Smile, Upload, RotateCw, X } from 'lucide-react';
+import { AlertCircle, Image as ImageIcon, Film as FilmIcon, Hash, Smile, Upload, Loader2, X } from 'lucide-react';
 import { MediaUploader } from './MediaUploader';
 import { MediaPreview } from './MediaPreview';
 import { HashtagInput } from './HashtagInput';
@@ -40,8 +39,8 @@ interface PostMedia {
   type: 'image' | 'video' | 'gif';
   aspectRatio?: number;
   duration?: number;
-  file?: File; // For local files before upload
-  previewUrl?: string; // For local files before upload
+  file?: File;
+  previewUrl?: string;
 }
 
 interface PostCreatorProps {
@@ -49,8 +48,8 @@ interface PostCreatorProps {
 }
 
 const MAX_MEDIA_ITEMS = 5;
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
-const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
 const MAX_HASHTAGS = 10;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime'];
@@ -374,7 +373,7 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
                 >
                   {isPosting ? (
                     <>
-                      <RotateCw className="h-4 w-4 mr-2 animate-spin" />
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Posting...
                     </>
                   ) : (
