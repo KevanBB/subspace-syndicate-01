@@ -5,7 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Bell, Users, Hash, X } from 'lucide-react';
+import { BellRing, Users, Hash, X } from 'lucide-react';
 import { HashtagInput } from './HashtagInput';
 import { Separator } from '@/components/ui/separator';
 
@@ -59,7 +59,7 @@ export default function NotificationSettings({ preferences, onPreferencesChange 
     <Card className="bg-black/30 border-white/10">
       <CardHeader className="pb-2">
         <CardTitle className="text-xl flex items-center">
-          <Bell className="h-5 w-5 mr-2 text-blue-400" />
+          <BellRing className="h-5 w-5 mr-2 text-blue-400" />
           Notification Settings
         </CardTitle>
       </CardHeader>
