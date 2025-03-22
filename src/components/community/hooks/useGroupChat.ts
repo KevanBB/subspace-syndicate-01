@@ -1,7 +1,6 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ChatMessage, MessageFromDB } from '../types/ChatTypes';
+import { ChatMessage, MessageFromDB, TypingIndicator } from '../types/ChatTypes';
 
 export const useGroupChat = (roomId: string, userId?: string) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -12,6 +11,8 @@ export const useGroupChat = (roomId: string, userId?: string) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [typingUsers, setTypingUsers] = useState<TypingIndicator[]>([]);
+  const typingTimeoutsRef = useRef<{[key: string]: NodeJS.Timeout}>({});
 
   useEffect(() => {
     fetchMessages();
@@ -36,10 +37,15 @@ export const useGroupChat = (roomId: string, userId?: string) => {
           const newMessage = {
             ...payload.new,
             username: userData?.username,
-            avatar_url: userData?.avatar_url
+            avatar_url: userData?.avatar_url,
+            read_by: [payload.new.user_id]
           };
           
           setMessages(previous => [...previous, newMessage as ChatMessage]);
+          
+          if (userId && userId !== payload.new.user_id) {
+            markMessageAsRead(payload.new.id);
+          }
         }
       )
       .subscribe();
@@ -63,12 +69,107 @@ export const useGroupChat = (roomId: string, userId?: string) => {
           });
         }
       });
+      
+    const typingChannel = supabase.channel('typing-indicator')
+      .on('broadcast', { event: 'typing' }, (payload) => {
+        if (payload.payload.user_id === userId) return;
+        
+        const fetchUserInfo = async () => {
+          const { data } = await supabase
+            .from('profiles')
+            .select('username, avatar_url')
+            .eq('id', payload.payload.user_id)
+            .single();
+            
+          const typingUser: TypingIndicator = {
+            user_id: payload.payload.user_id,
+            username: data?.username,
+            avatar_url: data?.avatar_url,
+            timestamp: payload.payload.timestamp
+          };
+          
+          setTypingUsers(prev => {
+            const existingUserIndex = prev.findIndex(user => user.user_id === typingUser.user_id);
+            
+            if (existingUserIndex >= 0) {
+              const updatedUsers = [...prev];
+              updatedUsers[existingUserIndex] = typingUser;
+              return updatedUsers;
+            } else {
+              return [...prev, typingUser];
+            }
+          });
+          
+          if (typingTimeoutsRef.current[typingUser.user_id]) {
+            clearTimeout(typingTimeoutsRef.current[typingUser.user_id]);
+          }
+          
+          typingTimeoutsRef.current[typingUser.user_id] = setTimeout(() => {
+            setTypingUsers(prev => prev.filter(user => user.user_id !== typingUser.user_id));
+          }, 3000);
+        };
+        
+        fetchUserInfo();
+      })
+      .subscribe();
+      
+    const readReceiptChannel = supabase.channel('read-receipts')
+      .on('broadcast', { event: 'message_read' }, (payload) => {
+        if (payload.payload.room_id === roomId) {
+          setMessages(prev => prev.map(msg => {
+            if (msg.id === payload.payload.message_id) {
+              return {
+                ...msg,
+                read_by: [...(msg.read_by || []), payload.payload.user_id]
+              };
+            }
+            return msg;
+          }));
+        }
+      })
+      .subscribe();
     
     return () => {
       supabase.removeChannel(messageSubscription);
       supabase.removeChannel(presenceSubscription);
+      supabase.removeChannel(typingChannel);
+      supabase.removeChannel(readReceiptChannel);
+      
+      Object.values(typingTimeoutsRef.current).forEach(timeout => {
+        clearTimeout(timeout);
+      });
     };
   }, [userId, roomId]);
+
+  const markMessageAsRead = async (messageId: string) => {
+    if (!userId) return;
+    
+    try {
+      await supabase.channel('read-receipts')
+        .send({
+          type: 'broadcast',
+          event: 'message_read',
+          payload: {
+            message_id: messageId,
+            user_id: userId,
+            room_id: roomId,
+            timestamp: new Date().toISOString()
+          }
+        });
+        
+      setMessages(prev => prev.map(msg => {
+        if (msg.id === messageId && !msg.read_by?.includes(userId)) {
+          return {
+            ...msg,
+            read_by: [...(msg.read_by || []), userId]
+          };
+        }
+        return msg;
+      }));
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+    }
+  };
 
   const fetchMessages = async () => {
     try {
@@ -108,11 +209,18 @@ export const useGroupChat = (roomId: string, userId?: string) => {
           media_type: message.media_type,
           created_at: message.created_at,
           username: profile?.username,
-          avatar_url: profile?.avatar_url
+          avatar_url: profile?.avatar_url,
+          read_by: userId ? [userId] : []
         } as ChatMessage;
       });
       
       setMessages(enrichedMessages || []);
+      
+      if (userId && enrichedMessages?.length) {
+        enrichedMessages.forEach(msg => {
+          markMessageAsRead(msg.id);
+        });
+      }
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {
@@ -227,5 +335,6 @@ export const useGroupChat = (roomId: string, userId?: string) => {
     isUploading,
     uploadProgress,
     sendMessage,
+    typingUsers,
   };
 };

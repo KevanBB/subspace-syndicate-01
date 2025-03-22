@@ -4,14 +4,18 @@ import { format } from 'date-fns';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ChatMessage } from '../types/ChatTypes';
 import MessageMedia from './MessageMedia';
+import { Check, CheckCheck } from 'lucide-react';
 
 interface MessageItemProps {
   message: ChatMessage;
   currentUserId?: string;
+  onlineUsers: any[];
 }
 
-const MessageItem: React.FC<MessageItemProps> = ({ message, currentUserId }) => {
+const MessageItem: React.FC<MessageItemProps> = ({ message, currentUserId, onlineUsers }) => {
   const isOwnMessage = message.user_id === currentUserId;
+  const hasBeenRead = message.read_by && message.read_by.length > 0;
+  const readByOthers = message.read_by?.filter(id => id !== currentUserId).length || 0;
 
   return (
     <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
@@ -46,8 +50,18 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, currentUserId }) => 
             <MessageMedia message={message} />
           </div>
           
-          <div className="text-xs text-white/50 mt-1 px-2">
+          <div className="text-xs text-white/50 mt-1 px-2 flex items-center">
             {format(new Date(message.created_at), 'HH:mm')}
+            
+            {isOwnMessage && (
+              <span className="ml-2 flex items-center">
+                {readByOthers > 0 ? (
+                  <CheckCheck className="h-3 w-3 text-green-500" />
+                ) : hasBeenRead ? (
+                  <Check className="h-3 w-3 text-gray-400" />
+                ) : null}
+              </span>
+            )}
           </div>
         </div>
       </div>

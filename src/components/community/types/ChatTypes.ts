@@ -9,6 +9,7 @@ export interface ChatMessage {
   created_at: string;
   username?: string;
   avatar_url?: string;
+  read_by?: string[]; // Array of user IDs who read this message
 }
 
 export interface MessageFromDB {
@@ -19,4 +20,11 @@ export interface MessageFromDB {
   created_at: string;
   read?: boolean;
   updated_at?: string;
+}
+
+export interface TypingIndicator {
+  user_id: string;
+  username?: string;
+  avatar_url?: string;
+  timestamp: string;
 }

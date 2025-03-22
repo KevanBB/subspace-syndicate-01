@@ -1,46 +1,67 @@
 
 import React, { useRef, useEffect } from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2 } from 'lucide-react';
-import { ChatMessage } from '../types/ChatTypes';
 import MessageItem from './MessageItem';
+import { ChatMessage, TypingIndicator as TypingIndicatorType } from '../types/ChatTypes';
+import TypingIndicator from './TypingIndicator';
 
 interface MessageListProps {
   messages: ChatMessage[];
   isLoading: boolean;
   currentUserId?: string;
+  onlineUsers: any[];
+  typingUsers: TypingIndicatorType[];
 }
 
-const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, currentUserId }) => {
+const MessageList: React.FC<MessageListProps> = ({ 
+  messages, 
+  isLoading,
+  currentUserId,
+  onlineUsers,
+  typingUsers
+}) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, typingUsers]);
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex justify-center items-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-crimson" />
+      </div>
+    );
+  }
 
   return (
-    <ScrollArea className="h-96 p-4">
-      {isLoading ? (
-        <div className="flex justify-center items-center h-full">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-crimson"></div>
-        </div>
-      ) : messages.length === 0 ? (
-        <div className="flex justify-center items-center h-full text-white/50">
+    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {messages.length === 0 ? (
+        <div className="flex-1 flex justify-center items-center text-white/50">
           <p>No messages yet. Start the conversation!</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <>
           {messages.map((message) => (
             <MessageItem 
               key={message.id} 
               message={message} 
-              currentUserId={currentUserId} 
+              currentUserId={currentUserId}
+              onlineUsers={onlineUsers}
             />
           ))}
-          <div ref={messagesEndRef} />
-        </div>
+        </>
       )}
-    </ScrollArea>
+      
+      {typingUsers.length > 0 && (
+        <TypingIndicator typingUsers={typingUsers} />
+      )}
+      
+      <div ref={messagesEndRef} />
+    </div>
   );
 };
 

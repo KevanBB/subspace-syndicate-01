@@ -1,10 +1,12 @@
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Send, Image, Loader2 } from 'lucide-react';
 import MediaPreview from './MediaPreview';
+import EmojiPicker from './EmojiPicker';
+import { supabase } from "@/integrations/supabase/client";
 
 interface MessageInputProps {
   newMessage: string;
@@ -16,6 +18,8 @@ interface MessageInputProps {
   isSending: boolean;
   uploadProgress: number;
   isUserLoggedIn: boolean;
+  roomId: string;
+  userId?: string;
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
@@ -27,10 +31,15 @@ const MessageInput: React.FC<MessageInputProps> = ({
   isUploading,
   isSending,
   uploadProgress,
-  isUserLoggedIn
+  isUserLoggedIn,
+  roomId,
+  userId
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const [isTyping, setIsTyping] = useState(false);
+  const lastTypingTime = useRef<number>(0);
+  const typingTimeout = useRef<NodeJS.Timeout | null>(null);
+  
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
@@ -52,6 +61,65 @@ const MessageInput: React.FC<MessageInputProps> = ({
       fileInputRef.current.value = '';
     }
   };
+  
+  const handleEmojiSelect = (emoji: string) => {
+    setNewMessage(prev => prev + emoji);
+  };
+  
+  const sendTypingIndicator = async () => {
+    if (!userId || !isUserLoggedIn) return;
+    
+    const now = new Date().getTime();
+    
+    // Throttle typing events to not spam the server
+    if (now - lastTypingTime.current < 3000) return;
+    
+    lastTypingTime.current = now;
+    
+    try {
+      await supabase.channel('typing-indicator')
+        .send({
+          type: 'broadcast',
+          event: 'typing',
+          payload: {
+            user_id: userId,
+            room_id: roomId,
+            timestamp: new Date().toISOString()
+          }
+        });
+      
+      // Clear any existing timeout
+      if (typingTimeout.current) {
+        clearTimeout(typingTimeout.current);
+      }
+      
+      // Set a timeout to stop typing indicator after 3 seconds of inactivity
+      typingTimeout.current = setTimeout(() => {
+        setIsTyping(false);
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Error sending typing indicator:', error);
+    }
+  };
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setNewMessage(value);
+    
+    if (value.length > 0 && !isTyping) {
+      setIsTyping(true);
+      sendTypingIndicator();
+    }
+  };
+  
+  useEffect(() => {
+    return () => {
+      if (typingTimeout.current) {
+        clearTimeout(typingTimeout.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="p-3 border-t border-white/10 bg-black/30 flex-col">
@@ -74,13 +142,24 @@ const MessageInput: React.FC<MessageInputProps> = ({
       <form onSubmit={onSendMessage} className="flex w-full gap-2">
         <Input
           value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
+          onChange={handleInputChange}
           placeholder="Type a message..."
           className="bg-black/20 border-white/20"
           disabled={isSending || isUploading || !isUserLoggedIn}
         />
         
         <div className="flex">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Add emoji</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>

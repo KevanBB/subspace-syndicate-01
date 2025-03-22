@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Users, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,7 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
     isUploading,
     uploadProgress,
     sendMessage,
+    typingUsers,
   } = useGroupChat(COMMUNITY_ROOM_ID, user?.id);
 
   if (!isOpen) return null;
@@ -56,11 +57,13 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
           <div className="flex">
             <OnlineUsersSidebar onlineUsers={onlineUsers} />
             
-            <div className="flex-grow">
+            <div className="flex-grow flex flex-col h-[500px]">
               <MessageList 
                 messages={messages} 
                 isLoading={isLoading} 
                 currentUserId={user?.id} 
+                onlineUsers={onlineUsers}
+                typingUsers={typingUsers}
               />
             </div>
           </div>
@@ -77,6 +80,8 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
             isSending={isSending}
             uploadProgress={uploadProgress}
             isUserLoggedIn={!!user}
+            roomId={COMMUNITY_ROOM_ID}
+            userId={user?.id}
           />
         </CardFooter>
       </Card>
