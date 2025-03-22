@@ -63,41 +63,33 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Handle text content change
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setContent(e.target.value);
     setError(null);
   };
   
-  // Handle media file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
-    // Check if adding more files would exceed the limit
     if (mediaItems.length + files.length > MAX_MEDIA_ITEMS) {
       setError(`You can only add up to ${MAX_MEDIA_ITEMS} media items`);
       return;
     }
     
-    // Process each file
     Array.from(files).forEach(file => {
-      // Validate file type
       if (!isValidFileType(file)) {
         setError('Invalid file type. Only JPEG, PNG, GIF, MP4, and MOV files are allowed.');
         return;
       }
       
-      // Validate file size
       if (!isValidFileSize(file)) {
         setError(`File size exceeds the limit (${file.type.includes('video') ? '50MB for videos' : '10MB for images'})`);
         return;
       }
       
-      // Create a preview URL for the file
       const previewUrl = URL.createObjectURL(file);
       
-      // Determine media type
       let mediaType: 'image' | 'video' | 'gif' = 'image';
       if (file.type.includes('video')) {
         mediaType = 'video';
@@ -105,7 +97,6 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
         mediaType = 'gif';
       }
       
-      // Create a new media item
       const newMedia: PostMedia = {
         id: uuidv4(),
         url: '',
@@ -114,22 +105,18 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
         file
       };
       
-      // Add to media items
       setMediaItems(prev => [...prev, newMedia]);
     });
     
-    // Reset the file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
   
-  // Check if file type is valid
   const isValidFileType = (file: File): boolean => {
     return [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES].includes(file.type);
   };
   
-  // Check if file size is valid
   const isValidFileSize = (file: File): boolean => {
     if (file.type.includes('video')) {
       return file.size <= MAX_VIDEO_SIZE;
@@ -137,12 +124,10 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
     return file.size <= MAX_IMAGE_SIZE;
   };
   
-  // Handle removing a media item
   const handleRemoveMedia = (id: string) => {
     setMediaItems(prev => prev.filter(item => item.id !== id));
   };
   
-  // Handle drag-and-drop reordering of media items
   const handleReorderMedia = useCallback((dragIndex: number, hoverIndex: number) => {
     setMediaItems(prev => {
       const newItems = [...prev];
@@ -153,31 +138,25 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
     });
   }, []);
   
-  // Handle adding a hashtag
   const handleAddHashtag = (tag: string) => {
     if (hashtags.length >= MAX_HASHTAGS) {
       setError(`You can only add up to ${MAX_HASHTAGS} hashtags`);
       return;
     }
     
-    // Remove # if present and convert to lowercase
     const formattedTag = tag.startsWith('#') ? tag.substring(1).toLowerCase() : tag.toLowerCase();
     
-    // Don't add if empty or already exists
     if (!formattedTag || hashtags.includes(formattedTag)) return;
     
     setHashtags(prev => [...prev, formattedTag]);
   };
   
-  // Handle removing a hashtag
   const handleRemoveHashtag = (tag: string) => {
     setHashtags(prev => prev.filter(t => t !== tag));
   };
   
-  // Handle submitting the post
   const handleSubmitPost = async () => {
     try {
-      // Validate content
       if (!content.trim() && mediaItems.length === 0) {
         setError('Please add some content or media to your post');
         return;
@@ -186,7 +165,6 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
       setIsPosting(true);
       setError(null);
       
-      // Upload media files first
       const uploadedMedia: PostMedia[] = [];
       
       if (mediaItems.length > 0) {
@@ -195,14 +173,12 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
             const fileName = `${user?.id}/${uuidv4()}-${item.file.name}`;
             const filePath = `media/${fileName}`;
             
-            // Upload to Supabase Storage
             const { data, error: uploadError } = await supabase.storage
               .from('post-media')
               .upload(filePath, item.file);
               
             if (uploadError) throw uploadError;
             
-            // Get public URL
             const { data: urlData } = supabase.storage
               .from('post-media')
               .getPublicUrl(filePath);
@@ -216,7 +192,6 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
         }
       }
       
-      // Create post in database
       const { data: postData, error: postError } = await supabase
         .from('posts')
         .insert({
@@ -229,7 +204,6 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
         
       if (postError) throw postError;
       
-      // Add media items to post_media table
       if (uploadedMedia.length > 0) {
         const mediaInserts = uploadedMedia.map((media, index) => ({
           post_id: postData.id,
@@ -245,7 +219,6 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
         if (mediaError) throw mediaError;
       }
       
-      // Add hashtags to post_hashtags table
       if (hashtags.length > 0) {
         const hashtagInserts = hashtags.map(tag => ({
           post_id: postData.id,
@@ -259,7 +232,6 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
         if (hashtagError) throw hashtagError;
       }
       
-      // Notify WebSocket about new post
       await supabase.channel('feed-updates').send({
         type: 'broadcast',
         event: 'new-post',
@@ -270,7 +242,6 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
         }
       });
       
-      // Create full post object to return
       const newPost: Post = {
         id: postData.id,
         content: postData.content,
@@ -286,14 +257,11 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
         comments: 0
       };
       
-      // Clear form
       setContent('');
       setMediaItems([]);
       setHashtags([]);
       
-      // Call callback function
       onPostCreated(newPost);
-      
     } catch (error: any) {
       console.error('Error creating post:', error);
       setError(error.message);
@@ -302,7 +270,6 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
     }
   };
   
-  // Trigger file input click
   const handleUploadClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
@@ -329,7 +296,6 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
                 className="min-h-[120px] bg-black/30 border-white/10 resize-none mb-3"
               />
               
-              {/* Media Preview Section */}
               {mediaItems.length > 0 && (
                 <div className="mt-3 mb-4">
                   <MediaPreview
@@ -340,7 +306,6 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
                 </div>
               )}
               
-              {/* Hashtags Section */}
               {hashtags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-3 mb-4">
                   {hashtags.map(tag => (
@@ -363,7 +328,6 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
                 </div>
               )}
               
-              {/* Error Message */}
               {error && (
                 <Alert variant="destructive" className="mt-3 mb-4 bg-red-950/50 border-red-800 text-red-300">
                   <AlertCircle className="h-4 w-4" />
@@ -371,7 +335,6 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
                 </Alert>
               )}
               
-              {/* Action Bar */}
               <div className="flex items-center justify-between mt-4">
                 <div className="flex space-x-2">
                   <Button
@@ -426,4 +389,4 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
   );
 };
 
-export default PostCreator; 
+export default PostCreator;

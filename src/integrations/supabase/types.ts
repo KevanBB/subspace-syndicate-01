@@ -134,6 +134,27 @@ export type Database = {
         }
         Relationships: []
       }
+      hashtag_notification_preferences: {
+        Row: {
+          created_at: string | null
+          hashtag: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          hashtag: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          hashtag?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -172,6 +193,62 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          all_posts: boolean
+          created_at: string | null
+          followed_users: boolean
+          id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          all_posts?: boolean
+          created_at?: string | null
+          followed_users?: boolean
+          id?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          all_posts?: boolean
+          created_at?: string | null
+          followed_users?: boolean
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      post_hashtags: {
+        Row: {
+          created_at: string | null
+          hashtag: string
+          id: string
+          post_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          hashtag: string
+          id?: string
+          post_id: string
+        }
+        Update: {
+          created_at?: string | null
+          hashtag?: string
+          id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_hashtags_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_likes: {
         Row: {
           created_at: string | null
@@ -194,6 +271,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "fk_post_likes_post"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_media: {
+        Row: {
+          aspect_ratio: number | null
+          created_at: string | null
+          duration: number | null
+          id: string
+          position: number
+          post_id: string
+          type: string
+          url: string
+        }
+        Insert: {
+          aspect_ratio?: number | null
+          created_at?: string | null
+          duration?: number | null
+          id?: string
+          position?: number
+          post_id: string
+          type: string
+          url: string
+        }
+        Update: {
+          aspect_ratio?: number | null
+          created_at?: string | null
+          duration?: number | null
+          id?: string
+          position?: number
+          post_id?: string
+          type?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_media_post_id_fkey"
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts"
@@ -365,7 +483,14 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      trending_hashtags: {
+        Row: {
+          hashtag: string | null
+          latest_usage: string | null
+          post_count: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_user_conversations: {
