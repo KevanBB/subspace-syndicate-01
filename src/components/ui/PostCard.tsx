@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Card } from '@/components/ui/card';
@@ -115,11 +116,11 @@ const PostCard: React.FC<PostCardProps> = ({
         className
       )}
     >
-      <div className="p-4">
+      <div className="p-3">
         {/* Post Header */}
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-2">
           <Link to={`/profile/${author.username}`}>
-            <Avatar className="h-10 w-10 rounded-full border border-white/10">
+            <Avatar className="h-9 w-9 rounded-full border border-white/10">
               <AvatarImage src={author.avatarUrl} alt={author.name} />
               <AvatarFallback className="bg-black/40 text-white">
                 {author.name.substring(0, 2).toUpperCase()}
@@ -139,9 +140,6 @@ const PostCard: React.FC<PostCardProps> = ({
                   </svg>
                 </Badge>
               )}
-              <Link to={`/profile/${author.username}`} className="text-white/50 hover:underline">
-                @{author.username}
-              </Link>
               <span className="text-white/50">·</span>
               <span className="text-white/50">{formattedTime}</span>
             </div>
@@ -151,32 +149,31 @@ const PostCard: React.FC<PostCardProps> = ({
               {content}
             </div>
             
-            {/* Media Content */}
+            {/* Media Content - Improved display */}
             {media.length > 0 && (
-              <div className="mt-3 relative rounded-xl overflow-hidden bg-black/20">
+              <div className="mt-2 relative rounded-lg overflow-hidden bg-black/20">
                 {media[currentMediaIndex].type === 'image' ? (
-                  <img 
-                    src={media[currentMediaIndex].url} 
-                    alt="Post media" 
-                    className="w-full object-contain mx-auto rounded-xl max-h-[600px]"
-                    style={{
-                      aspectRatio: media[currentMediaIndex].aspectRatio || 'auto',
-                      maxWidth: '100%'
-                    }}
-                  />
+                  <div className="w-full flex justify-center">
+                    <img 
+                      src={media[currentMediaIndex].url} 
+                      alt="Post media" 
+                      className="max-w-full max-h-[500px] w-auto rounded-lg object-contain"
+                      loading="lazy"
+                    />
+                  </div>
                 ) : media[currentMediaIndex].type === 'video' ? (
                   <video 
                     src={media[currentMediaIndex].url} 
                     controls 
-                    className="w-full mx-auto rounded-xl max-h-[600px]"
-                    style={{ maxWidth: '100%' }}
+                    className="w-full max-h-[500px] rounded-lg"
+                    preload="metadata"
                   />
                 ) : (
                   <img 
                     src={media[currentMediaIndex].url} 
                     alt="GIF" 
-                    className="w-full object-contain mx-auto rounded-xl max-h-[600px]"
-                    style={{ maxWidth: '100%' }}
+                    className="max-w-full max-h-[500px] w-auto mx-auto rounded-lg"
+                    loading="lazy"
                   />
                 )}
                 
@@ -187,33 +184,33 @@ const PostCard: React.FC<PostCardProps> = ({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-10 w-10 rounded-full bg-black/70 text-white hover:bg-black/90 disabled:opacity-30 shadow-lg"
+                        className="h-8 w-8 rounded-full bg-black/70 text-white hover:bg-black/90 disabled:opacity-30 shadow-lg"
                         onClick={goToPreviousMedia}
                         disabled={currentMediaIndex === 0}
                       >
-                        <ArrowLeft size={20} />
+                        <ArrowLeft size={18} />
                       </Button>
                     </div>
                     <div className="absolute top-1/2 right-2 transform -translate-y-1/2 flex">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-10 w-10 rounded-full bg-black/70 text-white hover:bg-black/90 disabled:opacity-30 shadow-lg"
+                        className="h-8 w-8 rounded-full bg-black/70 text-white hover:bg-black/90 disabled:opacity-30 shadow-lg"
                         onClick={goToNextMedia}
                         disabled={currentMediaIndex === media.length - 1}
                       >
-                        <ArrowRight size={20} />
+                        <ArrowRight size={18} />
                       </Button>
                     </div>
-                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-1 bg-black/50 px-3 py-1.5 rounded-full">
+                    <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1 bg-black/50 px-2 py-1 rounded-full">
                       {media.map((_, i) => (
                         <div 
                           key={i} 
                           className={cn(
-                            "h-2 rounded-full transition-all duration-300",
+                            "h-1.5 rounded-full transition-all duration-300",
                             i === currentMediaIndex 
-                              ? "w-8 bg-white" 
-                              : "w-2 bg-white/50"
+                              ? "w-6 bg-white" 
+                              : "w-1.5 bg-white/50"
                           )}
                         />
                       ))}
@@ -235,14 +232,14 @@ const PostCard: React.FC<PostCardProps> = ({
         
         {/* Post Actions */}
         {showActions && (
-          <div className="mt-3 flex justify-between items-center pr-10">
+          <div className="mt-2 flex justify-between items-center pr-8">
             <Button
               variant="ghost"
               size="sm"
-              className="gap-1 text-white/50 hover:text-blue-400 hover:bg-blue-400/10 rounded-full"
+              className="gap-1 text-white/50 hover:text-blue-400 hover:bg-blue-400/10 rounded-full p-2"
               onClick={onComment}
             >
-              <MessageCircle size={18} />
+              <MessageCircle size={16} />
               {stats.comments > 0 && (
                 <span className="text-xs">{formatNumber(stats.comments)}</span>
               )}
@@ -252,15 +249,15 @@ const PostCard: React.FC<PostCardProps> = ({
               variant="ghost"
               size="sm"
               className={cn(
-                "gap-1 hover:text-green-400 hover:bg-green-400/10 rounded-full",
+                "gap-1 hover:text-green-400 hover:bg-green-400/10 rounded-full p-2",
                 isReposted ? "text-green-400" : "text-white/50"
               )}
               onClick={onRepost}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
+                width="16"
+                height="16"
                 viewBox="0 0 24 24"
                 fill={isReposted ? "currentColor" : "none"}
                 stroke="currentColor"
@@ -282,12 +279,12 @@ const PostCard: React.FC<PostCardProps> = ({
               variant="ghost"
               size="sm"
               className={cn(
-                "gap-1 hover:text-pink-500 hover:bg-pink-500/10 rounded-full",
+                "gap-1 hover:text-pink-500 hover:bg-pink-500/10 rounded-full p-2",
                 isLiked ? "text-pink-500" : "text-white/50"
               )}
               onClick={onLike}
             >
-              <Heart size={18} className={isLiked ? "fill-pink-500" : ""} />
+              <Heart size={16} className={isLiked ? "fill-pink-500" : ""} />
               {stats.likes > 0 && (
                 <span className="text-xs">{formatNumber(stats.likes)}</span>
               )}
@@ -297,24 +294,24 @@ const PostCard: React.FC<PostCardProps> = ({
               variant="ghost"
               size="sm"
               className={cn(
-                "gap-1 hover:text-blue-400 hover:bg-blue-400/10 rounded-full",
+                "gap-1 hover:text-blue-400 hover:bg-blue-400/10 rounded-full p-2",
                 isBookmarked ? "text-blue-400" : "text-white/50"
               )}
               onClick={onBookmark}
             >
-              <BookmarkIcon size={18} className={isBookmarked ? "fill-blue-400" : ""} />
+              <BookmarkIcon size={16} className={isBookmarked ? "fill-blue-400" : ""} />
             </Button>
             
             <Button
               variant="ghost"
               size="sm"
-              className="text-white/50 hover:text-blue-400 hover:bg-blue-400/10 rounded-full"
+              className="text-white/50 hover:text-blue-400 hover:bg-blue-400/10 rounded-full p-2"
               onClick={onShare}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
+                width="16"
+                height="16"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"

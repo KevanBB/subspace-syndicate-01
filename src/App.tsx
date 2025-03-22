@@ -29,7 +29,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
-      suspense: false,
+      // Removed the 'suspense' property that caused the TypeScript error
       useErrorBoundary: true,
       refetchOnWindowFocus: false,
     },
