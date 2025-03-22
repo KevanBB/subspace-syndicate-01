@@ -18,10 +18,19 @@ interface PublicChatProps {
   className?: string;
 }
 
+// Add a proper MessageWithSender type to fix the typechecking issues
+interface MessageWithSender extends Message {
+  sender: {
+    username: string;
+    avatar_url: string | null;
+    last_active: string | null;
+  } | null;
+}
+
 const PublicChat: React.FC<PublicChatProps> = ({ className }) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<MessageWithSender[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -62,7 +71,7 @@ const PublicChat: React.FC<PublicChatProps> = ({ className }) => {
             return {
               ...message,
               sender: senderData || null
-            };
+            } as MessageWithSender;
           })
         );
 
@@ -99,7 +108,7 @@ const PublicChat: React.FC<PublicChatProps> = ({ className }) => {
             .eq('id', payload.new.sender_id)
             .single();
 
-          const newMessage = {
+          const newMessage: MessageWithSender = {
             ...payload.new,
             sender: senderData || null
           };
