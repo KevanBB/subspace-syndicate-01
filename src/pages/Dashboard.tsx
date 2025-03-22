@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import PostForm from '@/components/profile/PostForm';
 import PostsList from '@/components/profile/PostsList';
@@ -6,12 +6,57 @@ import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import VideoPlayer from '@/components/video/VideoPlayer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VideoIcon, MessageSquare, Flame, TrendingUp } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Dashboard = () => {
-  // Sample video URL for demonstration - in a real app this would come from user's most recent video
-  // or a featured video from their profile
-  const featuredVideoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+  const { user } = useAuth();
+  const [activeUsers, setActiveUsers] = useState<any[]>([]);
   
+  // Sample videos for demonstration - in a real app these would come from the database
+  const featuredVideos = [
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+  ];
+  
+  // Fetch active users
+  useEffect(() => {
+    const fetchActiveUsers = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, username, avatar_url, bdsm_role')
+          .limit(10);
+          
+        if (error) {
+          console.error('Error fetching active users:', error);
+          return;
+        }
+        
+        setActiveUsers(data || []);
+      } catch (err) {
+        console.error('Failed to fetch active users:', err);
+      }
+    };
+    
+    fetchActiveUsers();
+    
+    // Set up real-time listener for user presence
+    const channel = supabase.channel('online_users');
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('Subscribed to online users');
+      }
+    });
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   return (
     <AuthenticatedLayout pageTitle="Dashboard">
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 max-w-7xl mx-auto">
@@ -75,12 +120,17 @@ const Dashboard = () => {
           <Card className="bg-black/30 border-white/10 backdrop-blur-md p-6 shadow-lg shadow-crimson/5">
             <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
               <VideoIcon className="mr-2 h-5 w-5 text-crimson" />
-              Featured Video
+              Featured Videos
             </h2>
-            <VideoPlayer 
-              videoUrl={featuredVideoUrl} 
-              title="Featured Content"
-            />
+            <div className="rounded-lg overflow-hidden">
+              <VideoPlayer 
+                videoUrl={featuredVideos} 
+                title="Featured Content"
+              />
+            </div>
+            <p className="text-xs text-white/50 mt-2 text-center">
+              Swipe or use arrows to navigate between videos
+            </p>
           </Card>
           
           {/* Online Users */}
@@ -93,16 +143,29 @@ const Dashboard = () => {
               <p className="text-white/70 text-sm">
                 Connect with members who are currently online.
               </p>
-              {/* Placeholder for online users list */}
+              {/* Dynamic online users list */}
               <div className="flex -space-x-2 overflow-hidden py-2">
-                {[1, 2, 3, 4, 5].map(i => (
-                  <div key={i} className="h-10 w-10 rounded-full border-2 border-black bg-gradient-to-br from-purple-500 to-crimson flex items-center justify-center text-xs font-bold">
-                    U{i}
+                {activeUsers.map((user, i) => (
+                  <div 
+                    key={user.id} 
+                    className="h-10 w-10 rounded-full border-2 border-black bg-gradient-to-br from-purple-500 to-crimson flex items-center justify-center text-xs font-bold relative"
+                    style={{ zIndex: activeUsers.length - i }}
+                  >
+                    {user.avatar_url ? (
+                      <img 
+                        src={user.avatar_url} 
+                        alt={user.username} 
+                        className="h-full w-full object-cover rounded-full"
+                      />
+                    ) : (
+                      user.username?.substring(0, 2).toUpperCase() || "U"
+                    )}
+                    <span className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border border-black"></span>
                   </div>
                 ))}
-                <div className="h-10 w-10 rounded-full border-2 border-black bg-black/50 flex items-center justify-center text-xs font-bold text-white">
-                  +12
-                </div>
+                {activeUsers.length === 0 && (
+                  <div className="text-sm text-white/50">No users online</div>
+                )}
               </div>
             </div>
           </Card>

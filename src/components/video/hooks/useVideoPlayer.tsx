@@ -1,4 +1,3 @@
-
 import { useRef, useState, useEffect } from 'react';
 
 export const useVideoPlayer = (videoUrl: string) => {
@@ -9,6 +8,25 @@ export const useVideoPlayer = (videoUrl: string) => {
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
+  
+  // Reset player state when video URL changes
+  useEffect(() => {
+    const videoElement = videoRef.current;
+    if (!videoElement) return;
+    
+    // Reset time and pause the video
+    setCurrentTime(0);
+    videoElement.currentTime = 0;
+    setIsPlaying(false);
+    setIsBuffering(true);
+    
+    // Preload the new video
+    videoElement.load();
+    
+    // After loading, ensure volume settings are maintained
+    videoElement.volume = volume;
+    videoElement.muted = isMuted;
+  }, [videoUrl, volume, isMuted]);
   
   // Handle video events
   useEffect(() => {
@@ -69,16 +87,29 @@ export const useVideoPlayer = (videoUrl: string) => {
     };
   }, []);
   
-  // Toggle play/pause
-  const togglePlay = () => {
+  // Apply isPlaying state changes to the video element
+  useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
     
     if (isPlaying) {
-      video.pause();
+      // Using the Promise API for better error handling
+      const playPromise = video.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error('Error attempting to play video:', error);
+          setIsPlaying(false);
+        });
+      }
     } else {
-      video.play();
+      video.pause();
     }
+  }, [isPlaying]);
+  
+  // Toggle play/pause
+  const togglePlay = () => {
+    setIsPlaying(!isPlaying);
   };
   
   // Skip forward/backward
@@ -130,6 +161,7 @@ export const useVideoPlayer = (videoUrl: string) => {
     skip,
     toggleMute,
     handleTimeChange,
-    handleVolumeChange
+    handleVolumeChange,
+    setIsPlaying
   };
 };

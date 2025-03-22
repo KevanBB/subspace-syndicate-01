@@ -1,45 +1,64 @@
+import { useState, useEffect, useRef, MutableRefObject } from 'react';
 
-import { useState, useEffect } from 'react';
-
-export const useControls = (isPlaying: boolean, containerRef: React.RefObject<HTMLDivElement>) => {
+export const useControls = (isPlaying: boolean, containerRef: MutableRefObject<HTMLElement | null>) => {
   const [showControls, setShowControls] = useState(true);
+  const timeoutRef = useRef<number | null>(null);
   
-  // Hide controls after inactivity
+  // Hide controls after a delay when playing
   useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>;
-    
-    const resetTimeout = () => {
-      clearTimeout(timeout);
-      setShowControls(true);
-      
-      timeout = setTimeout(() => {
-        if (isPlaying) {
-          setShowControls(false);
-        }
-      }, 3000);
-    };
-    
-    const containerEl = containerRef.current;
-    
-    if (containerEl) {
-      containerEl.addEventListener('mousemove', resetTimeout);
-      containerEl.addEventListener('mousedown', resetTimeout);
-      containerEl.addEventListener('touchstart', resetTimeout);
+    // Clear any existing timeout
+    if (timeoutRef.current !== null) {
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
     
-    resetTimeout();
+    // Show controls immediately
+    setShowControls(true);
+    
+    // If video is playing, hide controls after a delay
+    if (isPlaying) {
+      timeoutRef.current = window.setTimeout(() => {
+        setShowControls(false);
+        timeoutRef.current = null;
+      }, 3000);
+    }
     
     return () => {
-      clearTimeout(timeout);
-      if (containerEl) {
-        containerEl.removeEventListener('mousemove', resetTimeout);
-        containerEl.removeEventListener('mousedown', resetTimeout);
-        containerEl.removeEventListener('touchstart', resetTimeout);
+      if (timeoutRef.current !== null) {
+        window.clearTimeout(timeoutRef.current);
       }
     };
-  }, [isPlaying, containerRef]);
+  }, [isPlaying]);
   
-  return {
-    showControls
-  };
+  // Show controls on mouse move and touch
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const showControlsTemporarily = () => {
+      setShowControls(true);
+      
+      // Hide controls after a delay if video is playing
+      if (isPlaying) {
+        if (timeoutRef.current !== null) {
+          window.clearTimeout(timeoutRef.current);
+        }
+        
+        timeoutRef.current = window.setTimeout(() => {
+          setShowControls(false);
+          timeoutRef.current = null;
+        }, 3000);
+      }
+    };
+    
+    container.addEventListener('mousemove', showControlsTemporarily);
+    container.addEventListener('touchstart', showControlsTemporarily);
+    
+    return () => {
+      container.removeEventListener('mousemove', showControlsTemporarily);
+      container.removeEventListener('touchstart', showControlsTemporarily);
+    };
+  }, [containerRef, isPlaying]);
+  
+  return { showControls, setShowControls };
 };

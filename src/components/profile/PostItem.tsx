@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 
 // Import the components
 import PostHeader from './post/PostHeader';
@@ -86,20 +88,40 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
     setLoadingComments(true);
     try {
       // Check if the comments table exists
-      const { error: checkError } = await supabase
-        .from('posts')
-        .select('id')
-        .limit(1);
+      const { data, error } = await supabase
+        .from('comments')
+        .select(`
+          id,
+          content,
+          created_at,
+          user_id,
+          post_id,
+          parent_id,
+          profiles(username, avatar_url, bdsm_role)
+        `)
+        .eq('post_id', post.id)
+        .order('created_at', { ascending: true });
         
-      if (checkError) {
-        console.error('Error checking if posts table exists:', checkError.message);
+      if (error) {
+        console.error('Error loading comments:', error.message);
         setComments([]);
-        setLoadingComments(false);
         return;
       }
-        
-      // Mock empty comments array since the comments table doesn't exist in the schema
-      setComments([]);
+      
+      // Transform the data to match our comment structure
+      const transformedComments = data.map((comment: any) => ({
+        id: comment.id,
+        content: comment.content,
+        created_at: comment.created_at,
+        user_id: comment.user_id,
+        post_id: comment.post_id,
+        parent_id: comment.parent_id,
+        username: comment.profiles?.username,
+        avatar_url: comment.profiles?.avatar_url,
+        bdsm_role: comment.profiles?.bdsm_role
+      }));
+      
+      setComments(transformedComments);
     } catch (error: any) {
       console.error('Error loading comments:', error.message);
       toast({
@@ -118,15 +140,105 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
     if (!user) return;
 
     try {
-      // Since the comments table doesn't exist yet, just mock the behavior
+      const { data: newComment, error } = await supabase
+        .from('comments')
+        .insert([
+          { 
+            content,
+            user_id: user.id,
+            post_id: post.id,
+            parent_id: null 
+          }
+        ])
+        .select()
+        .single();
+        
+      if (error) throw error;
+      
+      // Fetch the user profile data for the comment
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('username, avatar_url, bdsm_role')
+        .eq('id', user.id)
+        .single();
+        
+      if (profileError) {
+        console.error('Error fetching profile:', profileError.message);
+      }
+      
+      // Add the new comment to the list
+      const commentWithProfile = {
+        ...newComment,
+        username: profileData?.username,
+        avatar_url: profileData?.avatar_url,
+        bdsm_role: profileData?.bdsm_role
+      };
+      
+      setComments(prev => [...prev, commentWithProfile]);
+      
       toast({
-        title: 'Comment feature coming soon',
-        description: 'The ability to comment is not yet implemented.',
+        title: 'Comment added',
+        description: 'Your comment has been posted successfully.',
       });
     } catch (error: any) {
       console.error('Error submitting comment:', error.message);
       toast({
         title: 'Error submitting comment',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  // Reply to a comment (adding a nested comment)
+  const replyToComment = async (content: string, parentId: string | null) => {
+    if (!user) return;
+
+    try {
+      const { data: newReply, error } = await supabase
+        .from('comments')
+        .insert([
+          { 
+            content,
+            user_id: user.id,
+            post_id: post.id,
+            parent_id: parentId 
+          }
+        ])
+        .select()
+        .single();
+        
+      if (error) throw error;
+      
+      // Fetch the user profile data for the reply
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('username, avatar_url, bdsm_role')
+        .eq('id', user.id)
+        .single();
+        
+      if (profileError) {
+        console.error('Error fetching profile:', profileError.message);
+      }
+      
+      // Add the new reply to the list
+      const replyWithProfile = {
+        ...newReply,
+        username: profileData?.username,
+        avatar_url: profileData?.avatar_url,
+        bdsm_role: profileData?.bdsm_role
+      };
+      
+      setComments(prev => [...prev, replyWithProfile]);
+      
+      toast({
+        title: 'Reply added',
+        description: 'Your reply has been posted successfully.',
+      });
+    } catch (error: any) {
+      console.error('Error submitting reply:', error.message);
+      toast({
+        title: 'Error submitting reply',
         description: error.message,
         variant: 'destructive',
       });
@@ -138,8 +250,20 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
     if (!user) return;
 
     try {
-      // Since post_likes table doesn't exist, default to false
-      setIsLiked(false);
+      const { data, error } = await supabase
+        .from('post_likes')
+        .select('id')
+        .eq('post_id', post.id)
+        .eq('user_id', user.id)
+        .single();
+        
+      if (error && error.code !== 'PGRST116') {
+        // PGRST116 is the error for no rows returned
+        console.error('Error checking if liked:', error.message);
+        return;
+      }
+      
+      setIsLiked(!!data);
     } catch (error: any) {
       console.error('Error checking if liked:', error.message);
     }
@@ -149,8 +273,14 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
   const fetchLikeCount = async () => {
     setLoadingLikes(true);
     try {
-      // Since post_likes table doesn't exist, default to 0
-      setLikeCount(0);
+      const { count, error } = await supabase
+        .from('post_likes')
+        .select('id', { count: 'exact', head: true })
+        .eq('post_id', post.id);
+        
+      if (error) throw error;
+      
+      setLikeCount(count || 0);
     } catch (error: any) {
       console.error('Error fetching like count:', error.message);
     } finally {
@@ -164,14 +294,31 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
 
     setLoadingLikes(true);
     try {
-      // Since post_likes table doesn't exist, just show a toast
-      toast({
-        title: 'Likes feature coming soon',
-        description: 'The ability to like posts is not yet implemented.',
-      });
-      
-      setIsLiked(!isLiked);
-      setLikeCount(prev => isLiked ? Math.max(0, prev - 1) : prev + 1);
+      if (isLiked) {
+        // Unlike post
+        const { error } = await supabase
+          .from('post_likes')
+          .delete()
+          .eq('post_id', post.id)
+          .eq('user_id', user.id);
+          
+        if (error) throw error;
+        
+        setIsLiked(false);
+        setLikeCount(prev => Math.max(0, prev - 1));
+      } else {
+        // Like post
+        const { error } = await supabase
+          .from('post_likes')
+          .insert([
+            { post_id: post.id, user_id: user.id }
+          ]);
+          
+        if (error) throw error;
+        
+        setIsLiked(true);
+        setLikeCount(prev => prev + 1);
+      }
     } catch (error: any) {
       console.error('Error toggling like:', error.message);
       toast({
@@ -320,112 +467,118 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
   };
 
   return (
-    <motion.div
+    <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      exit={{ opacity: 0 }}
+      layout
+      className="overflow-hidden"
     >
-      <Card className="bg-black/30 border-white/10 backdrop-blur-md shadow-lg relative overflow-hidden">
+      <Card className="bg-black/30 border-white/10 backdrop-blur-md shadow-lg shadow-crimson/5 overflow-hidden">
         {/* Post Header */}
         <PostHeader 
-          post={post} 
-          isCurrentUser={isCurrentUser} 
-          onMenuToggle={() => setShowMenu(!showMenu)} 
-        />
-        
-        {/* Post Menu (if the user is the post owner) */}
-        <PostMenu 
-          isOpen={showMenu} 
-          onEdit={handleEditClick}
-          onDelete={handleDeleteClick}
-          onFlag={handleFlagClick}
-          onClose={() => setShowMenu(false)}
+          username={post.username || "Anonymous"} 
+          avatarUrl={post.avatar_url}
+          bdsm_role={post.bdsm_role}
+          createdAt={post.created_at}
+          isCurrentUser={isCurrentUser}
+          onMenuToggle={() => setShowMenu(!showMenu)}
+          showMenu={showMenu}
         />
         
         {/* Post Content */}
-        <PostContent
-          content={post.content}
-          media_url={post.media_url}
-          media_type={post.media_type}
-          isEditing={isEditing}
-          editedContent={editedContent}
-          onEditChange={(value) => setEditedContent(value)}
-        />
-        
-        {/* Edit Buttons (if editing) */}
-        {isEditing && (
-          <div className="px-4 pb-4 flex justify-end gap-2">
-            <button
-              onClick={handleCancelEdit}
-              className="px-4 py-1 rounded bg-black/30 text-white border border-white/20"
+        {isEditing ? (
+          <div className="px-4 py-3">
+            <Textarea
+              value={editedContent}
+              onChange={(e) => setEditedContent(e.target.value)}
+              className="bg-black/30 border border-white/20 text-white mb-2"
               disabled={loadingEdit}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={updatePost}
-              className="px-4 py-1 rounded bg-crimson text-white"
-              disabled={loadingEdit}
-            >
-              {loadingEdit ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                'Save'
-              )}
-            </button>
+            />
+            <div className="flex gap-2">
+              <Button 
+                onClick={updatePost}
+                className="bg-crimson hover:bg-crimson/80 text-white"
+                disabled={!editedContent.trim() || loadingEdit}
+                size="sm"
+              >
+                {loadingEdit ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Save
+              </Button>
+              <Button 
+                onClick={handleCancelEdit}
+                variant="outline"
+                className="border-white/20 text-white hover:bg-white/10"
+                size="sm"
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
+        ) : (
+          <PostContent 
+            content={post.content} 
+            mediaUrl={post.media_url}
+            mediaType={post.media_type}
+          />
         )}
         
         {/* Post Actions */}
         <PostActions 
-          likeCount={likeCount}
           commentCount={comments.length}
+          likeCount={likeCount}
           isLiked={isLiked}
           isBookmarked={isBookmarked}
-          loadingLikes={loadingLikes}
-          loadingBookmark={loadingBookmark}
           onToggleLike={toggleLike}
           onToggleBookmark={toggleBookmark}
+          loadingLikes={loadingLikes}
+          loadingBookmark={loadingBookmark}
           onToggleComments={toggleShowAllComments}
+          showComments={showAllComments}
         />
         
-        {/* Comments List */}
-        <CommentsList 
-          comments={comments}
-          loading={loadingComments}
-          showAllComments={showAllComments}
-          toggleShowAllComments={toggleShowAllComments}
-        />
-        
-        {/* Comment Form */}
-        {user && (
+        {/* Comments */}
+        <div className={`border-t border-white/10 ${showAllComments ? 'block' : 'hidden'}`}>
+          <CommentsList 
+            comments={comments}
+            loading={loadingComments}
+            showAllComments={showAllComments}
+            toggleShowAllComments={toggleShowAllComments}
+            onReply={replyToComment}
+          />
           <CommentForm 
             onSubmit={submitComment}
-            disabled={!user}
+            disabled={false}
           />
-        )}
+        </div>
+        
+        {/* Post Menu */}
+        <PostMenu 
+          show={showMenu}
+          onClose={() => setShowMenu(false)}
+          onEdit={handleEditClick}
+          onDelete={handleDeleteClick}
+          onFlag={handleFlagClick}
+          isOwner={isCurrentUser}
+        />
         
         {/* Confirmation Dialogs */}
         <ConfirmationDialog
-          isOpen={showConfirmation}
           title="Delete Post"
-          message="Are you sure you want to delete this post? This action cannot be undone."
-          confirmLabel="Delete"
-          cancelLabel="Cancel"
-          isLoading={loadingDelete}
+          description="Are you sure you want to delete this post? This action cannot be undone."
+          open={showConfirmation}
+          onClose={() => setShowConfirmation(false)}
           onConfirm={deletePost}
-          onCancel={() => setShowConfirmation(false)}
+          loading={loadingDelete}
         />
         
         <ConfirmationDialog
-          isOpen={showFlagConfirmation}
-          title="Report Post"
-          message="Are you sure you want to report this post for inappropriate content?"
-          confirmLabel="Report"
-          cancelLabel="Cancel"
-          isLoading={false}
+          title="Flag Post"
+          description="Are you sure you want to flag this post as inappropriate? This will send a report to the moderators."
+          open={showFlagConfirmation}
+          onClose={() => setShowFlagConfirmation(false)}
           onConfirm={flagPost}
-          onCancel={() => setShowFlagConfirmation(false)}
+          loading={false}
         />
       </Card>
     </motion.div>
