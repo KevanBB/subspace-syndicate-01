@@ -30,7 +30,7 @@ import {
   Monitor,
   Upload,
   Search,
-  BarChart
+  LineChart
 } from 'lucide-react';
 
 const DashboardSidebar = () => {
@@ -133,7 +133,7 @@ const DashboardSidebar = () => {
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={location.pathname === '/feed'}>
               <Link to="/feed">
-                <BarChart />
+                <LineChart />
                 <span>News Feed</span>
               </Link>
             </SidebarMenuButton>

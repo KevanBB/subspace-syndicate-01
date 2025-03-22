@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RotateCcw as RefreshCw, ChevronUp } from 'lucide-react';
+import { RotateCw, ChevronUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useInView } from '@/hooks/useInView';
 import PostCard from '@/components/ui/PostCard';
@@ -306,7 +306,7 @@ const NewsFeed: React.FC = () => {
                 className="w-full bg-blue-900/30 border-blue-500/30 hover:bg-blue-800/40 text-blue-300"
                 onClick={handleRefresh}
               >
-                <RefreshCw className="mr-2 h-4 w-4" />
+                <RotateCw className="mr-2 h-4 w-4" />
                 {newPostsCount} New {newPostsCount === 1 ? 'Post' : 'Posts'} Available
               </Button>
             )}

@@ -1,10 +1,11 @@
+
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BellRing as Bell, Users, Hash, X } from 'lucide-react';
+import { Bell, Users, Hash, X } from 'lucide-react';
 import { HashtagInput } from './HashtagInput';
 import { Separator } from '@/components/ui/separator';
 
