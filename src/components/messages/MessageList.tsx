@@ -1,7 +1,15 @@
 
 import React, { useRef, useEffect } from 'react';
-import { MessageWithSender } from '@/types/messages';
+import { Message } from '@/types/messages';
 import MessageItem from './MessageItem';
+
+interface MessageWithSender extends Message {
+  sender: {
+    username: string;
+    avatar_url?: string;
+    last_active?: string;
+  } | null;
+}
 
 interface MessageListProps {
   messages: MessageWithSender[];

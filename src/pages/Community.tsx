@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
@@ -16,7 +15,6 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import Navbar from '@/components/Navbar';
-import PublicChat from '@/components/messages/PublicChat';
 
 type Profile = {
   id: string;
@@ -376,9 +374,6 @@ const Community = () => {
           )}
         </TabsContent>
       </Tabs>
-      
-      {/* Add the public chat component */}
-      {user && <PublicChat className="fixed bottom-0 right-0 z-10 mr-4 mb-4" />}
     </>
   );
   

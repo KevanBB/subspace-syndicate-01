@@ -1,4 +1,3 @@
-
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -21,10 +20,8 @@ const badgeVariants = cva(
         submissive: "border-transparent bg-pink-600 text-white hover:bg-pink-500",
         switch: "border-transparent bg-blue-600 text-white hover:bg-blue-500",
         exploring: "border-transparent bg-green-600 text-white hover:bg-green-500",
-        // Add new variants for the chat badges
+        // Add new crimson variant for the Hot badge
         crimson: "border-transparent bg-crimson text-white hover:bg-crimson/80",
-        online: "border-transparent bg-green-500 text-white hover:bg-green-400",
-        new: "border-transparent bg-yellow-500 text-white hover:bg-yellow-400",
       },
     },
     defaultVariants: {
