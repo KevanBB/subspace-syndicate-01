@@ -4,7 +4,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, ArrowLeft, Heart, MessageCircle, Repeat2, Share, Bookmark, MoreHorizontal } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Heart, MessageCircle, Repeat, BookmarkIcon, MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
@@ -252,7 +252,7 @@ const PostCard: React.FC<PostCardProps> = ({
               )}
               onClick={onRepost}
             >
-              <Repeat2 size={18} className={isReposted ? "fill-green-400" : ""} />
+              <Repeat size={18} className={isReposted ? "fill-green-400" : ""} />
               {stats.reposts > 0 && (
                 <span className="text-xs">{formatNumber(stats.reposts)}</span>
               )}
@@ -282,7 +282,7 @@ const PostCard: React.FC<PostCardProps> = ({
               )}
               onClick={onBookmark}
             >
-              <Bookmark size={18} className={isBookmarked ? "fill-blue-400" : ""} />
+              <BookmarkIcon size={18} className={isBookmarked ? "fill-blue-400" : ""} />
             </Button>
             
             <Button
