@@ -1,4 +1,3 @@
-
 /// <reference types="vite/client" />
 
 // Fix missing React type declarations
@@ -138,4 +137,36 @@ declare module 'lucide-react' {
 declare module 'date-fns' {
   export function format(date: Date, format: string): string;
   export function formatDistanceToNow(date: Date, options?: { addSuffix?: boolean }): string;
+}
+
+// Fix missing sonner type declarations
+declare module 'sonner' {
+  import { ReactNode } from 'react';
+  
+  export const toast: {
+    success: (message: string) => void;
+    error: (message: string) => void;
+    (message: string): void;
+  };
+  
+  export interface ToasterProps {
+    position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'bottom-center';
+    expand?: boolean;
+    visibleToasts?: number;
+    toastOptions?: Record<string, any>;
+    className?: string;
+    style?: React.CSSProperties;
+    theme?: 'light' | 'dark' | 'system';
+    hotkey?: string[];
+    richColors?: boolean;
+    closeButton?: boolean;
+  }
+  
+  export const Toaster: React.FC<ToasterProps>;
+}
+
+// Fix missing supabase type declarations
+declare module '@/lib/supabase' {
+  import { SupabaseClient } from '@supabase/supabase-js';
+  export const supabase: SupabaseClient;
 }

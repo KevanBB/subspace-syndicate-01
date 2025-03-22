@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import OnlineIndicator from '../OnlineIndicator';
@@ -16,14 +15,19 @@ interface OnlineUsersSidebarProps {
 }
 
 const OnlineUsersSidebar: React.FC<OnlineUsersSidebarProps> = ({ onlineUsers }) => {
+  // Use memo to prevent unnecessary re-renders
+  const stableUsers = useMemo(() => {
+    return onlineUsers;
+  }, [onlineUsers]);
+  
   return (
-    <div className="w-16 bg-black/40 p-2 max-h-96 overflow-auto">
+    <div className="w-16 bg-black/40 p-2 max-h-full overflow-auto" style={{ overscrollBehavior: 'contain' }}>
       <div className="flex flex-col gap-2">
         <TooltipProvider>
-          {onlineUsers.map(user => (
+          {stableUsers.map(user => (
             <Tooltip key={user.id}>
               <TooltipTrigger asChild>
-                <div className="relative">
+                <div className="relative" style={{ height: '2.75rem' }}>
                   <Avatar className="h-10 w-10 border-2 border-crimson/40">
                     <AvatarImage src={user.avatar_url || "/placeholder.svg"} />
                     <AvatarFallback className="bg-crimson text-white text-xs">

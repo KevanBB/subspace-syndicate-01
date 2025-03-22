@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -12,13 +11,14 @@ export const useTypingIndicator = ({ roomId, userId }: UseTypingIndicatorProps) 
   const lastTypingTime = useRef<number>(0);
   const typingTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  const sendTypingIndicator = async () => {
+  const sendTypingIndicator = async (isActive: boolean = true) => {
     if (!userId) return;
     
     const now = new Date().getTime();
     
     // Throttle typing events to not spam the server
-    if (now - lastTypingTime.current < 3000) return;
+    // Don't throttle when explicitly stopping typing (isActive = false)
+    if (isActive && now - lastTypingTime.current < 2000) return;
     
     lastTypingTime.current = now;
     
@@ -30,19 +30,26 @@ export const useTypingIndicator = ({ roomId, userId }: UseTypingIndicatorProps) 
           payload: {
             user_id: userId,
             room_id: roomId,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            isActive: isActive
           }
         });
       
       // Clear any existing timeout
       if (typingTimeout.current) {
         clearTimeout(typingTimeout.current);
+        typingTimeout.current = null;
       }
       
-      // Set a timeout to stop typing indicator after 3 seconds of inactivity
-      typingTimeout.current = setTimeout(() => {
-        setIsTyping(false);
-      }, 3000);
+      // Only set a new timeout if still typing
+      if (isActive) {
+        // Set a timeout to stop typing indicator after 3 seconds of inactivity
+        typingTimeout.current = setTimeout(() => {
+          setIsTyping(false);
+          // Send an explicit typing stopped event
+          sendTypingIndicator(false);
+        }, 3000);
+      }
       
     } catch (error) {
       console.error('Error sending typing indicator:', error);
@@ -52,13 +59,28 @@ export const useTypingIndicator = ({ roomId, userId }: UseTypingIndicatorProps) 
   const handleInputChange = (value: string) => {
     if (value.length > 0 && !isTyping) {
       setIsTyping(true);
-      sendTypingIndicator();
+      sendTypingIndicator(true);
+    } else if (value.length === 0 && isTyping) {
+      // Clear typing when input is emptied
+      setIsTyping(false);
+      sendTypingIndicator(false);
     }
     return value;
   };
 
+  const resetTypingState = () => {
+    setIsTyping(false);
+    if (typingTimeout.current) {
+      clearTimeout(typingTimeout.current);
+      typingTimeout.current = null;
+    }
+    // Send an explicit "stopped typing" signal
+    sendTypingIndicator(false);
+  };
+
   return {
     isTyping,
-    handleInputChange
+    handleInputChange,
+    resetTypingState
   };
 };

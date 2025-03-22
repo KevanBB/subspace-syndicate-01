@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage, TypingIndicator } from '../types/ChatTypes';
 import { useChatSubscriptions } from './useChatSubscriptions';
@@ -16,11 +16,31 @@ export const useGroupChat = (roomId: string, userId?: string) => {
 
   const { isSending: messageOperationsSending, markMessageAsRead, sendMessageWithMedia } = useMessageOperations({ roomId, userId });
   const { selectedFile, setSelectedFile, isUploading, uploadProgress, uploadMedia } = useMediaUpload({ roomId });
-  const { handleInputChange } = useTypingIndicator({ roomId, userId });
+  const { handleInputChange, resetTypingState } = useTypingIndicator({ roomId, userId });
 
   // Handle new messages from subscription
   const handleNewMessage = (newMsg: ChatMessage) => {
-    setMessages(previous => [...previous, newMsg]);
+    setMessages(previous => {
+      // Check if message already exists (by id)
+      const messageExists = previous.some(msg => msg.id === newMsg.id);
+      if (messageExists) return previous;
+      
+      // Check if there's an optimistic version of this message
+      const optimisticIndex = previous.findIndex(
+        m => m.isOptimistic && m.user_id === newMsg.user_id && 
+             Math.abs(new Date(m.created_at).getTime() - new Date(newMsg.created_at).getTime()) < 5000
+      );
+      
+      if (optimisticIndex >= 0) {
+        // Replace optimistic message with real one
+        const updatedMessages = [...previous];
+        updatedMessages[optimisticIndex] = newMsg;
+        return updatedMessages;
+      }
+      
+      // Otherwise add as new message
+      return [...previous, newMsg];
+    });
     
     if (userId && userId !== newMsg.user_id) {
       markMessageAsRead(newMsg.id);
@@ -61,7 +81,7 @@ export const useGroupChat = (roomId: string, userId?: string) => {
   };
 
   // Function to fetch online users
-  const fetchOnlineUsers = async () => {
+  const fetchOnlineUsers = useCallback(async () => {
     try {
       const fiveMinutesAgo = new Date();
       fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
@@ -70,15 +90,43 @@ export const useGroupChat = (roomId: string, userId?: string) => {
         .from('profiles')
         .select('id, username, avatar_url, last_active')
         .gt('last_active', fiveMinutesAgo.toISOString())
+        .order('last_active', { ascending: false })
         .limit(20);
         
       if (error) throw error;
       
-      setOnlineUsers(data || []);
+      // Use a stable sorting mechanism to prevent avatar flicker
+      setOnlineUsers(prevUsers => {
+        const newData = data || [];
+        
+        // Create a map of current positions
+        const currentPositions = new Map();
+        prevUsers.forEach((user, index) => {
+          currentPositions.set(user.id, index);
+        });
+        
+        // Sort by keeping existing positions where possible
+        return [...newData].sort((a, b) => {
+          const aPos = currentPositions.has(a.id) ? currentPositions.get(a.id) : Number.MAX_SAFE_INTEGER;
+          const bPos = currentPositions.has(b.id) ? currentPositions.get(b.id) : Number.MAX_SAFE_INTEGER;
+          
+          // If both users existed before, maintain their order
+          if (aPos !== Number.MAX_SAFE_INTEGER && bPos !== Number.MAX_SAFE_INTEGER) {
+            return aPos - bPos;
+          }
+          
+          // If only one user existed before, they come first
+          if (aPos !== Number.MAX_SAFE_INTEGER) return -1;
+          if (bPos !== Number.MAX_SAFE_INTEGER) return 1;
+          
+          // Otherwise, sort by most recently active
+          return new Date(b.last_active).getTime() - new Date(a.last_active).getTime();
+        });
+      });
     } catch (error) {
       console.error('Error fetching online users:', error);
     }
-  };
+  }, []);
 
   // Set up all subscriptions
   useChatSubscriptions({
@@ -93,7 +141,16 @@ export const useGroupChat = (roomId: string, userId?: string) => {
   useEffect(() => {
     fetchMessages();
     fetchOnlineUsers();
-  }, [userId, roomId]);
+    
+    // Set up a periodic refresh of online users
+    const onlineUsersInterval = setInterval(() => {
+      fetchOnlineUsers();
+    }, 10000); // Refresh every 10 seconds
+    
+    return () => {
+      clearInterval(onlineUsersInterval);
+    };
+  }, [userId, roomId, fetchOnlineUsers]);
 
   const fetchMessages = async () => {
     try {
@@ -159,6 +216,10 @@ export const useGroupChat = (roomId: string, userId?: string) => {
     
     try {
       setIsSending(true);
+      
+      // Reset typing state immediately when sending message
+      resetTypingState();
+      
       let mediaUrl = null;
       let mediaType = null;
       

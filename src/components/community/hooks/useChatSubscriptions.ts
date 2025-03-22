@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { TypingIndicator } from '../types/ChatTypes';
@@ -47,6 +46,19 @@ export const useChatSubscriptions = ({
             read_by: [payload.new.user_id]
           };
           
+          // When a user sends a message, clear their typing indicator
+          if (typingTimeoutsRef.current[payload.new.user_id]) {
+            clearTimeout(typingTimeoutsRef.current[payload.new.user_id]);
+            delete typingTimeoutsRef.current[payload.new.user_id];
+            
+            // Immediately inform UI that user is no longer typing
+            onTypingUpdate({
+              user_id: payload.new.user_id, 
+              expired: true, 
+              timestamp: new Date().toISOString()
+            });
+          }
+          
           onNewMessage(newMessage);
         }
       )
@@ -79,6 +91,21 @@ export const useChatSubscriptions = ({
         if (payload.payload.user_id === userId) return;
         
         const fetchUserInfo = async () => {
+          // If this is a "stopped typing" event, immediately clear the indicator
+          if (payload.payload.isActive === false) {
+            onTypingUpdate({
+              user_id: payload.payload.user_id,
+              expired: true,
+              timestamp: payload.payload.timestamp
+            });
+            
+            if (typingTimeoutsRef.current[payload.payload.user_id]) {
+              clearTimeout(typingTimeoutsRef.current[payload.payload.user_id]);
+              delete typingTimeoutsRef.current[payload.payload.user_id];
+            }
+            return;
+          }
+          
           const { data } = await supabase
             .from('profiles')
             .select('username, avatar_url')
@@ -100,7 +127,8 @@ export const useChatSubscriptions = ({
           
           typingTimeoutsRef.current[typingUser.user_id] = setTimeout(() => {
             onTypingUpdate({ ...typingUser, expired: true });
-          }, 3000);
+            delete typingTimeoutsRef.current[typingUser.user_id];
+          }, 5000); // Extended timeout for better reliability
         };
         
         fetchUserInfo();
