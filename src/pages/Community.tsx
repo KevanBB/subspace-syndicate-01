@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,6 +28,28 @@ interface Member {
   bio: string;
   last_active: string;
 }
+
+// Create a custom PageButton component to handle the "isActive" prop
+const PageButton = ({ 
+  children, 
+  onClick, 
+  active 
+}: { 
+  children: React.ReactNode; 
+  onClick: () => void; 
+  active?: boolean;
+}) => {
+  return (
+    <Button 
+      onClick={onClick} 
+      size="sm"
+      variant={active ? "default" : "outline"}
+      className={active ? "bg-crimson text-white" : "text-white/70 hover:text-white"}
+    >
+      {children}
+    </Button>
+  );
+};
 
 const Community = () => {
   const { user } = useAuth();
@@ -82,8 +105,8 @@ const Community = () => {
     setCurrentPage(1); // Reset to first page on new search
   };
   
-  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setFilterRole(e.target.value);
+  const handleFilterChange = (value: string) => {
+    setFilterRole(value);
     setCurrentPage(1); // Reset to first page on new filter
   };
   
@@ -106,30 +129,30 @@ const Community = () => {
     if (totalPages <= 5) {
       for (let i = 0; i < totalPages; i++) {
         pageNumbers.push(
-          <Button 
+          <PageButton 
+            key={i}
             onClick={() => handlePageChange(i + 1)} 
-            isActive={currentPage === i + 1}
-            size="sm"
+            active={currentPage === i + 1}
           >
             {i + 1}
-          </Button>
+          </PageButton>
         );
       }
     } else {
       // First page
       pageNumbers.push(
-        <Button 
+        <PageButton 
+          key="first"
           onClick={() => handlePageChange(1)} 
-          isActive={currentPage === 1}
-          size="sm"
+          active={currentPage === 1}
         >
           1
-        </Button>
+        </PageButton>
       );
       
       // "..." if not near the beginning
       if (currentPage > 3) {
-        pageNumbers.push(<span className="text-white/60">...</span>);
+        pageNumbers.push(<span key="ellipsis1" className="text-white/60">...</span>);
       }
       
       // Current page +/- 1
@@ -146,30 +169,30 @@ const Community = () => {
       
       for (let i = startPage; i <= endPage; i++) {
         pageNumbers.push(
-          <Button 
+          <PageButton 
+            key={i}
             onClick={() => handlePageChange(i)} 
-            isActive={currentPage === i}
-            size="sm"
+            active={currentPage === i}
           >
             {i}
-          </Button>
+          </PageButton>
         );
       }
       
       // "..." if not near the end
       if (currentPage < totalPages - 2) {
-        pageNumbers.push(<span className="text-white/60">...</span>);
+        pageNumbers.push(<span key="ellipsis2" className="text-white/60">...</span>);
       }
       
       // Last page
       pageNumbers.push(
-        <Button 
+        <PageButton 
+          key="last"
           onClick={() => handlePageChange(totalPages)} 
-          isActive={currentPage === totalPages}
-          size="sm"
+          active={currentPage === totalPages}
         >
           {totalPages}
-        </Button>
+        </PageButton>
       );
     }
     
@@ -225,7 +248,9 @@ const Community = () => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {members.map((member) => (
-                <MemberCard key={member.id} member={member} />
+                <div key={member.id}>
+                  <MemberCard member={member as any} />
+                </div>
               ))}
             </div>
           )}
@@ -235,6 +260,7 @@ const Community = () => {
               onClick={() => handlePageChange(currentPage - 1)} 
               className="text-white/70 hover:text-white"
               size="sm"
+              disabled={currentPage === 1}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -247,6 +273,7 @@ const Community = () => {
               onClick={() => handlePageChange(currentPage + 1)} 
               className="text-white/70 hover:text-white"
               size="sm"
+              disabled={currentPage === totalPages}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>

@@ -47,7 +47,7 @@ interface SupabasePost {
 }
 
 const HashtagSearch = () => {
-  const { tag } = useParams<{ tag: string }>();
+  const { tag } = useParams();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();

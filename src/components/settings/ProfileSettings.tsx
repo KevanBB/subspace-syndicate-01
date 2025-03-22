@@ -35,10 +35,10 @@ interface ProfileData {
   media_visibility: string;
   allow_messages: boolean;
   username_normalized: string;
-  looking_for: string;
-  kinks: string;
-  soft_limits: string;
-  hard_limits: string;
+  looking_for?: string;  // Make these optional to be backward compatible
+  kinks?: string;
+  soft_limits?: string;
+  hard_limits?: string;
 }
 
 const ProfileSettings = () => {

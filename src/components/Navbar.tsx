@@ -25,6 +25,11 @@ const Navbar = () => {
     };
   }, []);
 
+  // Function to handle link clicks in mobile menu
+  const handleMobileMenuClick = () => {
+    setMobileMenuOpen(false);
+  };
+
   return (
     <motion.header
       initial={{ opacity: 0, y: -20 }}
@@ -89,38 +94,41 @@ const Navbar = () => {
             <a 
               href="#about"
               className="text-white hover:text-crimson py-2 transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={handleMobileMenuClick}
             >
               About
             </a>
             <a 
               href="#features"
               className="text-white hover:text-crimson py-2 transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={handleMobileMenuClick}
             >
               Features
             </a>
             <a 
               href="#creators"
               className="text-white hover:text-crimson py-2 transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={handleMobileMenuClick}
             >
               Creators
             </a>
-            <Link 
-              to="/community"
-              className="text-white hover:text-crimson py-2 transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Community
-            </Link>
-            <Link 
-              to="/dashboard"
-              className="text-white hover:text-crimson py-2 transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Dashboard
-            </Link>
+            {/* Use <div> wrapper for Link with onClick */}
+            <div onClick={handleMobileMenuClick}>
+              <Link 
+                to="/community"
+                className="text-white hover:text-crimson py-2 transition-colors block"
+              >
+                Community
+              </Link>
+            </div>
+            <div onClick={handleMobileMenuClick}>
+              <Link 
+                to="/dashboard"
+                className="text-white hover:text-crimson py-2 transition-colors block"
+              >
+                Dashboard
+              </Link>
+            </div>
             <div className="flex flex-col space-y-2 pt-2 border-t border-white/10">
               <Link to="/auth">
                 <Button variant="ghost" className="text-white hover:text-crimson justify-start">

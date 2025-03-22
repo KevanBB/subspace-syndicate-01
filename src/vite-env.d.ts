@@ -12,7 +12,7 @@ declare module 'react/jsx-runtime' {
   export const Fragment: any;
 }
 
-// Fix missing react-router-dom type declarations
+// Updated react-router-dom type declarations with onClick support for Link
 declare module 'react-router-dom' {
   import React from 'react';
   
@@ -21,12 +21,19 @@ declare module 'react-router-dom' {
     element?: React.ReactNode;
     children?: React.ReactNode;
   }
+
+  export interface LinkProps {
+    to: string; 
+    className?: string; 
+    children: React.ReactNode;
+    onClick?: (event: React.MouseEvent<HTMLAnchorElement>) => void;
+  }
   
   export const BrowserRouter: React.FC<{ children: React.ReactNode }>;
   export const Routes: React.FC<{ children: React.ReactNode }>;
   export const Route: React.FC<RouteProps>;
-  export const Link: React.FC<{ to: string; className?: string; children: React.ReactNode }>;
-  export const useNavigate: () => (path: string) => void;
+  export const Link: React.FC<LinkProps>;
+  export const useNavigate: () => (path: string, options?: { replace?: boolean }) => void;
   export const useParams: () => Record<string, string>;
   export const useLocation: () => { pathname: string };
   export const Navigate: React.FC<{ to: string; replace?: boolean }>;

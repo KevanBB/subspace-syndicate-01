@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -53,7 +52,7 @@ const Messages = () => {
           openConversation(convo);
         } else {
           console.warn("Invalid conversation structure: must have exactly 2 participants");
-          navigate('/messages', { replace: true });
+          navigate('/messages');
         }
       } else if (conversations.length > 0) {
         // If conversation not found but we have conversations, try to load it
@@ -75,7 +74,7 @@ const Messages = () => {
     }
     
     // For URL tracking (optional)
-    navigate(`/messages/${conversation.id}`, { replace: true });
+    navigate(`/messages/${conversation.id}`);
   };
 
   const closeConversation = (conversationId: string) => {
@@ -83,7 +82,7 @@ const Messages = () => {
     
     // Reset URL if closing the current conversation in URL
     if (window.location.pathname.includes(conversationId)) {
-      navigate('/messages', { replace: true });
+      navigate('/messages');
     }
   };
 
