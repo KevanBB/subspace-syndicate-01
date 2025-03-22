@@ -43,7 +43,7 @@ const ActivityTab: React.FC<{ userId?: string }> = ({ userId }) => {
         }
         
         // Convert posts to activity format
-        const formattedActivities = data.map(post => ({
+        const formattedActivities: Activity[] = data.map(post => ({
           id: post.id,
           type: post.media_url ? (post.media_type === 'video' ? 'video' : 'media') : 'post',
           content: post.content,

@@ -2,376 +2,476 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { Upload, X } from 'lucide-react';
 
+// Extended profile type with the new fields
+interface ProfileData {
+  id: string;
+  username: string;
+  bio: string;
+  avatar_url: string;
+  bdsm_role: string;
+  location: string;
+  birthday: string;
+  orientation: string;
+  created_at: string;
+  last_active: string;
+  visibility: string;
+  media_visibility: string;
+  allow_messages: boolean;
+  username_normalized: string;
+  looking_for: string;
+  kinks: string;
+  soft_limits: string;
+  hard_limits: string;
+}
+
 const ProfileSettings = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [profileData, setProfileData] = useState<any>(null);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [profileData, setProfileData] = useState<Partial<ProfileData>>({});
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string>('');
+  
+  // Form states
   const [username, setUsername] = useState('');
-  const [location, setLocation] = useState('');
-  const [birthday, setBirthday] = useState('');
-  const [orientation, setOrientation] = useState('straight');
-  const [bdsmRole, setBdsmRole] = useState('Exploring');
   const [bio, setBio] = useState('');
+  const [location, setLocation] = useState('');
+  const [orientation, setOrientation] = useState('');
+  const [visibility, setVisibility] = useState('public');
+  const [bdsmRole, setBdsmRole] = useState('');
   const [lookingFor, setLookingFor] = useState('');
   const [kinks, setKinks] = useState('');
   const [softLimits, setSoftLimits] = useState('');
   const [hardLimits, setHardLimits] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   
-  // Fetch profile data from the profiles table
   useEffect(() => {
     if (user?.id) {
-      const fetchProfileData = async () => {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-          
-        if (error) {
-          console.error('Error fetching profile:', error);
-          return;
-        }
-        
-        if (data) {
-          setProfileData(data);
-          setUsername(data.username || user?.user_metadata?.username || '');
-          setLocation(data.location || user?.user_metadata?.location || '');
-          setBirthday(data.birthday || user?.user_metadata?.birthday || '');
-          setOrientation(data.orientation || user?.user_metadata?.orientation || 'straight');
-          setBdsmRole(data.bdsm_role || user?.user_metadata?.bdsm_role || 'Exploring');
-          setBio(data.bio || user?.user_metadata?.bio || '');
-          setLookingFor(data.looking_for || '');
-          setKinks(data.kinks || '');
-          setSoftLimits(data.soft_limits || '');
-          setHardLimits(data.hard_limits || '');
-          setAvatarUrl(data.avatar_url || user?.user_metadata?.avatar_url || null);
-        }
-      };
-      
       fetchProfileData();
     }
   }, [user]);
   
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setAvatarFile(file);
-      setAvatarUrl(URL.createObjectURL(file));
+  const fetchProfileData = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .single();
+        
+      if (error) throw error;
+      
+      if (data) {
+        setProfileData(data);
+        setUsername(data.username || '');
+        setBio(data.bio || '');
+        setLocation(data.location || '');
+        setOrientation(data.orientation || '');
+        setVisibility(data.visibility || 'public');
+        setBdsmRole(data.bdsm_role || '');
+        setLookingFor(data.looking_for || '');
+        setKinks(data.kinks || '');
+        setSoftLimits(data.soft_limits || '');
+        setHardLimits(data.hard_limits || '');
+      }
+    } catch (error: any) {
+      console.error('Error fetching profile:', error.message);
     }
   };
   
-  const clearAvatar = () => {
-    setAvatarFile(null);
-    setAvatarUrl(null);
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    
+    const file = e.target.files[0];
+    setAvatarFile(file);
+    
+    // Create a preview
+    const objectUrl = URL.createObjectURL(file);
+    setAvatarPreview(objectUrl);
   };
   
-  const updateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const uploadAvatar = async () => {
+    if (!avatarFile || !user) return;
+    
+    setAvatarLoading(true);
+    
+    try {
+      // Get file extension
+      const fileExt = avatarFile.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+      
+      // Upload file to storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, avatarFile);
+        
+      if (uploadError) throw uploadError;
+      
+      // Get the public URL
+      const { data: publicUrlData } = await supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+        
+      const avatarUrl = publicUrlData.publicUrl;
+      
+      // Update profile
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', user.id);
+        
+      if (updateError) throw updateError;
+      
+      setProfileData({ ...profileData, avatar_url: avatarUrl });
+      
+      toast({
+        title: 'Avatar updated',
+        description: 'Your profile picture has been updated.',
+      });
+      
+      setAvatarFile(null);
+      
+    } catch (error: any) {
+      toast({
+        title: 'Error updating avatar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setAvatarLoading(false);
+    }
+  };
+  
+  const cancelAvatarUpload = () => {
+    if (avatarPreview) {
+      URL.revokeObjectURL(avatarPreview);
+    }
+    setAvatarFile(null);
+    setAvatarPreview('');
+  };
+  
+  const updateProfile = async () => {
+    if (!user) return;
+    
     setLoading(true);
     
     try {
-      // Update metadata in auth.users
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: {
-          username,
-          location,
-          birthday,
-          orientation,
-          bdsm_role: bdsmRole,
-          bio,
-          looking_for: lookingFor,
-          kinks,
-          soft_limits: softLimits,
-          hard_limits: hardLimits
-        }
-      });
+      const updates = {
+        username,
+        bio,
+        location,
+        orientation,
+        visibility,
+        bdsm_role: bdsmRole,
+        looking_for: lookingFor,
+        kinks: kinks,
+        soft_limits: softLimits,
+        hard_limits: hardLimits,
+      };
       
-      if (updateError) throw updateError;
-      
-      // Update profile in profiles table
-      const { error: profileError } = await supabase
+      const { error } = await supabase
         .from('profiles')
-        .update({
-          username,
-          location,
-          birthday,
-          orientation,
-          bdsm_role: bdsmRole,
-          bio,
-          looking_for: lookingFor,
-          kinks,
-          soft_limits: softLimits,
-          hard_limits: hardLimits,
-          avatar_url: avatarUrl
-        })
-        .eq('id', user?.id);
+        .update(updates)
+        .eq('id', user.id);
         
-      if (profileError) throw profileError;
-      
-      // Update avatar if a new one was uploaded
-      if (avatarFile) {
-        const fileExt = avatarFile.name.split('.').pop();
-        const fileName = `${user?.id}-avatar.${fileExt}`;
-        
-        // Upload to the media bucket we just created
-        const { error: uploadError } = await supabase.storage
-          .from('media')
-          .upload(`avatars/${fileName}`, avatarFile, { upsert: true });
-          
-        if (uploadError) throw uploadError;
-        
-        // Get the public URL
-        const { data: publicUrlData } = supabase.storage
-          .from('media')
-          .getPublicUrl(`avatars/${fileName}`);
-          
-        // Update the avatar URL in metadata and profile
-        await supabase.auth.updateUser({
-          data: {
-            avatar_url: publicUrlData.publicUrl
-          }
-        });
-        
-        await supabase
-          .from('profiles')
-          .update({
-            avatar_url: publicUrlData.publicUrl
-          })
-          .eq('id', user?.id);
-          
-        setAvatarUrl(publicUrlData.publicUrl);
-      }
+      if (error) throw error;
       
       toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
+        title: 'Profile updated',
+        description: 'Your profile has been updated successfully.',
       });
+      
+      // Refresh profile data
+      await fetchProfileData();
+      
     } catch (error: any) {
       toast({
-        title: "Error updating profile",
+        title: 'Error updating profile',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
   };
-  
+
+  // For the user's initials in avatar
+  const initials = username
+    ? username.substring(0, 2).toUpperCase()
+    : user?.email
+    ? user.email.substring(0, 2).toUpperCase()
+    : 'U';
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-bold text-white mb-4">Profile Settings</h2>
-        <p className="text-gray-400 mb-6">Update your profile information and avatar</p>
+        <p className="text-gray-400 mb-6">Manage your profile information and visibility</p>
       </div>
       
-      <form onSubmit={updateProfile} className="space-y-6">
-        <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6">
-          <div className="relative flex flex-col items-center">
-            <Avatar className="w-24 h-24 border-2 border-white/20">
-              {avatarUrl ? (
-                <AvatarImage src={avatarUrl} alt="Avatar preview" />
-              ) : (
+      {/* Avatar Upload */}
+      <Card className="bg-black/30 border-white/10">
+        <CardHeader>
+          <CardTitle className="text-white">Profile Picture</CardTitle>
+          <CardDescription className="text-white/70">
+            This is your public profile image. It will be displayed on your profile and comments.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            <div className="relative">
+              <Avatar className="w-24 h-24 border-2 border-white/20">
+                {avatarPreview ? (
+                  <AvatarImage src={avatarPreview} alt="Preview" />
+                ) : (
+                  <>
+                    <AvatarImage src={profileData.avatar_url || ""} alt={username} />
+                    <AvatarFallback className="bg-crimson text-white text-xl">
+                      {initials}
+                    </AvatarFallback>
+                  </>
+                )}
+              </Avatar>
+            </div>
+            
+            <div className="flex flex-col gap-3 sm:flex-row">
+              {avatarFile ? (
                 <>
-                  <AvatarImage 
-                    src={user?.user_metadata?.avatar_url} 
-                    alt={username} 
-                  />
-                  <AvatarFallback className="bg-crimson text-white text-xl">
-                    {username.substring(0, 2).toUpperCase()}
-                  </AvatarFallback>
+                  <Button 
+                    onClick={uploadAvatar}
+                    disabled={avatarLoading}
+                    className="bg-crimson hover:bg-crimson/90 text-white"
+                  >
+                    {avatarLoading ? "Uploading..." : "Save Avatar"}
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={cancelAvatarUpload}
+                    disabled={avatarLoading}
+                    className="border-white/20"
+                  >
+                    Cancel
+                  </Button>
                 </>
-              )}
-            </Avatar>
-            
-            <div className="mt-3 flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-1"
-                onClick={() => document.getElementById('avatar-upload')?.click()}
-              >
-                <Upload size={14} />
-                <span>Upload</span>
-              </Button>
-              
-              {avatarUrl && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-1"
-                  onClick={clearAvatar}
-                >
-                  <X size={14} />
-                  <span>Clear</span>
-                </Button>
+              ) : (
+                <div>
+                  <Input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
+                  <Button 
+                    onClick={() => document.getElementById('avatar-upload')?.click()}
+                    variant="outline"
+                    className="border-white/20"
+                  >
+                    <Upload className="mr-2 h-4 w-4" /> Change Avatar
+                  </Button>
+                </div>
               )}
             </div>
-            
-            <input
-              id="avatar-upload"
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarChange}
-              className="hidden"
-            />
           </div>
-          
-          <div className="flex-1 space-y-4 w-full">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="bg-black/30 border-white/10"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="location">Location</Label>
-                <Input
-                  id="location"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="bg-black/30 border-white/10"
-                  placeholder="City, Country"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="birthday">Birthday</Label>
+        </CardContent>
+      </Card>
+      
+      {/* Basic Information */}
+      <Card className="bg-black/30 border-white/10">
+        <CardHeader>
+          <CardTitle className="text-white">Basic Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
               <Input
-                id="birthday"
-                type="date"
-                value={birthday}
-                onChange={(e) => setBirthday(e.target.value)}
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="bg-black/30 border-white/10"
               />
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="orientation">Orientation</Label>
-                <Select value={orientation} onValueChange={setOrientation}>
-                  <SelectTrigger className="bg-black/30 border-white/10">
-                    <SelectValue placeholder="Select orientation" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="straight">Straight</SelectItem>
-                    <SelectItem value="gay">Gay</SelectItem>
-                    <SelectItem value="bisexual">Bisexual</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="bdsm-role">BDSM Role</Label>
-                <Select value={bdsmRole} onValueChange={setBdsmRole}>
-                  <SelectTrigger className="bg-black/30 border-white/10">
-                    <SelectValue placeholder="Select BDSM role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Dominant">Dominant</SelectItem>
-                    <SelectItem value="submissive">submissive</SelectItem>
-                    <SelectItem value="Switch">Switch</SelectItem>
-                    <SelectItem value="Exploring">Exploring</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="bio">Bio</Label>
-              <Textarea
-                id="bio"
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                className="bg-black/30 border-white/10 min-h-[120px]"
-                placeholder="Tell others about yourself..."
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="lookingFor">Looking For</Label>
-              <Textarea
-                id="lookingFor"
-                value={lookingFor}
-                onChange={(e) => setLookingFor(e.target.value)}
-                className="bg-black/30 border-white/10 min-h-[100px]"
-                placeholder="What are you looking for in partners or connections..."
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="kinks">Kinks/Fetishes</Label>
-              <Textarea
-                id="kinks"
-                value={kinks}
-                onChange={(e) => setKinks(e.target.value)}
-                className="bg-black/30 border-white/10 min-h-[100px]"
-                placeholder="List your kinks and fetishes..."
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="softLimits">Soft Limits</Label>
-              <Textarea
-                id="softLimits"
-                value={softLimits}
-                onChange={(e) => setSoftLimits(e.target.value)}
-                className="bg-black/30 border-white/10 min-h-[100px]"
-                placeholder="List your soft limits..."
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="hardLimits">Hard Limits</Label>
-              <Textarea
-                id="hardLimits"
-                value={hardLimits}
-                onChange={(e) => setHardLimits(e.target.value)}
-                className="bg-black/30 border-white/10 min-h-[100px]"
-                placeholder="List your hard limits..."
+            <div className="space-y-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="bg-black/30 border-white/10"
               />
             </div>
           </div>
-        </div>
-        
-        <Alert className="bg-amber-900/20 border-amber-500/30 text-amber-200">
-          <AlertDescription>
-            All profile information is visible to other users according to your privacy settings.
-          </AlertDescription>
-        </Alert>
-        
-        <div className="flex justify-end">
-          <Button type="submit" disabled={loading}>
-            {loading ? "Saving..." : "Save Changes"}
-          </Button>
-        </div>
-      </form>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="orientation">Orientation</Label>
+              <Select value={orientation} onValueChange={setOrientation}>
+                <SelectTrigger className="bg-black/30 border-white/10 w-full">
+                  <SelectValue placeholder="Select orientation" />
+                </SelectTrigger>
+                <SelectContent className="bg-black/95 border-white/10 text-white">
+                  <SelectItem value="hetero">Hetero</SelectItem>
+                  <SelectItem value="gay">Gay</SelectItem>
+                  <SelectItem value="lesbian">Lesbian</SelectItem>
+                  <SelectItem value="bisexual">Bisexual</SelectItem>
+                  <SelectItem value="pansexual">Pansexual</SelectItem>
+                  <SelectItem value="asexual">Asexual</SelectItem>
+                  <SelectItem value="queer">Queer</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="bdsm-role">BDSM Role</Label>
+              <Select value={bdsmRole} onValueChange={setBdsmRole}>
+                <SelectTrigger className="bg-black/30 border-white/10 w-full">
+                  <SelectValue placeholder="Select BDSM role" />
+                </SelectTrigger>
+                <SelectContent className="bg-black/95 border-white/10 text-white">
+                  <SelectItem value="dominant">Dominant</SelectItem>
+                  <SelectItem value="submissive">Submissive</SelectItem>
+                  <SelectItem value="switch">Switch</SelectItem>
+                  <SelectItem value="exploring">Exploring</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="visibility">Profile Visibility</Label>
+            <Select value={visibility} onValueChange={setVisibility}>
+              <SelectTrigger className="bg-black/30 border-white/10 w-full">
+                <SelectValue placeholder="Select visibility" />
+              </SelectTrigger>
+              <SelectContent className="bg-black/95 border-white/10 text-white">
+                <SelectItem value="public">Public</SelectItem>
+                <SelectItem value="members-only">Members Only</SelectItem>
+                <SelectItem value="private">Private</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Bio */}
+      <Card className="bg-black/30 border-white/10">
+        <CardHeader>
+          <CardTitle className="text-white">Bio</CardTitle>
+          <CardDescription className="text-white/70">
+            Tell others about yourself
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            placeholder="Write a short bio about yourself..."
+            className="bg-black/30 border-white/10 min-h-[120px]"
+          />
+        </CardContent>
+      </Card>
+      
+      {/* Looking For */}
+      <Card className="bg-black/30 border-white/10">
+        <CardHeader>
+          <CardTitle className="text-white">Looking For</CardTitle>
+          <CardDescription className="text-white/70">
+            Describe what you're seeking in a connection
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            value={lookingFor}
+            onChange={(e) => setLookingFor(e.target.value)}
+            placeholder="What are you looking for on this platform?"
+            className="bg-black/30 border-white/10 min-h-[100px]"
+          />
+        </CardContent>
+      </Card>
+      
+      {/* Kinks/Fetishes */}
+      <Card className="bg-black/30 border-white/10">
+        <CardHeader>
+          <CardTitle className="text-white">Kinks/Fetishes</CardTitle>
+          <CardDescription className="text-white/70">
+            List your interests, kinks, and fetishes
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            value={kinks}
+            onChange={(e) => setKinks(e.target.value)}
+            placeholder="List your kinks and fetishes..."
+            className="bg-black/30 border-white/10 min-h-[100px]"
+          />
+        </CardContent>
+      </Card>
+      
+      {/* Soft Limits */}
+      <Card className="bg-black/30 border-white/10">
+        <CardHeader>
+          <CardTitle className="text-white">Soft Limits</CardTitle>
+          <CardDescription className="text-white/70">
+            Activities you may consider under specific circumstances
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            value={softLimits}
+            onChange={(e) => setSoftLimits(e.target.value)}
+            placeholder="List your soft limits..."
+            className="bg-black/30 border-white/10 min-h-[100px]"
+          />
+        </CardContent>
+      </Card>
+      
+      {/* Hard Limits */}
+      <Card className="bg-black/30 border-white/10">
+        <CardHeader>
+          <CardTitle className="text-white">Hard Limits</CardTitle>
+          <CardDescription className="text-white/70">
+            Activities you absolutely will not engage in
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            value={hardLimits}
+            onChange={(e) => setHardLimits(e.target.value)}
+            placeholder="List your hard limits..."
+            className="bg-black/30 border-white/10 min-h-[100px]"
+          />
+        </CardContent>
+      </Card>
+      
+      <div className="flex justify-end">
+        <Button 
+          onClick={updateProfile} 
+          className="bg-crimson hover:bg-crimson/90 text-white"
+          disabled={loading}
+        >
+          {loading ? "Saving Changes..." : "Save Changes"}
+        </Button>
+      </div>
     </div>
   );
 };

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
@@ -8,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { Edit, Eye, Clock, Trash2, ExternalLink } from 'lucide-react';
+import { Edit, Eye, Clock, Trash2, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 
@@ -50,14 +49,12 @@ const SubSpaceTVMyContent = () => {
     },
   });
 
-  // Calculate pagination
   const totalPages = videos ? Math.ceil(videos.length / itemsPerPage) : 0;
   const paginatedVideos = videos ? videos.slice(
     (currentPage - 1) * itemsPerPage, 
     currentPage * itemsPerPage
   ) : [];
 
-  // Format duration from seconds to MM:SS
   const formatDuration = (seconds: number | null) => {
     if (seconds === null) return '00:00';
     const minutes = Math.floor(seconds / 60);
@@ -65,17 +62,15 @@ const SubSpaceTVMyContent = () => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  // Get status badge variant - FIXED to use available variants
   const getStatusBadgeVariant = (status: string) => {
     switch(status) {
-      case 'ready': return "dominant"; // Changed from "success" to "dominant"
-      case 'processing': return "exploring"; // Changed from "warning" to "exploring"
-      case 'failed': return "destructive"; // This one was already valid
+      case 'ready': return "dominant";
+      case 'processing': return "exploring";
+      case 'failed': return "destructive";
       default: return "secondary";
     }
   };
 
-  // Get visibility badge variant
   const getVisibilityBadgeVariant = (visibility: string) => {
     switch(visibility) {
       case 'public': return "default";
@@ -230,16 +225,19 @@ const SubSpaceTVMyContent = () => {
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious 
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  onClick={() => setCurrentPage(currentPage - 1)} 
                   className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
-                />
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </PaginationPrevious>
               </PaginationItem>
               
               {Array.from({ length: totalPages }).map((_, i) => (
                 <PaginationItem key={i}>
                   <PaginationLink 
+                    onClick={() => setCurrentPage(i + 1)} 
                     isActive={currentPage === i + 1}
-                    onClick={() => setCurrentPage(i + 1)}
+                    size="sm"
                   >
                     {i + 1}
                   </PaginationLink>
@@ -248,9 +246,11 @@ const SubSpaceTVMyContent = () => {
               
               <PaginationItem>
                 <PaginationNext 
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  onClick={() => setCurrentPage(currentPage + 1)} 
                   className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
-                />
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </PaginationNext>
               </PaginationItem>
             </PaginationContent>
           </Pagination>

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -141,7 +142,7 @@ const PostItem: React.FC<PostItemProps> = ({ post }) => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10">
-                  <MoreHorizontal size={18} />
+                  <MoreHorizontal className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-black/90 border-white/10 text-white">
@@ -179,114 +180,102 @@ const PostItem: React.FC<PostItemProps> = ({ post }) => {
               )}
               
               {mediaTypes[currentMediaIndex] === 'video' && (
-                <div className="w-full">
-                  <VideoPlayer 
-                    videoUrl={mediaUrls[currentMediaIndex]} 
-                    title={`${username}'s video`}
-                  />
+                <div className="relative">
+                  <AspectRatio ratio={16/9}>
+                    <VideoPlayer src={mediaUrls[currentMediaIndex]} />
+                  </AspectRatio>
                 </div>
               )}
               
               {mediaUrls.length > 1 && (
-                <>
+                <div className="absolute inset-y-0 left-0 right-0 flex justify-between items-center px-3">
                   <Button 
                     variant="ghost" 
-                    size="icon" 
-                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 z-10 rounded-full h-8 w-8"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      prevMedia();
-                    }}
+                    size="icon"
+                    onClick={prevMedia}
                     disabled={currentMediaIndex === 0}
+                    className="h-10 w-10 rounded-full bg-black/60 text-white border border-white/20 hover:bg-black/80"
                   >
-                    <ChevronLeft size={isMobile ? 16 : 18} />
+                    <ChevronLeft className="h-5 w-5" />
                   </Button>
                   <Button 
                     variant="ghost" 
-                    size="icon" 
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 z-10 rounded-full h-8 w-8"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      nextMedia();
-                    }}
+                    size="icon"
+                    onClick={nextMedia}
                     disabled={currentMediaIndex === mediaUrls.length - 1}
+                    className="h-10 w-10 rounded-full bg-black/60 text-white border border-white/20 hover:bg-black/80"
                   >
-                    <ChevronRight size={isMobile ? 16 : 18} />
+                    <ChevronRight className="h-5 w-5" />
                   </Button>
-                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10">
-                    <div className="flex gap-1 bg-black/40 rounded-full px-2 py-1">
-                      {mediaUrls.map((_, index) => (
-                        <motion.div 
-                          key={index} 
-                          className={`w-2 h-2 rounded-full ${index === currentMediaIndex ? 'bg-crimson' : 'bg-white/40'} cursor-pointer`} 
-                          whileHover={{ scale: 1.2 }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setCurrentMediaIndex(index);
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </>
+                </div>
+              )}
+              
+              {mediaUrls.length > 1 && (
+                <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
+                  {mediaUrls.map((_, index) => (
+                    <div 
+                      key={index} 
+                      className={`w-2 h-2 rounded-full ${
+                        index === currentMediaIndex ? 'bg-white' : 'bg-white/30'
+                      }`}
+                    />
+                  ))}
+                </div>
               )}
             </div>
           )}
-          
-          <Lightbox 
-            isOpen={lightboxOpen}
-            onClose={() => setLightboxOpen(false)}
-            media={mediaArray}
-            initialIndex={currentMediaIndex}
-          />
         </CardContent>
         
-        <CardFooter className="border-t border-white/10 pt-3 pb-3 flex justify-between">
-          <div className="flex gap-3">
+        <CardFooter className="border-t border-white/10 py-3 px-6 flex justify-between items-center bg-black/20">
+          <div className="flex items-center gap-4">
             <Button 
               variant="ghost" 
               size="sm" 
-              className={`${isLiked ? 'text-crimson' : 'text-white/70'} hover:text-crimson hover:bg-white/5 group`}
               onClick={handleLike}
+              className={`text-sm p-0 h-auto ${isLiked ? 'text-crimson' : 'text-white/70'}`}
             >
-              <motion.div
-                whileHover={{ scale: 1.2 }}
-                whileTap={{ scale: 0.8 }}
-                animate={isLiked ? { scale: [1, 1.3, 1] } : {}}
-                transition={{ duration: 0.2 }}
-              >
-                <Heart size={18} className={`mr-1 ${isLiked ? 'fill-crimson' : 'group-hover:fill-crimson/20'}`} /> 
-              </motion.div>
-              {likes}
+              <Heart className={`h-5 w-5 mr-1 ${isLiked ? 'fill-crimson' : ''}`} />
+              <span>{likes > 0 ? likes : ''}</span>
             </Button>
-            <Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/5">
-              <MessageCircle size={18} className="mr-1" /> 0
+            
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-sm p-0 h-auto text-white/70"
+            >
+              <MessageCircle className="h-5 w-5 mr-1" />
+              <span></span>
             </Button>
-            <Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/5">
-              <Share size={18} className="mr-1" /> Share
+            
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-sm p-0 h-auto text-white/70"
+            >
+              <Share className="h-5 w-5 mr-1" />
             </Button>
           </div>
           
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className={`${isBookmarked ? 'text-crimson' : 'text-white/70'} hover:text-crimson hover:bg-white/5`}
-            onClick={handleBookmark}
-          >
-            <BookmarkIcon size={18} className={isBookmarked ? 'fill-crimson' : ''} />
-          </Button>
-        </CardFooter>
-        
-        {/* Hot post indicator */}
-        {likes > 5 && (
-          <div className="absolute top-2 right-2">
-            <Badge variant="crimson" className="flex items-center gap-1 px-2">
-              <Flame size={12} className="text-white" />
-              Hot
-            </Badge>
+          <div>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={handleBookmark}
+              className={`text-sm p-0 h-auto ${isBookmarked ? 'text-gold' : 'text-white/70'}`}
+            >
+              <BookmarkIcon className={`h-5 w-5 ${isBookmarked ? 'fill-gold' : ''}`} />
+            </Button>
           </div>
-        )}
+        </CardFooter>
       </Card>
+      
+      {/* Lightbox for images */}
+      <Lightbox
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        images={mediaUrls.filter((_, i) => mediaTypes[i] === 'image')}
+        startIndex={currentMediaIndex}
+      />
     </motion.div>
   );
 };
