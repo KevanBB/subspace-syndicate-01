@@ -3,10 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Send, Users, X, Image, Play, Paperclip, Loader2, XCircle } from 'lucide-react';
+import { Send, Users, X, Image, Play, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -51,7 +50,7 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
   const [uploadProgress, setUploadProgress] = React.useState(0);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { user } = useAuth();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const COMMUNITY_ROOM_ID = 'community_room'; // Fixed room ID for the community
 
   React.useEffect(() => {
@@ -114,7 +113,7 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
   }, [isOpen, user]);
   
   // Scroll to bottom when messages change
-  useEffect(() => {
+  React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
   
@@ -300,7 +299,7 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
           className="absolute top-1 right-1 h-6 w-6 rounded-full bg-black/60 z-10"
           onClick={handleRemoveSelectedFile}
         >
-          <XCircle className="h-4 w-4" />
+          <X className="h-4 w-4" />
         </Button>
         
         {isImage ? (
@@ -350,195 +349,188 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
     
     return null;
   };
+
+  if (!isOpen) return null;
+  
   return (
-    <AnimatePresence mode="wait">
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.2 }}
-          className="fixed bottom-4 right-4 z-50 w-full max-w-md"
-        >
-          <Card className="bg-black/50 border-white/20 backdrop-blur-lg shadow-xl overflow-hidden">
-            <CardHeader className="bg-black/30 border-b border-white/10 flex flex-row items-center justify-between p-3">
-              <CardTitle className="text-lg font-medium flex items-center">
-                <Users className="mr-2 h-5 w-5 text-crimson" /> 
-                Community Chat
-                <Badge variant="secondary" className="ml-2 bg-crimson text-white">
-                  {onlineUsers.length} online
-                </Badge>
-              </CardTitle>
-              {onClose && (
-                <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </CardHeader>
+    <div className="fixed bottom-4 right-4 z-50 w-full max-w-md">
+      <Card className="bg-black/50 border-white/20 backdrop-blur-lg shadow-xl overflow-hidden">
+        <CardHeader className="bg-black/30 border-b border-white/10 flex flex-row items-center justify-between p-3">
+          <CardTitle className="text-lg font-medium flex items-center">
+            <Users className="mr-2 h-5 w-5 text-crimson" /> 
+            Community Chat
+            <span className="ml-2 text-xs px-2 py-0.5 bg-crimson text-white rounded-full">
+              {onlineUsers.length} online
+            </span>
+          </CardTitle>
+          {onClose && (
+            <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </CardHeader>
+        
+        <CardContent className="p-0">
+          <div className="flex">
+            <div className="w-16 bg-black/40 p-2 max-h-96 overflow-auto">
+              <div className="flex flex-col gap-2">
+                <TooltipProvider>
+                  {onlineUsers.map(user => (
+                    <Tooltip key={user.id}>
+                      <TooltipTrigger asChild>
+                        <div className="relative">
+                          <Avatar className="h-10 w-10 border-2 border-crimson/40">
+                            <AvatarImage src={user.avatar_url || "/placeholder.svg"} />
+                            <AvatarFallback className="bg-crimson text-white text-xs">
+                              {(user.username || 'U').substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <OnlineIndicator 
+                            lastActive={user.last_active} 
+                            className="absolute -top-1 -right-1 ring-2 ring-black" 
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        <p>{user.username}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                </TooltipProvider>
+              </div>
+            </div>
             
-            <CardContent className="p-0">
-              <div className="flex">
-                <div className="w-16 bg-black/40 p-2 max-h-96 overflow-auto">
-                  <div className="flex flex-col gap-2">
-                    <TooltipProvider>
-                      {onlineUsers.map(user => (
-                        <Tooltip key={user.id}>
-                          <TooltipTrigger asChild>
-                            <div className="relative">
-                              <Avatar className="h-10 w-10 border-2 border-crimson/40">
-                                <AvatarImage src={user.avatar_url || "/placeholder.svg"} />
-                                <AvatarFallback className="bg-crimson text-white text-xs">
-                                  {(user.username || 'U').substring(0, 2).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <OnlineIndicator 
-                                lastActive={user.last_active} 
-                                className="absolute -top-1 -right-1 ring-2 ring-black" 
-                              />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent side="right">
-                            <p>{user.username}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      ))}
-                    </TooltipProvider>
+            <div className="flex-grow">
+              <ScrollArea className="h-96 p-4">
+                {isLoading ? (
+                  <div className="flex justify-center items-center h-full">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-crimson"></div>
                   </div>
-                </div>
-                
-                <div className="flex-grow">
-                  <ScrollArea className="h-96 p-4">
-                    {isLoading ? (
-                      <div className="flex justify-center items-center h-full">
-                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-crimson"></div>
-                      </div>
-                    ) : messages.length === 0 ? (
-                      <div className="flex justify-center items-center h-full text-white/50">
-                        <p>No messages yet. Start the conversation!</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {messages.map((message) => (
-                          <div 
-                            key={message.id} 
-                            className={`flex ${message.user_id === user?.id ? 'justify-end' : 'justify-start'}`}
-                          >
-                            <div className="flex max-w-[85%]">
-                              {message.user_id !== user?.id && (
-                                <Avatar className="h-8 w-8 mr-2 mt-1">
-                                  <AvatarImage src={message.avatar_url || "/placeholder.svg"} />
-                                  <AvatarFallback className="bg-crimson text-white text-xs">
-                                    {(message.username || 'U').substring(0, 2).toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
+                ) : messages.length === 0 ? (
+                  <div className="flex justify-center items-center h-full text-white/50">
+                    <p>No messages yet. Start the conversation!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {messages.map((message) => (
+                      <div 
+                        key={message.id} 
+                        className={`flex ${message.user_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div className="flex max-w-[85%]">
+                          {message.user_id !== user?.id && (
+                            <Avatar className="h-8 w-8 mr-2 mt-1">
+                              <AvatarImage src={message.avatar_url || "/placeholder.svg"} />
+                              <AvatarFallback className="bg-crimson text-white text-xs">
+                                {(message.username || 'U').substring(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
+                          
+                          <div>
+                            {message.user_id !== user?.id && (
+                              <div className="text-xs text-white/70 ml-1 mb-1">
+                                {message.username || 'Anonymous'}
+                              </div>
+                            )}
+                            
+                            <div
+                              className={`rounded-2xl px-4 py-2 ${
+                                message.user_id === user?.id 
+                                  ? 'bg-crimson text-white' 
+                                  : 'bg-gray-800 text-white'
+                              }`}
+                            >
+                              {message.content && (
+                                <p className="whitespace-pre-wrap break-words">{message.content}</p>
                               )}
                               
-                              <div>
-                                {message.user_id !== user?.id && (
-                                  <div className="text-xs text-white/70 ml-1 mb-1">
-                                    {message.username || 'Anonymous'}
-                                  </div>
-                                )}
-                                
-                                <div
-                                  className={`rounded-2xl px-4 py-2 ${
-                                    message.user_id === user?.id 
-                                      ? 'bg-crimson text-white' 
-                                      : 'bg-gray-800 text-white'
-                                  }`}
-                                >
-                                  {message.content && (
-                                    <p className="whitespace-pre-wrap break-words">{message.content}</p>
-                                  )}
-                                  
-                                  {renderMessageMedia(message)}
-                                </div>
-                                
-                                <div className="text-xs text-white/50 mt-1 px-2">
-                                  {format(new Date(message.created_at), 'HH:mm')}
-                                </div>
-                              </div>
+                              {renderMessageMedia(message)}
+                            </div>
+                            
+                            <div className="text-xs text-white/50 mt-1 px-2">
+                              {format(new Date(message.created_at), 'HH:mm')}
                             </div>
                           </div>
-                        ))}
-                        <div ref={messagesEndRef} />
+                        </div>
                       </div>
-                    )}
-                  </ScrollArea>
-                </div>
-              </div>
-            </CardContent>
-            
-            <CardFooter className="p-3 border-t border-white/10 bg-black/30 flex-col">
-              {renderMediaPreview()}
-              
-              {isUploading && (
-                <div className="w-full mb-2">
-                  <div className="w-full h-1 bg-gray-700 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-crimson" 
-                      style={{ width: `${uploadProgress}%` }}
-                    ></div>
+                    ))}
+                    <div ref={messagesEndRef} />
                   </div>
-                  <p className="text-xs text-white/70 text-center mt-1">
-                    Uploading... {uploadProgress}%
-                  </p>
-                </div>
-              )}
-              
-              <form onSubmit={handleSendMessage} className="flex w-full gap-2">
-                <Input
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message..."
-                  className="bg-black/20 border-white/20"
-                  disabled={isSending || isUploading || !user}
-                />
-                
-                <div className="flex">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-10 w-10 text-white/70 hover:text-white hover:bg-white/10"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isSending || isUploading || !user}
-                      >
-                        <Paperclip className="h-5 w-5" />
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*,video/*"
-                          className="hidden"
-                          onChange={handleFileSelect}
-                        />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Attach image or video</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  
+                )}
+              </ScrollArea>
+            </div>
+          </div>
+        </CardContent>
+        
+        <CardFooter className="p-3 border-t border-white/10 bg-black/30 flex-col">
+          {renderMediaPreview()}
+          
+          {isUploading && (
+            <div className="w-full mb-2">
+              <div className="w-full h-1 bg-gray-700 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-crimson" 
+                  style={{ width: `${uploadProgress}%` }}
+                ></div>
+              </div>
+              <p className="text-xs text-white/70 text-center mt-1">
+                Uploading... {uploadProgress}%
+              </p>
+            </div>
+          )}
+          
+          <form onSubmit={handleSendMessage} className="flex w-full gap-2">
+            <Input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Type a message..."
+              className="bg-black/20 border-white/20"
+              disabled={isSending || isUploading || !user}
+            />
+            
+            <div className="flex">
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <Button 
-                    type="submit" 
-                    disabled={(!newMessage.trim() && !selectedFile) || isSending || isUploading || !user}
-                    className="bg-crimson hover:bg-crimson/80 ml-1"
+                    type="button" 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-10 w-10 text-white/70 hover:text-white hover:bg-white/10"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isSending || isUploading || !user}
                   >
-                    {isSending || isUploading ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <Send className="h-5 w-5" />
-                    )}
+                    <Image className="h-5 w-5" />
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*,video/*"
+                      className="hidden"
+                      onChange={handleFileSelect}
+                    />
                   </Button>
-                </div>
-              </form>
-            </CardFooter>
-          </Card>
-        </motion.div>
-      )}
-    </AnimatePresence>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Attach image or video</p>
+                </TooltipContent>
+              </Tooltip>
+              
+              <Button 
+                type="submit" 
+                disabled={(!newMessage.trim() && !selectedFile) || isSending || isUploading || !user}
+                className="bg-crimson hover:bg-crimson/80 ml-1"
+              >
+                {isSending || isUploading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Send className="h-5 w-5" />
+                )}
+              </Button>
+            </div>
+          </form>
+        </CardFooter>
+      </Card>
+    </div>
   );
 };
 
