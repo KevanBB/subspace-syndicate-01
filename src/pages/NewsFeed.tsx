@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RefreshCw, ChevronUp } from 'lucide-react';
+import { RotateCcw as RefreshCw, ChevronUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useInView } from '@/hooks/useInView';
 import PostCard from '@/components/ui/PostCard';
@@ -36,6 +36,11 @@ interface PostMedia {
   type: 'image' | 'video' | 'gif';
   aspectRatio?: number;
   duration?: number;
+}
+
+interface ProfileData {
+  username: string;
+  avatar_url?: string;
 }
 
 const NewsFeed: React.FC = () => {
@@ -106,38 +111,73 @@ const NewsFeed: React.FC = () => {
   const fetchPosts = async () => {
     setLoading(true);
     try {
-      // Fetch posts with profiles joined
-      const { data, error } = await supabase
+      // First fetch posts
+      const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select(`
-          *,
-          user:profiles(username, avatar_url),
-          post_media(*),
-          post_hashtags(hashtag),
-          likes:post_likes(count)
+          id,
+          content,
+          created_at,
+          user_id
         `)
         .order('created_at', { ascending: false })
         .limit(10);
         
-      if (error) throw error;
+      if (postsError) throw postsError;
       
-      if (data && data.length > 0) {
-        lastPostRef.current = data[data.length - 1].created_at;
+      if (postsData && postsData.length > 0) {
+        lastPostRef.current = postsData[postsData.length - 1].created_at;
         
-        // Transform data to match the Post interface
-        const transformedPosts = data.map(post => ({
-          id: post.id,
-          content: post.content,
-          media: post.post_media,
-          hashtags: post.post_hashtags?.map((h: any) => h.hashtag),
-          created_at: post.created_at,
-          user_id: post.user_id,
-          user: {
-            username: post.user?.username || 'anonymous',
-            avatar_url: post.user?.avatar_url
-          },
-          likes: post.likes?.length || 0,
-          comments: 0, // Need to implement comment count
+        // For each post, fetch related data
+        const transformedPosts = await Promise.all(postsData.map(async (post) => {
+          // Fetch user profile
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('username, avatar_url')
+            .eq('id', post.user_id)
+            .single();
+            
+          // Fetch media
+          const { data: mediaData } = await supabase
+            .from('post_media')
+            .select('*')
+            .eq('post_id', post.id);
+            
+          // Fetch hashtags
+          const { data: hashtagData } = await supabase
+            .from('post_hashtags')
+            .select('hashtag')
+            .eq('post_id', post.id);
+            
+          // Fetch likes count
+          const { count: likesCount } = await supabase
+            .from('post_likes')
+            .select('*', { count: 'exact', head: true })
+            .eq('post_id', post.id);
+            
+          // Transform media data to match PostMedia interface
+          const media = mediaData ? mediaData.map(m => ({
+            id: m.id,
+            url: m.url,
+            type: m.type as 'image' | 'video' | 'gif',
+            aspectRatio: m.aspect_ratio,
+            duration: m.duration
+          })) : [];
+            
+          return {
+            id: post.id,
+            content: post.content,
+            media,
+            hashtags: hashtagData ? hashtagData.map(h => h.hashtag) : [],
+            created_at: post.created_at,
+            user_id: post.user_id,
+            user: {
+              username: profileData?.username || 'anonymous',
+              avatar_url: profileData?.avatar_url
+            },
+            likes: likesCount || 0,
+            comments: 0 // Implement comment count later
+          };
         }));
         
         setPosts(transformedPosts);
@@ -156,38 +196,72 @@ const NewsFeed: React.FC = () => {
     
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select(`
-          *,
-          user:profiles(username, avatar_url),
-          post_media(*),
-          post_hashtags(hashtag),
-          likes:post_likes(count)
+          id,
+          content,
+          created_at,
+          user_id
         `)
         .lt('created_at', lastPostRef.current)
         .order('created_at', { ascending: false })
         .limit(10);
         
-      if (error) throw error;
+      if (postsError) throw postsError;
       
-      if (data && data.length > 0) {
-        lastPostRef.current = data[data.length - 1].created_at;
+      if (postsData && postsData.length > 0) {
+        lastPostRef.current = postsData[postsData.length - 1].created_at;
         
-        // Transform data to match the Post interface
-        const transformedPosts = data.map(post => ({
-          id: post.id,
-          content: post.content,
-          media: post.post_media,
-          hashtags: post.post_hashtags?.map((h: any) => h.hashtag),
-          created_at: post.created_at,
-          user_id: post.user_id,
-          user: {
-            username: post.user?.username || 'anonymous',
-            avatar_url: post.user?.avatar_url
-          },
-          likes: post.likes?.length || 0,
-          comments: 0, // Need to implement comment count
+        const transformedPosts = await Promise.all(postsData.map(async (post) => {
+          // Fetch user profile
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('username, avatar_url')
+            .eq('id', post.user_id)
+            .single();
+            
+          // Fetch media
+          const { data: mediaData } = await supabase
+            .from('post_media')
+            .select('*')
+            .eq('post_id', post.id);
+            
+          // Fetch hashtags
+          const { data: hashtagData } = await supabase
+            .from('post_hashtags')
+            .select('hashtag')
+            .eq('post_id', post.id);
+            
+          // Fetch likes count
+          const { count: likesCount } = await supabase
+            .from('post_likes')
+            .select('*', { count: 'exact', head: true })
+            .eq('post_id', post.id);
+            
+          // Transform media data to match PostMedia interface
+          const media = mediaData ? mediaData.map(m => ({
+            id: m.id,
+            url: m.url,
+            type: m.type as 'image' | 'video' | 'gif',
+            aspectRatio: m.aspect_ratio,
+            duration: m.duration
+          })) : [];
+            
+          return {
+            id: post.id,
+            content: post.content,
+            media,
+            hashtags: hashtagData ? hashtagData.map(h => h.hashtag) : [],
+            created_at: post.created_at,
+            user_id: post.user_id,
+            user: {
+              username: profileData?.username || 'anonymous',
+              avatar_url: profileData?.avatar_url
+            },
+            likes: likesCount || 0,
+            comments: 0
+          };
         }));
         
         setPosts(prev => [...prev, ...transformedPosts]);
@@ -340,4 +414,4 @@ const NewsFeed: React.FC = () => {
   );
 };
 
-export default NewsFeed; 
+export default NewsFeed;

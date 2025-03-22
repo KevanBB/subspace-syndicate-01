@@ -29,20 +29,19 @@ export default function TrendingHashtags() {
   const fetchTrendingHashtags = async () => {
     setLoading(true);
     try {
-      // Query to get hashtag counts
+      // Query to get hashtag counts - use SQL query instead of group()
       const { data, error } = await supabase
-        .from('post_hashtags')
-        .select('hashtag, count(*)', { count: 'exact' })
-        .order('count', { ascending: false })
-        .limit(10)
-        .group('hashtag');
+        .from('trending_hashtags')
+        .select('hashtag, post_count')
+        .order('post_count', { ascending: false })
+        .limit(10);
       
       if (error) throw error;
       
       // Transform data for our component
       const formattedHashtags = data.map(item => ({
         hashtag: item.hashtag,
-        count: item.count
+        count: item.post_count
       }));
       
       setHashtags(formattedHashtags);
@@ -109,4 +108,4 @@ export default function TrendingHashtags() {
       </CardContent>
     </Card>
   );
-} 
+}

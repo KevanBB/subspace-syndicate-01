@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { AlertCircle, ImageIcon, X, FilmIcon, Hash, Smile, Upload, RotateCw } from 'lucide-react';
+import { AlertCircle, Image as ImageIcon, Film as FilmIcon, Hash, Smile, Upload, RotateCcw as RotateCw, X } from 'lucide-react';
 import { MediaUploader } from './MediaUploader';
 import { MediaPreview } from './MediaPreview';
 import { HashtagInput } from './HashtagInput';

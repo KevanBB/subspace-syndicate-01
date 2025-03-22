@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
-import { X, Move, Crop, RotateCw, ImageIcon, Film } from 'lucide-react';
+import { X, GripVertical as Move, Scan as Crop, RotateCcw as RotateCw, Image as ImageIcon, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
@@ -167,4 +167,4 @@ export const MediaPreview: React.FC<MediaPreviewProps> = ({ items, onRemove, onR
       </div>
     </div>
   );
-}; 
+};
