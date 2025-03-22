@@ -59,7 +59,7 @@ const ActivityTab: React.FC<{ userId?: string }> = ({ userId }) => {
     }
   }, [profileId]);
   
-  const getActivityIcon = (type: string) => {
+  const getActivityIcon = (type: Activity['type']) => {
     switch (type) {
       case 'post':
         return <MessageCircle className="h-5 w-5 text-crimson" />;
