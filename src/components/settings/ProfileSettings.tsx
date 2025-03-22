@@ -34,12 +34,13 @@ interface ProfileData {
   media_visibility: string | null;
   allow_messages: boolean | null;
   username_normalized?: string;
+  user_role?: string;
+  show_online_status?: boolean;
+  // Add the missing fields to fix the TypeScript errors
   looking_for?: string | null;
   kinks?: string | null;
   soft_limits?: string | null;
   hard_limits?: string | null;
-  user_role?: string;
-  show_online_status?: boolean;
 }
 
 const ProfileSettings = () => {
