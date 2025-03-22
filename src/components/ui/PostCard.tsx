@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Card } from '@/components/ui/card';
@@ -106,9 +107,9 @@ const PostCard: React.FC<PostCardProps> = ({
     return num.toString();
   };
   return <Card variant="dark" elevated={interactive} interactive={interactive} className="">
-      <div className="p-1">
+      <div className="p-0.5">
         {/* Post Header */}
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-2 p-1">
           <Link to={`/profile/${author.username}`}>
             <Avatar className="h-9 w-9 rounded-full border border-white/10">
               <AvatarImage src={author.avatarUrl} alt={author.name} />
@@ -123,6 +124,7 @@ const PostCard: React.FC<PostCardProps> = ({
               <Link to={`/profile/${author.username}`} className="font-bold text-white hover:underline">
                 {author.name}
               </Link>
+              {/* Removed the @username display */}
               {author.verified && <Badge variant="default" className="h-4 w-4 rounded-full bg-blue-500 flex items-center justify-center p-0 ml-0.5">
                   <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12"></polyline>
@@ -136,30 +138,6 @@ const PostCard: React.FC<PostCardProps> = ({
             <div className="mt-1 text-white whitespace-pre-wrap break-words">
               {content}
             </div>
-            
-            {/* Media Content - Improved display */}
-            {media.length > 0 && <div className="mt-2 relative rounded-lg overflow-hidden bg-black/20">
-                {media[currentMediaIndex].type === 'image' ? <div className="w-full flex justify-center">
-                    <img src={media[currentMediaIndex].url} alt="Post media" className="max-w-full max-h-[500px] w-auto rounded-lg object-contain" loading="lazy" />
-                  </div> : media[currentMediaIndex].type === 'video' ? <video src={media[currentMediaIndex].url} controls className="w-full max-h-[500px] rounded-lg" preload="metadata" /> : <img src={media[currentMediaIndex].url} alt="GIF" className="max-w-full max-h-[500px] w-auto mx-auto rounded-lg" loading="lazy" />}
-                
-                {/* Media Navigation with improved styling */}
-                {hasMultipleMedia && <>
-                    <div className="absolute top-1/2 left-2 transform -translate-y-1/2 flex">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/70 text-white hover:bg-black/90 disabled:opacity-30 shadow-lg" onClick={goToPreviousMedia} disabled={currentMediaIndex === 0}>
-                        <ArrowLeft size={18} />
-                      </Button>
-                    </div>
-                    <div className="absolute top-1/2 right-2 transform -translate-y-1/2 flex">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/70 text-white hover:bg-black/90 disabled:opacity-30 shadow-lg" onClick={goToNextMedia} disabled={currentMediaIndex === media.length - 1}>
-                        <ArrowRight size={18} />
-                      </Button>
-                    </div>
-                    <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1 bg-black/50 px-2 py-1 rounded-full">
-                      {media.map((_, i) => <div key={i} className={cn("h-1.5 rounded-full transition-all duration-300", i === currentMediaIndex ? "w-6 bg-white" : "w-1.5 bg-white/50")} />)}
-                    </div>
-                  </>}
-              </div>}
           </div>
           
           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-white/50 hover:text-white hover:bg-black/30">
@@ -167,8 +145,55 @@ const PostCard: React.FC<PostCardProps> = ({
           </Button>
         </div>
         
+        {/* Media Content - Improved display */}
+        {media.length > 0 && <div className="relative overflow-hidden bg-black/20 w-full">
+            {media[currentMediaIndex].type === 'image' ? (
+              <div className="w-full flex justify-center">
+                <img 
+                  src={media[currentMediaIndex].url} 
+                  alt="Post media" 
+                  className="w-full object-contain max-h-[600px]" 
+                  loading="lazy" 
+                />
+              </div>
+            ) : media[currentMediaIndex].type === 'video' ? (
+              <video 
+                src={media[currentMediaIndex].url} 
+                controls 
+                className="w-full max-h-[600px] object-contain" 
+                preload="metadata" 
+              />
+            ) : (
+              <img 
+                src={media[currentMediaIndex].url} 
+                alt="GIF" 
+                className="w-full max-h-[600px] object-contain" 
+                loading="lazy" 
+              />
+            )}
+            
+            {/* Media Navigation with improved styling */}
+            {hasMultipleMedia && (
+              <>
+                <div className="absolute top-1/2 left-2 transform -translate-y-1/2 flex">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/70 text-white hover:bg-black/90 disabled:opacity-30 shadow-lg" onClick={goToPreviousMedia} disabled={currentMediaIndex === 0}>
+                    <ArrowLeft size={18} />
+                  </Button>
+                </div>
+                <div className="absolute top-1/2 right-2 transform -translate-y-1/2 flex">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/70 text-white hover:bg-black/90 disabled:opacity-30 shadow-lg" onClick={goToNextMedia} disabled={currentMediaIndex === media.length - 1}>
+                    <ArrowRight size={18} />
+                  </Button>
+                </div>
+                <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1 bg-black/50 px-2 py-1 rounded-full">
+                  {media.map((_, i) => <div key={i} className={cn("h-1.5 rounded-full transition-all duration-300", i === currentMediaIndex ? "w-6 bg-white" : "w-1.5 bg-white/50")} />)}
+                </div>
+              </>
+            )}
+          </div>}
+        
         {/* Post Actions */}
-        {showActions && <div className="mt-2 flex justify-between items-center pr-8">
+        {showActions && <div className="mt-1 flex justify-between items-center pr-8 p-1">
             <Button variant="ghost" size="sm" className="gap-1 text-white/50 hover:text-blue-400 hover:bg-blue-400/10 rounded-full p-2" onClick={onComment}>
               <MessageCircle size={16} />
               {stats.comments > 0 && <span className="text-xs">{formatNumber(stats.comments)}</span>}
