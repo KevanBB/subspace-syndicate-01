@@ -129,10 +129,12 @@ const PostItem: React.FC<PostItemProps> = ({ post }) => {
             )}
             
             {mediaTypes[currentMediaIndex] === 'video' && (
-              <VideoPlayer 
-                videoUrl={mediaUrls[currentMediaIndex]} 
-                title={`${username}'s video`}
-              />
+              <div className="max-h-[90vh]">
+                <VideoPlayer 
+                  videoUrl={mediaUrls[currentMediaIndex]} 
+                  title={`${username}'s video`}
+                />
+              </div>
             )}
             
             {mediaUrls.length > 1 && (
