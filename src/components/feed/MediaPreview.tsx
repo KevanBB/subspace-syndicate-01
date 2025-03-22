@@ -1,7 +1,6 @@
-
 import React, { useRef } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
-import { X, GripVertical as Move, Scan, RotateCcw, Image as ImageIcon, Film } from 'lucide-react';
+import { X, GripVertical as Move, Image as ImageIcon, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
