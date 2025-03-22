@@ -22,7 +22,7 @@ interface NotificationSettingsProps {
 
 export default function NotificationSettings({ preferences, onPreferencesChange }: NotificationSettingsProps) {
   // Ensure hashtags is always an array even if undefined
-  const hashtags = preferences.hashtags || [];
+  const hashtags = Array.isArray(preferences.hashtags) ? preferences.hashtags : [];
   
   const handleToggleAllPosts = (checked: boolean) => {
     onPreferencesChange({
@@ -39,6 +39,9 @@ export default function NotificationSettings({ preferences, onPreferencesChange 
   };
   
   const handleAddHashtag = (tag: string) => {
+    // Skip if preferences.hashtags is not yet initialized
+    if (!preferences || !tag) return;
+    
     // Remove # if present and normalize to lowercase
     const formattedTag = tag.startsWith('#') ? tag.substring(1).toLowerCase() : tag.toLowerCase();
     
@@ -52,6 +55,8 @@ export default function NotificationSettings({ preferences, onPreferencesChange 
   };
   
   const handleRemoveHashtag = (tag: string) => {
+    if (!preferences) return;
+    
     onPreferencesChange({
       ...preferences,
       hashtags: hashtags.filter(t => t !== tag)

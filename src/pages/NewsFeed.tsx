@@ -11,6 +11,7 @@ import PostCard from '@/components/ui/PostCard';
 import PostCreator from '@/components/feed/PostCreator';
 import TrendingHashtags from '@/components/feed/TrendingHashtags';
 import NotificationSettings from '@/components/feed/NotificationSettings';
+import { toast } from '@/hooks/use-toast';
 
 // Types for the database models
 interface Post {
@@ -93,22 +94,33 @@ const NewsFeed: React.FC = () => {
   }, [isLoadingMoreVisible]);
   
   const shouldNotifyUser = (post: any) => {
+    if (!post) return false;
+    
     if (notificationPrefs.allPosts) return true;
+    
     if (notificationPrefs.followedUsers && post.user_id) {
       // Check if this is a followed user
       // This requires a followed users table or implementation
       return false; // Placeholder
     }
+    
     if (notificationPrefs.hashtags && notificationPrefs.hashtags.length > 0 && post.hashtags) {
+      // Ensure hashtags on the post is an array
+      const postHashtags = Array.isArray(post.hashtags) ? post.hashtags : [];
+      
       // Check if any of the post's hashtags match the user's preferred hashtags
-      return notificationPrefs.hashtags.some(tag => 
-        post.hashtags && post.hashtags.includes(tag)
-      );
+      return notificationPrefs.hashtags.some(tag => postHashtags.includes(tag));
     }
+    
     return false;
   };
   
   const fetchPosts = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
     try {
       // First fetch posts
@@ -186,6 +198,11 @@ const NewsFeed: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching posts:', error);
+      toast({
+        title: "Error loading feed",
+        description: "Could not load posts at this time. Please try again later.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }

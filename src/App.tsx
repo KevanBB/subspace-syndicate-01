@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { Suspense } from 'react';
 import { 
   BrowserRouter as Router, 
   Routes, 
@@ -23,31 +24,50 @@ import SubSpaceTVMyContent from './pages/SubSpaceTVMyContent';
 import VideoWatchPage from './pages/VideoWatchPage';
 import NewsFeed from './pages/NewsFeed';
 
-const queryClient = new QueryClient();
+// Configure QueryClient with error handling
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      suspense: false,
+      useErrorBoundary: true,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+// Simple fallback for suspense
+const LoadingFallback = () => (
+  <div className="flex justify-center items-center h-screen">
+    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-crimson"></div>
+  </div>
+);
 
 function App() {
   return (
     <Router>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/messages" element={<Messages />} />
-            <Route path="/messages/:conversationId" element={<Messages />} />
-            <Route path="/community" element={<Community />} />
-            <Route path="/feed" element={<NewsFeed />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/profile/:username" element={<ProfileView />} />
-            <Route path="/hashtag/:tag" element={<HashtagSearch />} />
-            <Route path="/subspacetv" element={<SubSpaceTVBrowse />} />
-            <Route path="/subspacetv/upload" element={<SubSpaceTVUpload />} />
-            <Route path="/subspacetv/my-content" element={<SubSpaceTVMyContent />} />
-            <Route path="/subspacetv/watch/:id" element={<VideoWatchPage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/messages" element={<Messages />} />
+              <Route path="/messages/:conversationId" element={<Messages />} />
+              <Route path="/community" element={<Community />} />
+              <Route path="/feed" element={<NewsFeed />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/profile/:username" element={<ProfileView />} />
+              <Route path="/hashtag/:tag" element={<HashtagSearch />} />
+              <Route path="/subspacetv" element={<SubSpaceTVBrowse />} />
+              <Route path="/subspacetv/upload" element={<SubSpaceTVUpload />} />
+              <Route path="/subspacetv/my-content" element={<SubSpaceTVMyContent />} />
+              <Route path="/subspacetv/watch/:id" element={<VideoWatchPage />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
           <Toaster />
         </AuthProvider>
       </QueryClientProvider>

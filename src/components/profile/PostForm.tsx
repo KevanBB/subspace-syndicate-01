@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -32,6 +33,7 @@ const PostForm: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [bucketError, setBucketError] = useState<string | null>(null);
 
   const username = user?.user_metadata?.username || user?.email?.split('@')[0] || 'User';
 
@@ -59,7 +61,25 @@ const PostForm: React.FC = () => {
       }
     };
     
+    // Create or check bucket existence
+    const ensureStorageBucket = async () => {
+      try {
+        const { error } = await supabase.storage.createBucket('post_media', {
+          public: true,
+          fileSizeLimit: 52428800, // 50MB
+        });
+        
+        if (error && error.message !== 'Bucket already exists') {
+          console.error('Error creating bucket:', error);
+          setBucketError(error.message);
+        }
+      } catch (error) {
+        console.error('Error ensuring bucket exists:', error);
+      }
+    };
+    
     fetchUserAvatar();
+    ensureStorageBucket();
   }, [user]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,6 +166,24 @@ const PostForm: React.FC = () => {
       return;
     }
 
+    if (bucketError) {
+      toast({
+        title: "Error",
+        description: "Storage is not available. Please try again later.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to post",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -153,18 +191,21 @@ const PostForm: React.FC = () => {
       let mediaTypes: string[] = [];
 
       if (mediaFiles.length > 0) {
+        // Ensure bucket exists
         const { error: bucketError } = await supabase.storage.createBucket('post_media', {
           public: true,
           fileSizeLimit: 52428800, // 50MB
         });
         
+        // Only throw if it's not "bucket already exists" error
         if (bucketError && bucketError.message !== 'Bucket already exists') {
           console.error('Error creating bucket:', bucketError);
+          throw new Error("Failed to access storage. Please try again later.");
         }
 
         const uploadPromises = mediaFiles.map(async (file) => {
           const fileExt = file.name.split('.').pop();
-          const filePath = `${user!.id}/${uuidv4()}.${fileExt}`;
+          const filePath = `${user.id}/${uuidv4()}.${fileExt}`;
           
           let mediaType = 'other';
           if (file.type.startsWith('image/')) {
@@ -196,7 +237,7 @@ const PostForm: React.FC = () => {
       const { error: insertError } = await supabase
         .from('posts')
         .insert({
-          user_id: user!.id,
+          user_id: user.id,
           content: content.trim(),
           media_url: mediaUrls.length > 0 ? mediaUrls.join(',') : null,
           media_type: mediaTypes.length > 0 ? mediaTypes.join(',') : null
