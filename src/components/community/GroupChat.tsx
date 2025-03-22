@@ -1,19 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Send, Users, X, Image, Play, Paperclip, Loader2, XCircle } from 'lucide-react';
+import { Send, Users, X, Image, Play, Upload, Loader2, Circle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
-import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import OnlineIndicator from './OnlineIndicator';
-import { v4 as uuidv4 } from 'uuid';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ChatMessage {
   id: string;
@@ -33,32 +32,32 @@ interface GroupChatProps {
 }
 
 const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSending, setIsSending] = useState(false);
-  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [messages, setMessages] = React.useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = React.useState('');
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [isSending, setIsSending] = React.useState(false);
+  const [onlineUsers, setOnlineUsers] = React.useState<any[]>([]);
+  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+  const [isUploading, setIsUploading] = React.useState(false);
+  const [uploadProgress, setUploadProgress] = React.useState(0);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { user } = useAuth();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const COMMUNITY_ROOM_ID = 'community_room'; // Fixed room ID for the community
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (isOpen) {
       fetchMessages();
       fetchOnlineUsers();
       
       // Set up real-time listener for new messages
       const messageSubscription = supabase
-        .channel('public:messages')
+        .channel('public:community_chats')
         .on('postgres_changes', 
           { 
             event: 'INSERT', 
             schema: 'public', 
-            table: 'messages',
+            table: 'community_chats',
             filter: `room_id=eq.${COMMUNITY_ROOM_ID}`
           }, 
           async (payload) => {
@@ -110,7 +109,7 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
   }, [isOpen, user]);
   
   // Scroll to bottom when messages change
-  useEffect(() => {
+  React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
   
@@ -120,7 +119,7 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
       
       // Get the last 50 messages
       const { data, error } = await supabase
-        .from('messages')
+        .from('community_chats')
         .select('*')
         .eq('room_id', COMMUNITY_ROOM_ID)
         .order('created_at', { ascending: true })
@@ -209,9 +208,8 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
     try {
       setIsUploading(true);
       setUploadProgress(0);
-      
       const fileExt = file.name.split('.').pop();
-      const fileName = `${uuidv4()}.${fileExt}`;
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
       const filePath = `community/${COMMUNITY_ROOM_ID}/${fileName}`;
       
@@ -263,7 +261,7 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
       
       // Insert message into database
       const { error } = await supabase
-        .from('messages')
+        .from('community_chats')
         .insert({
           room_id: COMMUNITY_ROOM_ID,
           user_id: user.id,
@@ -306,7 +304,7 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
           className="absolute top-1 right-1 h-6 w-6 rounded-full bg-black/60 z-10"
           onClick={handleRemoveSelectedFile}
         >
-          <XCircle className="h-4 w-4" />
+          <X className="h-4 w-4" />
         </Button>
         
         {isImage ? (
@@ -356,9 +354,8 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
     
     return null;
   };
-  
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {isOpen && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -372,7 +369,9 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
               <CardTitle className="text-lg font-medium flex items-center">
                 <Users className="mr-2 h-5 w-5 text-crimson" /> 
                 Community Chat
-                <Badge className="ml-2 bg-crimson text-white">{onlineUsers.length} online</Badge>
+                <Badge variant="secondary" className="ml-2 bg-crimson text-white">
+                  {onlineUsers.length} online
+                </Badge>
               </CardTitle>
               {onClose && (
                 <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
@@ -515,7 +514,7 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isSending || isUploading || !user}
                       >
-                        <Paperclip className="h-5 w-5" />
+                        <Upload className="h-5 w-5" />
                         <input
                           ref={fileInputRef}
                           type="file"

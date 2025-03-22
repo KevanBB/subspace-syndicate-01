@@ -1,5 +1,5 @@
--- Create Messages Table
-CREATE TABLE IF NOT EXISTS public.messages (
+-- Create Community Chats Table
+CREATE TABLE IF NOT EXISTS public.community_chats (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   room_id TEXT NOT NULL,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -11,39 +11,39 @@ CREATE TABLE IF NOT EXISTS public.messages (
 );
 
 -- Create index for faster queries
-CREATE INDEX IF NOT EXISTS idx_messages_room_id ON public.messages(room_id);
-CREATE INDEX IF NOT EXISTS idx_messages_user_id ON public.messages(user_id);
-CREATE INDEX IF NOT EXISTS idx_messages_created_at ON public.messages(created_at);
+CREATE INDEX IF NOT EXISTS idx_community_chats_room_id ON public.community_chats(room_id);
+CREATE INDEX IF NOT EXISTS idx_community_chats_user_id ON public.community_chats(user_id);
+CREATE INDEX IF NOT EXISTS idx_community_chats_created_at ON public.community_chats(created_at);
 
 -- Row Level Security
-ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.community_chats ENABLE ROW LEVEL SECURITY;
 
 -- Allow authenticated users to read all messages
-CREATE POLICY "Messages are viewable by authenticated users"
-  ON public.messages
+CREATE POLICY "Community chats are viewable by authenticated users"
+  ON public.community_chats
   FOR SELECT
   USING (auth.role() = 'authenticated');
 
 -- Allow users to insert their own messages
-CREATE POLICY "Users can insert their own messages"
-  ON public.messages
+CREATE POLICY "Users can insert their own community chats"
+  ON public.community_chats
   FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
 -- Allow users to update their own messages
-CREATE POLICY "Users can update their own messages"
-  ON public.messages
+CREATE POLICY "Users can update their own community chats"
+  ON public.community_chats
   FOR UPDATE
   USING (auth.uid() = user_id);
 
 -- Allow users to delete their own messages
-CREATE POLICY "Users can delete their own messages"
-  ON public.messages
+CREATE POLICY "Users can delete their own community chats"
+  ON public.community_chats
   FOR DELETE
   USING (auth.uid() = user_id);
 
--- Enable realtime for messages
-ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
+-- Enable realtime for community chats
+ALTER PUBLICATION supabase_realtime ADD TABLE public.community_chats;
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -55,8 +55,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger to automatically update updated_at
-CREATE TRIGGER update_messages_updated_at
-BEFORE UPDATE ON public.messages
+CREATE TRIGGER update_community_chats_updated_at
+BEFORE UPDATE ON public.community_chats
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 

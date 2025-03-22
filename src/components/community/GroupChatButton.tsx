@@ -1,44 +1,75 @@
-import React, { useState } from 'react';
+import * as React from 'react';
 import { Button } from '@/components/ui/button';
-import { MessageSquare } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { MessageSquare, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import GroupChat from './GroupChat';
 import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
 
-interface GroupChatButtonProps {
-  onlineCount?: number;
-}
+const GroupChatButton: React.FC = () => {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [unreadCount, setUnreadCount] = React.useState(0);
+  const COMMUNITY_ROOM_ID = 'community_room';
 
-const GroupChatButton: React.FC<GroupChatButtonProps> = ({ onlineCount = 0 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  React.useEffect(() => {
+    // Set up real-time listener for new messages
+    const subscription = supabase
+      .channel('public:community_chats')
+      .on('postgres_changes', 
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'community_chats',
+          filter: `room_id=eq.${COMMUNITY_ROOM_ID}`
+        }, 
+        () => {
+          if (!isOpen) {
+            setUnreadCount(prev => prev + 1);
+          }
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [isOpen]);
+
+  const toggleChat = () => {
+    setIsOpen(!isOpen);
+    if (!isOpen) {
+      setUnreadCount(0);
+    }
+  };
 
   return (
     <>
-      <motion.div 
-        className="fixed bottom-4 right-4 z-50"
-        animate={{ scale: isOpen ? 0 : 1, opacity: isOpen ? 0 : 1 }}
-        initial={{ scale: 0, opacity: 0 }}
-        transition={{ duration: 0.2 }}
-      >
-        <Button 
-          onClick={() => setIsOpen(true)} 
-          size="lg"
-          className="bg-crimson hover:bg-crimson/90 rounded-full h-14 w-14 shadow-lg"
-        >
-          <MessageSquare className="h-6 w-6" />
-          {onlineCount > 0 && (
-            <Badge 
-              variant="crimson" 
-              className="absolute -top-2 -right-2 bg-white text-crimson font-bold"
-            >
-              {onlineCount}
-            </Badge>
-          )}
-        </Button>
-      </motion.div>
+      <AnimatePresence>
+        {isOpen && <GroupChat isOpen={isOpen} onClose={() => setIsOpen(false)} />}
+      </AnimatePresence>
       
-      {/* The group chat component */}
-      <GroupChat isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      <Button 
+        onClick={toggleChat}
+        className="fixed bottom-4 right-4 z-40 h-12 px-4 bg-crimson hover:bg-crimson/90"
+      >
+        {isOpen ? (
+          <X className="h-5 w-5 mr-2" />
+        ) : (
+          <MessageSquare className="h-5 w-5 mr-2" />
+        )}
+        Community Chat
+        {!isOpen && unreadCount > 0 && (
+          <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="ml-2"
+          >
+            <Badge variant="crimson" className="font-bold">
+              {unreadCount}
+            </Badge>
+          </motion.div>
+        )}
+      </Button>
     </>
   );
 };

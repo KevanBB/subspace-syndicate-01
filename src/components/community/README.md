@@ -12,13 +12,18 @@ This is a real-time group chat system for the Subspace Syndicate community. It a
 - Floating chat button with online user count
 - Mobile-responsive design
 - **Image and video sharing** - Users can upload and share images and videos in the chat
+- **Real-time messaging between community members**
+- **User presence tracking with online indicators**
+- **Mobile-responsive chat interface**
+- **Support for both text and media content**
+- **Smooth animations and transitions**
 
 ## Implementation
 
 ### Database Setup
 
 1. Run the SQL script in `src/integrations/supabase/schema/messages.sql` in your Supabase SQL editor to create:
-   - The `messages` table with support for media attachments
+   - The `community_chats` table (renamed from "messages")
    - Indexes for performance
    - Row Level Security policies
    - Real-time publication settings
@@ -101,4 +106,11 @@ If you encounter TypeScript errors related to imports, ensure you've updated you
 - date-fns
 - uuid
 
-Also make sure your tsconfig.json has `"allowSyntheticDefaultImports": true` set in the compiler options. 
+Also make sure your tsconfig.json has `"allowSyntheticDefaultImports": true` set in the compiler options.
+
+## Table Renaming
+
+- The database table has been renamed from "messages" to "community_chats" to more clearly indicate its purpose
+- All real-time subscriptions, queries, and inserts have been updated to use the new table name
+- The SQL schema file at `src/integrations/supabase/schema/messages.sql` has been updated with the new table name
+- Components that interact with this table (GroupChat, GroupChatButton) have been modified to use the new name 
