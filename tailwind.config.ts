@@ -1,4 +1,5 @@
 
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -68,6 +69,9 @@ export default {
 				crimson: "#B22222",
 				steel: "#6D6D6D",
 				gold: "#D4AF37",
+				// Add role colors
+				dominant: "#991b1b",
+				submissive: "#475569",
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -132,3 +136,4 @@ export default {
 	},
 	plugins: [require("tailwindcss-animate")],
 } satisfies Config;
+

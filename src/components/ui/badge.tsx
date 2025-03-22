@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -15,9 +16,9 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
-        // Add role-specific badge variants
-        dominant: "border-transparent bg-purple-700 text-white hover:bg-purple-600",
-        submissive: "border-transparent bg-pink-600 text-white hover:bg-pink-500",
+        // Update role-specific badge variants with the new colors
+        dominant: "border-transparent bg-[#991b1b] text-white hover:bg-[#991b1b]/90",
+        submissive: "border-transparent bg-[#475569] text-white hover:bg-[#475569]/90",
         switch: "border-transparent bg-blue-600 text-white hover:bg-blue-500",
         exploring: "border-transparent bg-green-600 text-white hover:bg-green-500",
         // Add new crimson variant for the Hot badge
