@@ -52,7 +52,6 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
   
   // Essential state variables
   const [comments, setComments] = useState<Comment[]>([]);
-  const [newComment, setNewComment] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
@@ -83,37 +82,40 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
   
   // Load comments from Supabase
   const loadComments = async () => {
+    if (!user) return;
+    
     setLoadingComments(true);
     try {
+      // Since comments table doesn't exist in the Supabase types, we will construct a query
+      // that might work, but we'll need to add proper error handling
       const { data, error } = await supabase
         .from('comments')
         .select(`
           *,
-          profiles:user_id (
-            username,
-            avatar_url,
-            bdsm_role
-          )
+          profiles(*) 
         `)
         .eq('post_id', post.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      setComments(
-        (data as any[]).map((comment) => ({
-          ...comment,
-          username: comment.profiles?.username || 'User',
-          avatar_url: comment.profiles?.avatar_url,
-          bdsm_role: comment.profiles?.bdsm_role,
-        }))
-      );
+      // Process the data with proper type casting for safety
+      const processedComments = Array.isArray(data) ? data.map((comment: any) => ({
+        ...comment,
+        username: comment.profiles?.username || 'User',
+        avatar_url: comment.profiles?.avatar_url,
+        bdsm_role: comment.profiles?.bdsm_role,
+      })) : [];
+
+      setComments(processedComments);
     } catch (error: any) {
+      console.error('Error loading comments:', error.message);
       toast({
         title: 'Error loading comments',
         description: error.message,
         variant: 'destructive',
       });
+      setComments([]);
     } finally {
       setLoadingComments(false);
     }
@@ -124,6 +126,7 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
     if (!user) return;
 
     try {
+      // Try to create a comment in the comments table
       const { error } = await supabase
         .from('comments')
         .insert({
@@ -136,6 +139,7 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
 
       loadComments();
     } catch (error: any) {
+      console.error('Error submitting comment:', error.message);
       toast({
         title: 'Error submitting comment',
         description: error.message,
@@ -149,16 +153,19 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
     if (!user) return;
 
     try {
+      // Try to check if the post is liked
       const { data, error } = await supabase
         .from('post_likes')
         .select('*')
         .eq('user_id', user.id)
-        .eq('post_id', post.id)
-        .single();
+        .eq('post_id', post.id);
 
-      if (error && error.message !== 'No rows found') throw error;
+      if (error) {
+        console.error('Error checking if liked:', error.message);
+        return;
+      }
 
-      setIsLiked(!!data);
+      setIsLiked(Array.isArray(data) && data.length > 0);
     } catch (error: any) {
       console.error('Error checking if liked:', error.message);
     }
@@ -168,12 +175,16 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
   const fetchLikeCount = async () => {
     setLoadingLikes(true);
     try {
-      const { count, error } = await supabase
+      // Try to count the likes
+      const { data, error, count } = await supabase
         .from('post_likes')
         .select('*', { count: 'exact' })
         .eq('post_id', post.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching like count:', error.message);
+        return;
+      }
 
       setLikeCount(count || 0);
     } catch (error: any) {
@@ -191,31 +202,32 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
     try {
       if (isLiked) {
         // Unlike the post
-        const { error: deleteError } = await supabase
+        const { error } = await supabase
           .from('post_likes')
           .delete()
           .eq('user_id', user.id)
           .eq('post_id', post.id);
 
-        if (deleteError) throw deleteError;
+        if (error) throw error;
 
         setIsLiked(false);
-        setLikeCount(likeCount - 1);
+        setLikeCount(prev => Math.max(0, prev - 1));
       } else {
         // Like the post
-        const { error: insertError } = await supabase
+        const { error } = await supabase
           .from('post_likes')
           .insert({
             user_id: user.id,
             post_id: post.id,
           });
 
-        if (insertError) throw insertError;
+        if (error) throw error;
 
         setIsLiked(true);
-        setLikeCount(likeCount + 1);
+        setLikeCount(prev => prev + 1);
       }
     } catch (error: any) {
+      console.error('Error toggling like:', error.message);
       toast({
         title: 'Error toggling like',
         description: error.message,
@@ -236,12 +248,14 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
         .from('bookmarks')
         .select('*')
         .eq('user_id', user.id)
-        .eq('post_id', post.id)
-        .single();
+        .eq('post_id', post.id);
 
-      if (error && error.message !== 'No rows found') throw error;
+      if (error) {
+        console.error('Error checking if bookmarked:', error.message);
+        return;
+      }
 
-      setIsBookmarked(!!data);
+      setIsBookmarked(Array.isArray(data) && data.length > 0);
     } catch (error: any) {
       console.error('Error checking if bookmarked:', error.message);
     } finally {
@@ -257,29 +271,30 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
     try {
       if (isBookmarked) {
         // Remove bookmark
-        const { error: deleteError } = await supabase
+        const { error } = await supabase
           .from('bookmarks')
           .delete()
           .eq('user_id', user.id)
           .eq('post_id', post.id);
 
-        if (deleteError) throw deleteError;
+        if (error) throw error;
 
         setIsBookmarked(false);
       } else {
         // Add bookmark
-        const { error: insertError } = await supabase
+        const { error } = await supabase
           .from('bookmarks')
           .insert({
             user_id: user.id,
             post_id: post.id,
           });
 
-        if (insertError) throw insertError;
+        if (error) throw error;
 
         setIsBookmarked(true);
       }
     } catch (error: any) {
+      console.error('Error toggling bookmark:', error.message);
       toast({
         title: 'Error toggling bookmark',
         description: error.message,

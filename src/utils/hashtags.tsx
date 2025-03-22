@@ -59,3 +59,9 @@ export function parseHashtags(text: string): React.ReactNode[] {
   
   return result;
 }
+
+// New function to format text with hashtags for preview
+export function formatTextWithHashtags(text: string): React.ReactNode {
+  if (!text) return null;
+  return <div className="space-x-1">{parseHashtags(text)}</div>;
+}
