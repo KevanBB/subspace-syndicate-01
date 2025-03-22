@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -109,38 +108,34 @@ const PostItem: React.FC<PostItemProps> = ({ post }) => {
         </div>
       </CardHeader>
       
-      <CardContent className="text-white/80">
-        <div className="prose prose-invert prose-sm max-w-none">
+      <CardContent className="text-white/80 px-0 sm:px-6">
+        <div className="prose prose-invert prose-sm max-w-none px-6 sm:px-0">
           <div className="whitespace-pre-wrap">
             {formatTextWithHashtags(post.content)}
           </div>
         </div>
         
         {mediaUrls.length > 0 && (
-          <div className="mt-3 rounded-md overflow-hidden relative">
+          <div className="mt-3 overflow-hidden relative">
             {mediaTypes[currentMediaIndex] === 'image' && (
               <div 
-                className="cursor-pointer"
+                className="cursor-pointer w-full"
                 onClick={openLightbox}
               >
-                <AspectRatio ratio={16/9} className="bg-black/40">
-                  <img 
-                    src={mediaUrls[currentMediaIndex]} 
-                    alt="Post media" 
-                    className="w-full h-full object-contain mx-auto max-h-[70vh] md:max-h-[80vh]"
-                  />
-                </AspectRatio>
+                <img 
+                  src={mediaUrls[currentMediaIndex]} 
+                  alt="Post media" 
+                  className="w-full object-contain max-h-[85vh] mx-auto"
+                />
               </div>
             )}
             
             {mediaTypes[currentMediaIndex] === 'video' && (
-              <div className="max-h-[70vh] md:max-h-[80vh] lg:max-h-[90vh] overflow-hidden">
-                <AspectRatio ratio={16/9} className="bg-black/40">
-                  <VideoPlayer 
-                    videoUrl={mediaUrls[currentMediaIndex]} 
-                    title={`${username}'s video`}
-                  />
-                </AspectRatio>
+              <div className="w-full">
+                <VideoPlayer 
+                  videoUrl={mediaUrls[currentMediaIndex]} 
+                  title={`${username}'s video`}
+                />
               </div>
             )}
             
