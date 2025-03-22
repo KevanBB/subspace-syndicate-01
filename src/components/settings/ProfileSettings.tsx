@@ -28,6 +28,10 @@ const ProfileSettings = () => {
   const [orientation, setOrientation] = useState('straight');
   const [bdsmRole, setBdsmRole] = useState('Exploring');
   const [bio, setBio] = useState('');
+  const [lookingFor, setLookingFor] = useState('');
+  const [kinks, setKinks] = useState('');
+  const [softLimits, setSoftLimits] = useState('');
+  const [hardLimits, setHardLimits] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   
@@ -54,6 +58,10 @@ const ProfileSettings = () => {
           setOrientation(data.orientation || user?.user_metadata?.orientation || 'straight');
           setBdsmRole(data.bdsm_role || user?.user_metadata?.bdsm_role || 'Exploring');
           setBio(data.bio || user?.user_metadata?.bio || '');
+          setLookingFor(data.looking_for || '');
+          setKinks(data.kinks || '');
+          setSoftLimits(data.soft_limits || '');
+          setHardLimits(data.hard_limits || '');
           setAvatarUrl(data.avatar_url || user?.user_metadata?.avatar_url || null);
         }
       };
@@ -88,7 +96,11 @@ const ProfileSettings = () => {
           birthday,
           orientation,
           bdsm_role: bdsmRole,
-          bio
+          bio,
+          looking_for: lookingFor,
+          kinks,
+          soft_limits: softLimits,
+          hard_limits: hardLimits
         }
       });
       
@@ -104,6 +116,10 @@ const ProfileSettings = () => {
           orientation,
           bdsm_role: bdsmRole,
           bio,
+          looking_for: lookingFor,
+          kinks,
+          soft_limits: softLimits,
+          hard_limits: hardLimits,
           avatar_url: avatarUrl
         })
         .eq('id', user?.id);
@@ -295,6 +311,50 @@ const ProfileSettings = () => {
                 onChange={(e) => setBio(e.target.value)}
                 className="bg-black/30 border-white/10 min-h-[120px]"
                 placeholder="Tell others about yourself..."
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="lookingFor">Looking For</Label>
+              <Textarea
+                id="lookingFor"
+                value={lookingFor}
+                onChange={(e) => setLookingFor(e.target.value)}
+                className="bg-black/30 border-white/10 min-h-[100px]"
+                placeholder="What are you looking for in partners or connections..."
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="kinks">Kinks/Fetishes</Label>
+              <Textarea
+                id="kinks"
+                value={kinks}
+                onChange={(e) => setKinks(e.target.value)}
+                className="bg-black/30 border-white/10 min-h-[100px]"
+                placeholder="List your kinks and fetishes..."
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="softLimits">Soft Limits</Label>
+              <Textarea
+                id="softLimits"
+                value={softLimits}
+                onChange={(e) => setSoftLimits(e.target.value)}
+                className="bg-black/30 border-white/10 min-h-[100px]"
+                placeholder="List your soft limits..."
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="hardLimits">Hard Limits</Label>
+              <Textarea
+                id="hardLimits"
+                value={hardLimits}
+                onChange={(e) => setHardLimits(e.target.value)}
+                className="bg-black/30 border-white/10 min-h-[100px]"
+                placeholder="List your hard limits..."
               />
             </div>
           </div>
