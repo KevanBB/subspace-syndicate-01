@@ -2,20 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
-import { Card } from '@/components/ui/card';
+import PostCard from '@/components/ui/PostCard';
 import { toast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-
-// Import the components
-import PostHeader from './post/PostHeader';
-import PostContent from './post/PostContent';
-import PostActions from './post/PostActions';
-import CommentsList, { Comment } from './post/CommentsList';
-import CommentForm from './post/CommentForm';
-import PostMenu from './post/PostMenu';
 import ConfirmationDialog from './post/ConfirmationDialog';
+import PostMenu from './post/PostMenu';
+import CommentForm from './post/CommentForm';
+import CommentsList, { Comment } from './post/CommentsList';
 
 interface ProfileData {
   username?: string;
@@ -52,6 +44,7 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
   const [editedContent, setEditedContent] = useState(post.content);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [loadingDelete, setLoadingDelete] = useState(false);
+  const [isReposted, setIsReposted] = useState(false);
   
   // Dialog state management
   const [showMenu, setShowMenu] = useState(false);
@@ -421,6 +414,25 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
     setShowAllComments(!showAllComments);
   };
   
+  // Handle repost action
+  const handleRepost = () => {
+    setIsReposted(!isReposted);
+    toast({
+      title: isReposted ? 'Repost removed' : 'Post reposted',
+      description: isReposted 
+        ? 'Your repost has been removed.'
+        : 'You reposted this post to your profile.',
+    });
+  };
+  
+  // Handle share action
+  const handleShare = () => {
+    toast({
+      title: 'Share options',
+      description: 'Share feature will be implemented soon.',
+    });
+  };
+  
   // Event handlers for the post menu
   const handleEditClick = () => {
     setIsEditing(true);
@@ -436,11 +448,14 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
     setShowFlagConfirmation(true);
     setShowMenu(false);
   };
-  
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setEditedContent(post.content);
-  };
+
+  // Create media array for PostCard if media exists
+  const mediaArray = post.media_url ? [
+    {
+      url: post.media_url,
+      type: post.media_type as any || 'image'
+    }
+  ] : [];
 
   return (
     <motion.div 
@@ -450,68 +465,39 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
       layout
       className="overflow-hidden"
     >
-      <Card 
-        variant="dark" 
-        elevated={true}
-        className="overflow-hidden backdrop-blur-md shadow-lg shadow-crimson/5"
-      >
-        <PostHeader 
-          post={post}
-          isCurrentUser={isCurrentUser}
-          onMenuToggle={() => setShowMenu(!showMenu)}
-        />
-        
-        {isEditing ? (
-          <div className="px-4 py-3">
-            <Textarea
-              value={editedContent}
-              onChange={(e) => setEditedContent(e.target.value)}
-              className="bg-black/30 border border-white/20 text-white mb-2"
-              disabled={loadingEdit}
-            />
-            <div className="flex gap-2">
-              <Button 
-                onClick={updatePost}
-                className="bg-crimson hover:bg-crimson/80 text-white"
-                disabled={!editedContent.trim() || loadingEdit}
-                size="sm"
-              >
-                {loadingEdit ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Save
-              </Button>
-              <Button 
-                onClick={handleCancelEdit}
-                variant="outline"
-                className="border-white/20 text-white hover:bg-white/10"
-                size="sm"
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <PostContent 
-            content={post.content} 
-            media_url={post.media_url}
-            media_type={post.media_type}
-            isEditing={false}
-          />
-        )}
-        
-        <PostActions 
-          commentCount={comments.length}
-          likeCount={likeCount}
-          isLiked={isLiked}
-          isBookmarked={isBookmarked}
-          onToggleLike={toggleLike}
-          onToggleBookmark={toggleBookmark}
-          loadingLikes={loadingLikes}
-          loadingBookmark={loadingBookmark}
-          onToggleComments={toggleShowAllComments}
-          showComments={showAllComments}
-        />
-        
-        <div className={`border-t border-white/10 ${showAllComments ? 'block' : 'hidden'}`}>
+      <PostCard 
+        id={post.id}
+        author={{
+          id: post.user_id,
+          name: post.username || "Anonymous",
+          username: post.username || "user",
+          avatarUrl: post.avatar_url || undefined,
+          verified: post.bdsm_role === "Verified" // Just an example condition
+        }}
+        content={isEditing ? editedContent : post.content}
+        media={mediaArray}
+        stats={{
+          likes: likeCount,
+          comments: comments.length,
+          reposts: 0,
+          views: 0
+        }}
+        timestamp={post.created_at || new Date().toISOString()}
+        isLiked={isLiked}
+        isBookmarked={isBookmarked}
+        isReposted={isReposted}
+        onLike={toggleLike}
+        onComment={() => setShowAllComments(!showAllComments)}
+        onRepost={handleRepost}
+        onShare={handleShare}
+        onBookmark={toggleBookmark}
+        showBorder={true}
+        interactive={true}
+      />
+      
+      {/* Comments section - kept separate from the card for now */}
+      {showAllComments && (
+        <div className="border-t border-white/10 bg-black/30 rounded-b-lg overflow-hidden">
           <CommentsList 
             comments={comments}
             loading={loadingComments}
@@ -524,40 +510,41 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
             disabled={false}
           />
         </div>
-        
-        <PostMenu 
-          isOpen={showMenu}
-          onClose={() => setShowMenu(false)}
-          onEdit={handleEditClick}
-          onDelete={handleDeleteClick}
-          onFlag={handleFlagClick}
-          isOwner={isCurrentUser}
-        />
-        
-        <ConfirmationDialog
-          title="Delete Post"
-          message="Are you sure you want to delete this post? This action cannot be undone."
-          isOpen={showConfirmation}
-          onClose={() => setShowConfirmation(false)}
-          onCancel={() => setShowConfirmation(false)}
-          onConfirm={deletePost}
-          isLoading={loadingDelete}
-          confirmLabel="Delete"
-          cancelLabel="Cancel"
-        />
-        
-        <ConfirmationDialog
-          title="Flag Post"
-          message="Are you sure you want to flag this post as inappropriate? This will send a report to the moderators."
-          isOpen={showFlagConfirmation}
-          onClose={() => setShowFlagConfirmation(false)}
-          onCancel={() => setShowFlagConfirmation(false)}
-          onConfirm={flagPost}
-          isLoading={false}
-          confirmLabel="Flag"
-          cancelLabel="Cancel"
-        />
-      </Card>
+      )}
+      
+      {/* These dialogs are kept outside of the PostCard for simplicity */}
+      <PostMenu 
+        isOpen={showMenu}
+        onClose={() => setShowMenu(false)}
+        onEdit={handleEditClick}
+        onDelete={handleDeleteClick}
+        onFlag={handleFlagClick}
+        isOwner={isCurrentUser}
+      />
+      
+      <ConfirmationDialog
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
+        isOpen={showConfirmation}
+        onClose={() => setShowConfirmation(false)}
+        onCancel={() => setShowConfirmation(false)}
+        onConfirm={deletePost}
+        isLoading={loadingDelete}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+      />
+      
+      <ConfirmationDialog
+        title="Flag Post"
+        message="Are you sure you want to flag this post as inappropriate? This will send a report to the moderators."
+        isOpen={showFlagConfirmation}
+        onClose={() => setShowFlagConfirmation(false)}
+        onCancel={() => setShowFlagConfirmation(false)}
+        onConfirm={flagPost}
+        isLoading={false}
+        confirmLabel="Flag"
+        cancelLabel="Cancel"
+      />
     </motion.div>
   );
 };
