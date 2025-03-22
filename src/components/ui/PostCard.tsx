@@ -4,7 +4,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, ArrowLeft, Heart, MessageCircle, Repeat, BookmarkIcon, MoreHorizontal } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Heart, MessageCircle, BookmarkIcon, MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
@@ -252,7 +252,22 @@ const PostCard: React.FC<PostCardProps> = ({
               )}
               onClick={onRepost}
             >
-              <Repeat size={18} className={isReposted ? "fill-green-400" : ""} />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill={isReposted ? "currentColor" : "none"}
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m3 9 4-4 4 4" />
+                <path d="M7 5v14" />
+                <path d="m21 15-4 4-4-4" />
+                <path d="M17 19V5" />
+              </svg>
               {stats.reposts > 0 && (
                 <span className="text-xs">{formatNumber(stats.reposts)}</span>
               )}
@@ -291,7 +306,21 @@ const PostCard: React.FC<PostCardProps> = ({
               className="text-white/50 hover:text-blue-400 hover:bg-blue-400/10 rounded-full"
               onClick={onShare}
             >
-              <Share size={18} />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                <polyline points="16 6 12 2 8 6" />
+                <line x1="12" y1="2" x2="12" y2="15" />
+              </svg>
             </Button>
           </div>
         )}
