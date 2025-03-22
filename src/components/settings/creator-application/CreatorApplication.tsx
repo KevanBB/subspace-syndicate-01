@@ -9,7 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
 import { submitCreatorApplication } from '@/api/creator-application';
+import { FileUploader } from '@/components/ui/file-uploader';
 
 interface FormData {
   isOver18: boolean;
@@ -49,6 +51,8 @@ interface FileUploadStepProps extends StepProps {
 
 const CreatorApplication: React.FC = () => {
   const [currentStep, setCurrentStep] = React.useState<number>(1);
+  const { user } = useAuth();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [formData, setFormData] = React.useState<FormData>({
     // Step 1
     isOver18: false,
@@ -105,6 +109,14 @@ const CreatorApplication: React.FC = () => {
         return;
       }
     }
+    
+    if (currentStep === 2) {
+      if (!formData.fullName || !formData.dateOfBirth || !formData.countryOfResidence) {
+        toast.error('Please complete all required identity fields');
+        return;
+      }
+    }
+    
     // Add validation for other steps as needed
     
     setCurrentStep(currentStep + 1);
@@ -115,6 +127,12 @@ const CreatorApplication: React.FC = () => {
   };
 
   const handleSubmit = async () => {
+    // Ensure user is authenticated
+    if (!user) {
+      toast.error('You must be logged in to submit an application');
+      return;
+    }
+    
     // Final validation
     if (!formData.agreesToAllDocs || !formData.signature) {
       toast.error('Please agree to all documents and provide your signature');
@@ -128,16 +146,19 @@ const CreatorApplication: React.FC = () => {
     };
 
     try {
+      setIsSubmitting(true);
       const result = await submitCreatorApplication(updatedFormData);
       
       if (result.success) {
         toast.success('Your creator application has been submitted!');
       } else {
-        throw new Error('Failed to submit application');
+        throw new Error(result.error?.message || 'Failed to submit application');
       }
     } catch (error) {
-      toast.error('Failed to submit application. Please try again.');
       console.error(error);
+      toast.error('Failed to submit application. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -174,14 +195,23 @@ const CreatorApplication: React.FC = () => {
         
         <CardFooter className="flex justify-between pt-6">
           {currentStep > 1 && (
-            <Button variant="outline" onClick={handleBack}>
+            <Button variant="outline" onClick={handleBack} disabled={isSubmitting}>
               Back
             </Button>
           )}
           {currentStep < 6 ? (
-            <Button onClick={handleNext}>Continue</Button>
+            <Button onClick={handleNext} disabled={isSubmitting}>Continue</Button>
           ) : (
-            <Button onClick={handleSubmit}>Submit Application</Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <span className="mr-2 animate-spin">⟳</span>
+                  Submitting...
+                </>
+              ) : (
+                'Submit Application'
+              )}
+            </Button>
           )}
         </CardFooter>
       </Card>
@@ -247,12 +277,6 @@ const WelcomeStep: React.FC<StepProps> = ({ formData, handleChange }) => {
 
 // Step 2: Identity Verification
 const IdentityVerificationStep: React.FC<FileUploadStepProps> = ({ formData, handleChange, handleFileUpload }) => {
-  const handleFileChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      handleFileUpload(field, e.target.files);
-    }
-  };
-
   return (
     <>
       <CardHeader>
@@ -305,11 +329,9 @@ const IdentityVerificationStep: React.FC<FileUploadStepProps> = ({ formData, han
           
           <div className="space-y-2 pt-4">
             <Label htmlFor="governmentIdFront">Upload Government ID (Front)</Label>
-            <Input 
-              id="governmentIdFront" 
-              type="file"
-              onChange={handleFileChange("governmentIdFront")}
+            <FileUploader
               accept="image/jpeg,image/png,application/pdf"
+              onFilesSelected={(files) => files && handleFileUpload("governmentIdFront", files)}
             />
             {formData.governmentIdFront && (
               <p className="text-sm text-green-600">Uploaded: {formData.governmentIdFront.name}</p>
@@ -318,11 +340,9 @@ const IdentityVerificationStep: React.FC<FileUploadStepProps> = ({ formData, han
           
           <div className="space-y-2">
             <Label htmlFor="governmentIdBack">Upload Government ID (Back)</Label>
-            <Input 
-              id="governmentIdBack" 
-              type="file"
-              onChange={handleFileChange("governmentIdBack")}
+            <FileUploader
               accept="image/jpeg,image/png,application/pdf"
+              onFilesSelected={(files) => files && handleFileUpload("governmentIdBack", files)}
             />
             {formData.governmentIdBack && (
               <p className="text-sm text-green-600">Uploaded: {formData.governmentIdBack.name}</p>
@@ -331,11 +351,9 @@ const IdentityVerificationStep: React.FC<FileUploadStepProps> = ({ formData, han
           
           <div className="space-y-2">
             <Label htmlFor="selfie">Upload Selfie</Label>
-            <Input 
-              id="selfie" 
-              type="file"
-              onChange={handleFileChange("selfie")}
+            <FileUploader
               accept="image/jpeg,image/png"
+              onFilesSelected={(files) => files && handleFileUpload("selfie", files)}
             />
             {formData.selfie && (
               <p className="text-sm text-green-600">Uploaded: {formData.selfie.name}</p>
@@ -457,23 +475,10 @@ const TaxInfoStep: React.FC<StepProps> = ({ formData, handleChange }) => {
 const PaymentSetupStep: React.FC<StepProps> = ({ formData, handleChange }) => {
   const connectStripe = async () => {
     try {
-      // Redirect to Stripe Connect onboarding
-      // This would typically involve creating a Stripe Connect account link on the backend
-      // and redirecting the user to it
-      const response = await fetch("/api/stripe/connect", {
-        method: "POST"
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to connect with Stripe");
-      }
-      
-      // For demonstration, just mark as connected
+      // In a real implementation, this would redirect to Stripe Connect
+      // For demo, just mark as connected
       handleChange("stripeConnected", true);
       toast.success("Successfully connected with Stripe!");
-      
-      // In a real implementation, redirect to Stripe's URL:
-      // window.location.href = data.url
     } catch (error) {
       toast.error("Failed to connect with Stripe. Please try again.");
       console.error(error);
@@ -551,12 +556,6 @@ const PaymentSetupStep: React.FC<StepProps> = ({ formData, handleChange }) => {
 
 // Step 5: Creator Profile Setup
 const ProfileSetupStep: React.FC<FileUploadStepProps> = ({ formData, handleChange, handleFileUpload }) => {
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      handleFileUpload("profilePhoto", e.target.files);
-    }
-  };
-
   return (
     <>
       <CardHeader>
@@ -588,11 +587,9 @@ const ProfileSetupStep: React.FC<FileUploadStepProps> = ({ formData, handleChang
           
           <div className="space-y-2 pt-2">
             <Label htmlFor="profilePhoto">Profile Photo</Label>
-            <Input 
-              id="profilePhoto" 
-              type="file"
-              onChange={handleFileChange}
+            <FileUploader
               accept="image/jpeg,image/png"
+              onFilesSelected={(files) => files && handleFileUpload("profilePhoto", files)}
             />
             {formData.profilePhoto && (
               <p className="text-sm text-green-600">Uploaded: {formData.profilePhoto.name}</p>
@@ -717,4 +714,4 @@ const AgreementsStep: React.FC<StepProps> = ({ formData, handleChange }) => {
   );
 };
 
-export default CreatorApplication; 
+export default CreatorApplication;
