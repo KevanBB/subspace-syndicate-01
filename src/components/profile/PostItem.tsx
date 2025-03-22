@@ -42,6 +42,7 @@ interface Comment {
   created_at: string;
   user_id: string;
   post_id: string;
+  parent_id?: string | null;
   profiles?: ProfileData;
   username?: string;
   avatar_url?: string;
@@ -87,7 +88,6 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
     
     setLoadingComments(true);
     try {
-      // Check if the comments table exists
       const { data, error } = await supabase
         .from('comments')
         .select(`
@@ -108,7 +108,6 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
         return;
       }
       
-      // Transform the data to match our comment structure
       const transformedComments = data.map((comment: any) => ({
         id: comment.id,
         content: comment.content,
@@ -155,7 +154,6 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
         
       if (error) throw error;
       
-      // Fetch the user profile data for the comment
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('username, avatar_url, bdsm_role')
@@ -166,7 +164,6 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
         console.error('Error fetching profile:', profileError.message);
       }
       
-      // Add the new comment to the list
       const commentWithProfile = {
         ...newComment,
         username: profileData?.username,
@@ -210,7 +207,6 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
         
       if (error) throw error;
       
-      // Fetch the user profile data for the reply
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('username, avatar_url, bdsm_role')
@@ -221,7 +217,6 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
         console.error('Error fetching profile:', profileError.message);
       }
       
-      // Add the new reply to the list
       const replyWithProfile = {
         ...newReply,
         username: profileData?.username,
@@ -258,7 +253,6 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
         .single();
         
       if (error && error.code !== 'PGRST116') {
-        // PGRST116 is the error for no rows returned
         console.error('Error checking if liked:', error.message);
         return;
       }
@@ -295,7 +289,6 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
     setLoadingLikes(true);
     try {
       if (isLiked) {
-        // Unlike post
         const { error } = await supabase
           .from('post_likes')
           .delete()
@@ -307,7 +300,6 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
         setIsLiked(false);
         setLikeCount(prev => Math.max(0, prev - 1));
       } else {
-        // Like post
         const { error } = await supabase
           .from('post_likes')
           .insert([
@@ -337,7 +329,6 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
 
     setLoadingBookmark(true);
     try {
-      // Since bookmarks table doesn't exist, default to false
       setIsBookmarked(false);
     } catch (error: any) {
       console.error('Error checking if bookmarked:', error.message);
@@ -352,7 +343,6 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
 
     setLoadingBookmark(true);
     try {
-      // Since bookmarks table doesn't exist, just show a toast
       toast({
         title: 'Bookmarks feature coming soon',
         description: 'The ability to bookmark posts is not yet implemented.',
@@ -387,7 +377,6 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
         description: 'Your post has been deleted successfully.',
       });
       
-      // Refresh the page
       window.location.reload();
     } catch (error: any) {
       toast({
@@ -475,18 +464,12 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
       className="overflow-hidden"
     >
       <Card className="bg-black/30 border-white/10 backdrop-blur-md shadow-lg shadow-crimson/5 overflow-hidden">
-        {/* Post Header */}
         <PostHeader 
-          username={post.username || "Anonymous"} 
-          avatarUrl={post.avatar_url}
-          bdsm_role={post.bdsm_role}
-          createdAt={post.created_at}
+          post={post}
           isCurrentUser={isCurrentUser}
           onMenuToggle={() => setShowMenu(!showMenu)}
-          showMenu={showMenu}
         />
         
-        {/* Post Content */}
         {isEditing ? (
           <div className="px-4 py-3">
             <Textarea
@@ -518,12 +501,12 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
         ) : (
           <PostContent 
             content={post.content} 
-            mediaUrl={post.media_url}
-            mediaType={post.media_type}
+            media_url={post.media_url}
+            media_type={post.media_type}
+            isEditing={false}
           />
         )}
         
-        {/* Post Actions */}
         <PostActions 
           commentCount={comments.length}
           likeCount={likeCount}
@@ -534,10 +517,8 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
           loadingLikes={loadingLikes}
           loadingBookmark={loadingBookmark}
           onToggleComments={toggleShowAllComments}
-          showComments={showAllComments}
         />
         
-        {/* Comments */}
         <div className={`border-t border-white/10 ${showAllComments ? 'block' : 'hidden'}`}>
           <CommentsList 
             comments={comments}
@@ -552,9 +533,8 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
           />
         </div>
         
-        {/* Post Menu */}
         <PostMenu 
-          show={showMenu}
+          isOpen={showMenu}
           onClose={() => setShowMenu(false)}
           onEdit={handleEditClick}
           onDelete={handleDeleteClick}
@@ -562,23 +542,28 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
           isOwner={isCurrentUser}
         />
         
-        {/* Confirmation Dialogs */}
         <ConfirmationDialog
           title="Delete Post"
-          description="Are you sure you want to delete this post? This action cannot be undone."
-          open={showConfirmation}
+          message="Are you sure you want to delete this post? This action cannot be undone."
+          isOpen={showConfirmation}
           onClose={() => setShowConfirmation(false)}
+          onCancel={() => setShowConfirmation(false)}
           onConfirm={deletePost}
-          loading={loadingDelete}
+          isLoading={loadingDelete}
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
         />
         
         <ConfirmationDialog
           title="Flag Post"
-          description="Are you sure you want to flag this post as inappropriate? This will send a report to the moderators."
-          open={showFlagConfirmation}
+          message="Are you sure you want to flag this post as inappropriate? This will send a report to the moderators."
+          isOpen={showFlagConfirmation}
           onClose={() => setShowFlagConfirmation(false)}
+          onCancel={() => setShowFlagConfirmation(false)}
           onConfirm={flagPost}
-          loading={false}
+          isLoading={false}
+          confirmLabel="Flag"
+          cancelLabel="Cancel"
         />
       </Card>
     </motion.div>

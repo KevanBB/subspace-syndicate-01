@@ -8,18 +8,18 @@ interface PostContentProps {
   content: string;
   media_url: string | null;
   media_type: string | null;
-  isEditing: boolean;
-  editedContent: string;
-  onEditChange: (value: string) => void;
+  isEditing?: boolean;
+  editedContent?: string;
+  onEditChange?: (value: string) => void;
 }
 
 const PostContent: React.FC<PostContentProps> = ({
   content,
   media_url,
   media_type,
-  isEditing,
-  editedContent,
-  onEditChange,
+  isEditing = false,
+  editedContent = '',
+  onEditChange = () => {},
 }) => {
   return (
     <div className="p-4">

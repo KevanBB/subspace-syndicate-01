@@ -5,14 +5,27 @@ import { Edit, Trash2, Flag, AlertTriangle } from 'lucide-react';
 
 interface PostMenuProps {
   isOpen: boolean;
+  show?: boolean; // Added for compatibility
+  isOwner?: boolean; // Added for compatibility
   onEdit: () => void;
   onDelete: () => void;
   onFlag: () => void;
   onClose: () => void;
 }
 
-const PostMenu: React.FC<PostMenuProps> = ({ isOpen, onEdit, onDelete, onFlag, onClose }) => {
-  if (!isOpen) return null;
+const PostMenu: React.FC<PostMenuProps> = ({ 
+  isOpen, 
+  show, // Use either isOpen or show
+  onEdit, 
+  onDelete, 
+  onFlag, 
+  onClose,
+  isOwner = true
+}) => {
+  // Use either isOpen or show prop
+  const isVisible = isOpen || show;
+  
+  if (!isVisible) return null;
   
   const handleItemClick = (fn: () => void) => {
     fn();

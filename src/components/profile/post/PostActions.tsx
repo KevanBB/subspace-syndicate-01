@@ -10,6 +10,7 @@ interface PostActionsProps {
   isBookmarked: boolean;
   loadingLikes: boolean;
   loadingBookmark: boolean;
+  showComments?: boolean;
   onToggleLike: () => void;
   onToggleBookmark: () => void;
   onToggleComments: () => void;
