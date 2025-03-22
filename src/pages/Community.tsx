@@ -15,6 +15,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import Navbar from '@/components/Navbar';
+import GroupChatButton from '@/components/community/GroupChatButton';
 
 type Profile = {
   id: string;
@@ -146,6 +147,17 @@ const Community = () => {
     }
   }
 
+  // Count online users
+  const onlineUsersCount = recentlyActiveMembers?.filter(member => {
+    if (!member.last_active) return false;
+    
+    const lastActiveDate = new Date(member.last_active);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - lastActiveDate.getTime()) / (1000 * 60));
+    
+    return diffInMinutes < 5; // Consider online if active in the last 5 minutes
+  }).length || 0;
+  
   const communityContent = (
     <>
       <motion.div
@@ -379,7 +391,12 @@ const Community = () => {
   
   return user ? (
     <AuthenticatedLayout pageTitle="Community">
-      {communityContent}
+      <div className="container mx-auto px-4 sm:px-6 py-8">
+        {communityContent}
+      </div>
+      
+      {/* Add the GroupChatButton to enable community chat */}
+      <GroupChatButton onlineCount={onlineUsersCount} />
     </AuthenticatedLayout>
   ) : (
     <div className="min-h-screen bg-gradient-to-b from-abyss via-abyss/95 to-abyss">
