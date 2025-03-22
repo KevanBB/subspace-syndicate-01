@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -36,7 +35,7 @@ type VideoData = {
 };
 
 const VideoWatchPage = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams();
   const [incrementedView, setIncrementedView] = useState(false);
   const { status, metadata } = useVideoStatus({ videoId: id || '' });
   const { toast } = useToast();

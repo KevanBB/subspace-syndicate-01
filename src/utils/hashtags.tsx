@@ -2,52 +2,60 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-// Regular expression to match hashtags
-const HASHTAG_REGEX = /(^|\s)(#[a-zA-Z\d]+)/g;
+// Function to parse text and convert hashtags to links
+export function parseHashtags(text: string): React.ReactNode[] {
+  if (!text) return [text];
 
-/**
- * Formats text by converting hashtags to clickable links
- * @param text The text containing hashtags
- * @returns JSX with clickable hashtag links
- */
-export const formatTextWithHashtags = (text: string): React.ReactNode[] => {
-  // If no text is provided, return an empty array
-  if (!text) return [];
-
-  // Split the text by hashtag matches
-  const parts = text.split(HASHTAG_REGEX);
+  // Regex pattern for hashtags (# followed by alphanumeric chars or underscores)
+  const hashtagPattern = /#(\w+)/g;
   
-  // Map through each part and convert hashtags to links
-  return parts.map((part, index) => {
-    // Check if this part is a hashtag
-    if (part && part.startsWith('#')) {
-      const tag = part.substring(1); // Remove the # symbol
-      return (
-        <Link 
-          key={`${tag}-${index}`}
-          to={`/hashtag/${encodeURIComponent(tag)}`}
-          className="text-crimson hover:underline font-medium"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {part}
-        </Link>
-      );
+  // Find all hashtags in the text
+  const matches = text.match(hashtagPattern);
+  
+  if (!matches) return [text];
+  
+  // Split text by hashtags and create array of text and hashtag links
+  let result: React.ReactNode[] = [];
+  let lastIndex = 0;
+  
+  matches.forEach((match) => {
+    const matchIndex = text.indexOf(match, lastIndex);
+    
+    // Add text before hashtag
+    if (matchIndex > lastIndex) {
+      result.push(text.substring(lastIndex, matchIndex));
     }
-    // Return the regular text
-    return part;
+    
+    // Extract hashtag without the # symbol
+    const tag = match.substring(1);
+    
+    // Add hashtag link
+    const hashtagLink = (
+      <div 
+        key={`tag-${matchIndex}`} 
+        className="inline"
+        onClick={(e) => {
+          e.stopPropagation(); // Prevent parent click events
+        }}
+      >
+        <Link
+          to={`/hashtag/${tag}`}
+          className="text-crimson hover:underline inline-block"
+        >
+          {match}
+        </Link>
+      </div>
+    );
+    
+    result.push(hashtagLink);
+    
+    lastIndex = matchIndex + match.length;
   });
-};
-
-/**
- * Extracts hashtags from text content
- * @param text The text to extract hashtags from
- * @returns Array of hashtags without the # symbol
- */
-export const extractHashtags = (text: string): string[] => {
-  if (!text) return [];
   
-  const matches = text.match(HASHTAG_REGEX);
-  if (!matches) return [];
+  // Add remaining text after last hashtag
+  if (lastIndex < text.length) {
+    result.push(text.substring(lastIndex));
+  }
   
-  return matches.map(tag => tag.trim().substring(1));
-};
+  return result;
+}

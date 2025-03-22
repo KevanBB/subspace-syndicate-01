@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import AboutTab from './profile/AboutTab';
-import FeedTab from './profile/FeedTab';
+import ActivityTab from './profile/ActivityTab';
 import MediaTab from './profile/MediaTab';
 
 const ProfileTabs: React.FC = () => {
@@ -18,10 +18,10 @@ const ProfileTabs: React.FC = () => {
           About
         </TabsTrigger>
         <TabsTrigger 
-          value="feed" 
+          value="activity" 
           className="rounded-none border-b-2 border-transparent data-[state=active]:border-crimson bg-transparent data-[state=active]:bg-transparent text-white/70 data-[state=active]:text-white"
         >
-          Feed
+          Activity
         </TabsTrigger>
         <TabsTrigger 
           value="media" 
@@ -36,8 +36,8 @@ const ProfileTabs: React.FC = () => {
           <AboutTab />
         </TabsContent>
         
-        <TabsContent value="feed" className="mt-0 bg-transparent data-[state=active]:animate-in data-[state=active]:fade-in-50">
-          <FeedTab />
+        <TabsContent value="activity" className="mt-0 bg-transparent data-[state=active]:animate-in data-[state=active]:fade-in-50">
+          <ActivityTab />
         </TabsContent>
         
         <TabsContent value="media" className="mt-0 bg-transparent data-[state=active]:animate-in data-[state=active]:fade-in-50">

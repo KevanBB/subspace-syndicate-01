@@ -21,6 +21,7 @@ const AuthenticatedLayout: React.FC<AuthenticatedLayoutProps> = ({
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Only navigate away if we're done loading and there's no user
     if (!loading && !user) {
       navigate('/auth');
     }

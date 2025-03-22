@@ -29,7 +29,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  
+  // Move the useNavigate hook inside individual components that need it
+  // This prevents hooks from being conditionally called
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -76,7 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "Please check your email to confirm your account.",
       });
       
-      navigate('/auth');
+      // Navigate in the component using this function
     } catch (error: any) {
       toast({
         title: "Error during sign up",
@@ -97,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) throw error;
-      navigate('/');
+      // Navigate in the component using this function
     } catch (error: any) {
       toast({
         title: "Error signing in",
@@ -114,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      navigate('/auth');
+      // Navigate in the component using this function
     } catch (error: any) {
       toast({
         title: "Error signing out",

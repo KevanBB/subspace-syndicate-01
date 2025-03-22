@@ -3,36 +3,42 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
-type LightboxProps = {
+interface LightboxProps {
   isOpen: boolean;
   onClose: () => void;
-  media: Array<{ url: string; type: string }>;
-  initialIndex?: number;
-};
+  images: string[];
+  startIndex?: number;
+}
 
-const Lightbox: React.FC<LightboxProps> = ({ 
+export const Lightbox: React.FC<LightboxProps> = ({ 
   isOpen, 
   onClose, 
-  media, 
-  initialIndex = 0 
+  images, 
+  startIndex = 0 
 }) => {
-  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [currentIndex, setCurrentIndex] = useState(startIndex);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Reset index when media changes
+  // Reset current index when lightbox opens or images change
   useEffect(() => {
-    setCurrentIndex(initialIndex);
-  }, [media, initialIndex]);
-
-  const handlePrevious = () => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : media.length - 1));
+    if (isOpen) {
+      setCurrentIndex(startIndex);
+    }
+  }, [isOpen, images, startIndex]);
+  
+  // Navigate to previous image
+  const prevImage = () => {
+    setIsLoading(true);
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
   };
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev < media.length - 1 ? prev + 1 : 0));
+  
+  // Navigate to next image
+  const nextImage = () => {
+    setIsLoading(true);
+    setCurrentIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
   };
-
+  
   // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -40,10 +46,10 @@ const Lightbox: React.FC<LightboxProps> = ({
       
       switch (e.key) {
         case 'ArrowLeft':
-          handlePrevious();
+          prevImage();
           break;
         case 'ArrowRight':
-          handleNext();
+          nextImage();
           break;
         case 'Escape':
           onClose();
@@ -52,100 +58,85 @@ const Lightbox: React.FC<LightboxProps> = ({
           break;
       }
     };
-
+    
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen, onClose]);
-
-  if (!isOpen || media.length === 0) return null;
   
-  const currentMedia = media[currentIndex];
-
+  // If there are no images, don't render anything
+  if (!images || images.length === 0) {
+    return null;
+  }
+  
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-screen-xl w-screen h-screen max-h-screen p-0 border-none bg-black/90">
-        <div className="relative flex flex-col items-center justify-center w-full h-full">
+      <DialogContent className="max-w-screen-lg w-[95vw] h-[90vh] p-0 bg-black/95 border-gray-800 rounded-lg">
+        <div className="relative w-full h-full flex items-center justify-center">
           {/* Close button */}
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-4 right-4 text-white bg-black/40 hover:bg-black/60 z-10"
             onClick={onClose}
+            className="absolute top-2 right-2 z-50 h-8 w-8 rounded-full bg-black/50 text-white/70 hover:text-white hover:bg-black/70"
           >
-            <X size={24} />
+            <X className="h-5 w-5" />
           </Button>
           
-          {/* Navigation arrows */}
-          {media.length > 1 && (
+          {/* Image counter */}
+          <div className="absolute top-2 left-2 z-50 bg-black/50 text-white/90 px-2 py-1 rounded text-sm">
+            {currentIndex + 1} / {images.length}
+          </div>
+          
+          {/* Navigation buttons (only show if there are multiple images) */}
+          {images.length > 1 && (
             <>
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-white bg-black/40 hover:bg-black/60 z-10"
-                onClick={handlePrevious}
+                onClick={prevImage}
+                className="absolute left-2 z-50 h-10 w-10 rounded-full bg-black/50 text-white/70 hover:text-white hover:bg-black/70"
               >
-                <ChevronLeft size={24} />
+                <ChevronLeft className="h-6 w-6" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-white bg-black/40 hover:bg-black/60 z-10"
-                onClick={handleNext}
+                onClick={nextImage}
+                className="absolute right-2 z-50 h-10 w-10 rounded-full bg-black/50 text-white/70 hover:text-white hover:bg-black/70"
               >
-                <ChevronRight size={24} />
+                <ChevronRight className="h-6 w-6" />
               </Button>
             </>
           )}
           
-          {/* Media display */}
+          {/* Image */}
           <div className="w-full h-full flex items-center justify-center overflow-hidden">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentIndex}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="w-full h-full flex items-center justify-center p-4"
-              >
-                {currentMedia.type === 'image' ? (
-                  <div className="relative max-w-full max-h-full flex items-center justify-center overflow-hidden">
-                    <img 
-                      src={currentMedia.url} 
-                      alt="Media content" 
-                      className="max-w-full max-h-full object-contain"
-                    />
-                  </div>
-                ) : (
-                  <div className="relative max-w-full max-h-full">
-                    <video 
-                      src={currentMedia.url} 
-                      controls 
-                      autoPlay
-                      className="max-w-full max-h-full object-contain"
-                    />
-                  </div>
-                )}
-              </motion.div>
-            </AnimatePresence>
+            <img
+              src={images[currentIndex]}
+              alt={`Lightbox image ${currentIndex + 1}`}
+              className={`max-h-full max-w-full object-contain transition-opacity duration-300 ${
+                isLoading ? 'opacity-0' : 'opacity-100'
+              }`}
+              onLoad={() => setIsLoading(false)}
+              onClick={(e) => {
+                // Prevent click from closing the dialog
+                e.stopPropagation();
+                nextImage();
+              }}
+            />
+            
+            {/* Loading indicator */}
+            {isLoading && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+              </div>
+            )}
           </div>
-          
-          {/* Pagination dots */}
-          {media.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
-              {media.map((_, index) => (
-                <button
-                  key={index}
-                  className={`w-2 h-2 rounded-full ${index === currentIndex ? 'bg-white' : 'bg-white/50'}`}
-                  onClick={() => setCurrentIndex(index)}
-                />
-              ))}
-            </div>
-          )}
         </div>
       </DialogContent>
     </Dialog>
   );
 };
-
-export { Lightbox };

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,7 +29,7 @@ const Profile = () => {
         if (!error && data && data.username) {
           setUsername(data.username);
           // Redirect to /profile/username
-          navigate(`/profile/${data.username}`, { replace: true });
+          navigate(`/profile/${data.username}`);
         } else {
           // If username not found, just render normally
           setIsLoaded(true);

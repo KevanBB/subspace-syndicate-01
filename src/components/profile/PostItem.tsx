@@ -1,107 +1,388 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { 
-  Heart, 
-  MessageCircle, 
-  Share, 
-  ChevronLeft, 
-  ChevronRight, 
-  MoreHorizontal,
-  BookmarkIcon,
-  Flame 
-} from 'lucide-react';
-import { format } from 'date-fns';
-import { Link } from 'react-router-dom';
-import { Badge } from '@/components/ui/badge';
-import { Lightbox } from '@/components/ui/lightbox';
-import { formatTextWithHashtags } from '@/utils/hashtags';
-import VideoPlayer from '@/components/video/VideoPlayer';
-import { AspectRatio } from '@/components/ui/aspect-ratio';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
+
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
+import { Card } from '@/components/ui/card';
+import { toast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
-type PostItemProps = {
-  post: {
-    id: string;
-    user_id: string;
-    content: string;
-    media_url: string | null;
-    media_type: string | null;
-    created_at: string;
-    username?: string;
-    avatar_url?: string;
-    bdsm_role?: string;
-  };
-};
+// Import the new components
+import PostHeader from './post/PostHeader';
+import PostContent from './post/PostContent';
+import PostActions from './post/PostActions';
+import CommentsList from './post/CommentsList';
+import CommentForm from './post/CommentForm';
+import PostMenu from './post/PostMenu';
+import ConfirmationDialog from './post/ConfirmationDialog';
 
-const PostItem: React.FC<PostItemProps> = ({ post }) => {
-  const [likes, setLikes] = useState(0);
+interface ProfileData {
+  username?: string;
+  avatar_url?: string;
+  bdsm_role?: string;
+}
+
+interface PostWithProfile {
+  id: string;
+  content: string;
+  created_at: string | null;
+  user_id: string;
+  media_url: string | null;
+  media_type: string | null;
+  profiles?: ProfileData;
+  username?: string;
+  avatar_url?: string;
+  bdsm_role?: string;
+}
+
+interface Comment {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  post_id: string;
+  profiles?: ProfileData;
+  username?: string;
+  avatar_url?: string;
+  bdsm_role?: string;
+}
+
+const PostItem = ({ post }: { post: PostWithProfile }) => {
+  const { user } = useAuth();
+  
+  // Essential state variables
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [loadingComments, setLoadingComments] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [loadingLikes, setLoadingLikes] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
-  const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const isMobile = useIsMobile();
+  const [loadingBookmark, setLoadingBookmark] = useState(false);
+  const [showAllComments, setShowAllComments] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState(post.content);
+  const [loadingEdit, setLoadingEdit] = useState(false);
+  const [loadingDelete, setLoadingDelete] = useState(false);
   
-  const username = post.username || 'User';
-  const formattedDate = post.created_at ? format(new Date(post.created_at), 'MMM d, yyyy • h:mm a') : '';
-  const bdsmRole = post.bdsm_role || 'Exploring';
-
-  const mediaUrls = post.media_url ? post.media_url.split(',') : [];
-  const mediaTypes = post.media_type ? post.media_type.split(',') : [];
+  // Dialog state management
+  const [showMenu, setShowMenu] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showFlagConfirmation, setShowFlagConfirmation] = useState(false);
   
-  const mediaArray = mediaUrls.map((url, index) => ({
-    url,
-    type: mediaTypes[index] || 'image'
-  }));
+  // Initial data loading
+  useEffect(() => {
+    loadComments();
+    checkIfLiked();
+    fetchLikeCount();
+    checkIfBookmarked();
+  }, [post.id, user?.id]);
+  
+  // Check if current user is the post owner
+  const isCurrentUser = user?.id === post.user_id;
+  
+  // Load comments from Supabase
+  const loadComments = async () => {
+    setLoadingComments(true);
+    try {
+      const { data, error } = await supabase
+        .from('comments')
+        .select(`
+          *,
+          profiles:user_id (
+            username,
+            avatar_url,
+            bdsm_role
+          )
+        `)
+        .eq('post_id', post.id)
+        .order('created_at', { ascending: false });
 
-  const handleLike = () => {
-    if (isLiked) {
-      setLikes(likes - 1);
-    } else {
-      setLikes(likes + 1);
+      if (error) throw error;
+
+      setComments(
+        (data as any[]).map((comment) => ({
+          ...comment,
+          username: comment.profiles?.username || 'User',
+          avatar_url: comment.profiles?.avatar_url,
+          bdsm_role: comment.profiles?.bdsm_role,
+        }))
+      );
+    } catch (error: any) {
+      toast({
+        title: 'Error loading comments',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingComments(false);
     }
-    setIsLiked(!isLiked);
-    // In a real app, you would send this to the backend
   };
 
-  const handleBookmark = () => {
-    setIsBookmarked(!isBookmarked);
-    // In a real app, you would send this to the backend
-  };
+  // Submit a new comment
+  const submitComment = async (content: string) => {
+    if (!user) return;
 
-  const nextMedia = () => {
-    if (currentMediaIndex < mediaUrls.length - 1) {
-      setCurrentMediaIndex(currentMediaIndex + 1);
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .insert({
+          content,
+          user_id: user.id,
+          post_id: post.id,
+        });
+
+      if (error) throw error;
+
+      loadComments();
+    } catch (error: any) {
+      toast({
+        title: 'Error submitting comment',
+        description: error.message,
+        variant: 'destructive',
+      });
     }
   };
 
-  const prevMedia = () => {
-    if (currentMediaIndex > 0) {
-      setCurrentMediaIndex(currentMediaIndex - 1);
+  // Check if the user has liked the post
+  const checkIfLiked = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('post_likes')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('post_id', post.id)
+        .single();
+
+      if (error && error.message !== 'No rows found') throw error;
+
+      setIsLiked(!!data);
+    } catch (error: any) {
+      console.error('Error checking if liked:', error.message);
     }
+  };
+
+  // Get the number of likes for the post
+  const fetchLikeCount = async () => {
+    setLoadingLikes(true);
+    try {
+      const { count, error } = await supabase
+        .from('post_likes')
+        .select('*', { count: 'exact' })
+        .eq('post_id', post.id);
+
+      if (error) throw error;
+
+      setLikeCount(count || 0);
+    } catch (error: any) {
+      console.error('Error fetching like count:', error.message);
+    } finally {
+      setLoadingLikes(false);
+    }
+  };
+
+  // Like or unlike the post
+  const toggleLike = async () => {
+    if (!user) return;
+
+    setLoadingLikes(true);
+    try {
+      if (isLiked) {
+        // Unlike the post
+        const { error: deleteError } = await supabase
+          .from('post_likes')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('post_id', post.id);
+
+        if (deleteError) throw deleteError;
+
+        setIsLiked(false);
+        setLikeCount(likeCount - 1);
+      } else {
+        // Like the post
+        const { error: insertError } = await supabase
+          .from('post_likes')
+          .insert({
+            user_id: user.id,
+            post_id: post.id,
+          });
+
+        if (insertError) throw insertError;
+
+        setIsLiked(true);
+        setLikeCount(likeCount + 1);
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error toggling like',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingLikes(false);
+    }
+  };
+
+  // Check if the user has bookmarked the post
+  const checkIfBookmarked = async () => {
+    if (!user) return;
+
+    setLoadingBookmark(true);
+    try {
+      const { data, error } = await supabase
+        .from('bookmarks')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('post_id', post.id)
+        .single();
+
+      if (error && error.message !== 'No rows found') throw error;
+
+      setIsBookmarked(!!data);
+    } catch (error: any) {
+      console.error('Error checking if bookmarked:', error.message);
+    } finally {
+      setLoadingBookmark(false);
+    }
+  };
+
+  // Bookmark or unbookmark the post
+  const toggleBookmark = async () => {
+    if (!user) return;
+
+    setLoadingBookmark(true);
+    try {
+      if (isBookmarked) {
+        // Remove bookmark
+        const { error: deleteError } = await supabase
+          .from('bookmarks')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('post_id', post.id);
+
+        if (deleteError) throw deleteError;
+
+        setIsBookmarked(false);
+      } else {
+        // Add bookmark
+        const { error: insertError } = await supabase
+          .from('bookmarks')
+          .insert({
+            user_id: user.id,
+            post_id: post.id,
+          });
+
+        if (insertError) throw insertError;
+
+        setIsBookmarked(true);
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error toggling bookmark',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingBookmark(false);
+    }
+  };
+
+  // Delete the post
+  const deletePost = async () => {
+    setLoadingDelete(true);
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', post.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Post deleted',
+        description: 'Your post has been deleted successfully.',
+      });
+      
+      // Refresh the page
+      window.location.reload();
+    } catch (error: any) {
+      toast({
+        title: 'Error deleting post',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingDelete(false);
+      setShowConfirmation(false);
+    }
+  };
+
+  // Update the post content
+  const updatePost = async () => {
+    setLoadingEdit(true);
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .update({ content: editedContent })
+        .eq('id', post.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Post updated',
+        description: 'Your post has been updated successfully.',
+      });
+      setIsEditing(false);
+    } catch (error: any) {
+      toast({
+        title: 'Error updating post',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingEdit(false);
+    }
+  };
+
+  // Flag the post for moderation
+  const flagPost = async () => {
+    try {
+      toast({
+        title: 'Post reported',
+        description: 'This post has been flagged for review.',
+      });
+    } finally {
+      setShowFlagConfirmation(false);
+    }
+  };
+
+  // Toggle showing all comments
+  const toggleShowAllComments = () => {
+    setShowAllComments(!showAllComments);
   };
   
-  const openLightbox = () => {
-    if (mediaUrls.length > 0) {
-      setLightboxOpen(true);
-    }
+  // Event handlers for the post menu
+  const handleEditClick = () => {
+    setIsEditing(true);
+    setShowMenu(false);
   };
-
-  const getBdsmRoleBadgeVariant = () => {
-    switch(bdsmRole.toLowerCase()) {
-      case 'dominant': return "dominant";
-      case 'submissive': return "submissive";
-      case 'switch': return "switch";
-      default: return "exploring";
-    }
+  
+  const handleDeleteClick = () => {
+    setShowConfirmation(true);
+    setShowMenu(false);
+  };
+  
+  const handleFlagClick = () => {
+    setShowFlagConfirmation(true);
+    setShowMenu(false);
+  };
+  
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditedContent(post.content);
   };
 
   return (
@@ -110,182 +391,108 @@ const PostItem: React.FC<PostItemProps> = ({ post }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className="bg-black/30 border-white/10 backdrop-blur-md overflow-hidden hover:border-crimson/30 transition-all hover:shadow-lg hover:shadow-crimson/10">
-        <CardHeader className="pb-2 space-y-0">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <Link to={`/profile/${post.username}`}>
-                <Avatar className="h-12 w-12 border-2 border-crimson/50 ring-2 ring-black/50">
-                  <AvatarImage src={post.avatar_url || "/placeholder.svg"} alt={username} />
-                  <AvatarFallback className="bg-gradient-to-br from-purple-600 to-crimson text-white">
-                    {username.substring(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-              </Link>
-              <div>
-                <div className="flex items-center gap-2">
-                  <Link to={`/profile/${post.username}`} className="font-medium text-white hover:text-crimson transition-colors">
-                    {username}
-                  </Link>
-                  <Badge 
-                    variant={getBdsmRoleBadgeVariant()} 
-                    className="text-xs px-2 py-0 h-5 rounded-full font-medium"
-                  >
-                    {bdsmRole}
-                  </Badge>
-                </div>
-                <p className="text-xs text-white/50">{formattedDate}</p>
-              </div>
-            </div>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10">
-                  <MoreHorizontal size={18} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-black/90 border-white/10 text-white">
-                <DropdownMenuItem className="cursor-pointer hover:bg-white/10">
-                  Report Post
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer hover:bg-white/10">
-                  Copy Link
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </CardHeader>
+      <Card className="bg-black/30 border-white/10 backdrop-blur-md shadow-lg relative overflow-hidden">
+        {/* Post Header */}
+        <PostHeader 
+          post={post} 
+          isCurrentUser={isCurrentUser} 
+          onMenuToggle={() => setShowMenu(!showMenu)} 
+        />
         
-        <CardContent className="text-white/90 px-0 sm:px-6 pt-2">
-          <div className="prose prose-invert prose-sm max-w-none px-6 sm:px-0">
-            <div className="whitespace-pre-wrap">
-              {formatTextWithHashtags(post.content)}
-            </div>
-          </div>
-          
-          {mediaUrls.length > 0 && (
-            <div className="mt-3 overflow-hidden relative rounded-lg">
-              {mediaTypes[currentMediaIndex] === 'image' && (
-                <div 
-                  className="cursor-pointer w-full"
-                  onClick={openLightbox}
-                >
-                  <img 
-                    src={mediaUrls[currentMediaIndex]} 
-                    alt="Post media" 
-                    className="w-full object-contain max-h-[85vh] mx-auto rounded-lg"
-                  />
-                </div>
-              )}
-              
-              {mediaTypes[currentMediaIndex] === 'video' && (
-                <div className="w-full">
-                  <VideoPlayer 
-                    videoUrl={mediaUrls[currentMediaIndex]} 
-                    title={`${username}'s video`}
-                  />
-                </div>
-              )}
-              
-              {mediaUrls.length > 1 && (
-                <>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 z-10 rounded-full h-8 w-8"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      prevMedia();
-                    }}
-                    disabled={currentMediaIndex === 0}
-                  >
-                    <ChevronLeft size={isMobile ? 16 : 18} />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 z-10 rounded-full h-8 w-8"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      nextMedia();
-                    }}
-                    disabled={currentMediaIndex === mediaUrls.length - 1}
-                  >
-                    <ChevronRight size={isMobile ? 16 : 18} />
-                  </Button>
-                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10">
-                    <div className="flex gap-1 bg-black/40 rounded-full px-2 py-1">
-                      {mediaUrls.map((_, index) => (
-                        <motion.div 
-                          key={index} 
-                          className={`w-2 h-2 rounded-full ${index === currentMediaIndex ? 'bg-crimson' : 'bg-white/40'} cursor-pointer`} 
-                          whileHover={{ scale: 1.2 }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setCurrentMediaIndex(index);
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-          
-          <Lightbox 
-            isOpen={lightboxOpen}
-            onClose={() => setLightboxOpen(false)}
-            media={mediaArray}
-            initialIndex={currentMediaIndex}
-          />
-        </CardContent>
+        {/* Post Menu (if the user is the post owner) */}
+        <PostMenu 
+          isOpen={showMenu} 
+          onEdit={handleEditClick}
+          onDelete={handleDeleteClick}
+          onFlag={handleFlagClick}
+          onClose={() => setShowMenu(false)}
+        />
         
-        <CardFooter className="border-t border-white/10 pt-3 pb-3 flex justify-between">
-          <div className="flex gap-3">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className={`${isLiked ? 'text-crimson' : 'text-white/70'} hover:text-crimson hover:bg-white/5 group`}
-              onClick={handleLike}
+        {/* Post Content */}
+        <PostContent
+          content={post.content}
+          media_url={post.media_url}
+          media_type={post.media_type}
+          isEditing={isEditing}
+          editedContent={editedContent}
+          onEditChange={(value) => setEditedContent(value)}
+        />
+        
+        {/* Edit Buttons (if editing) */}
+        {isEditing && (
+          <div className="px-4 pb-4 flex justify-end gap-2">
+            <button
+              onClick={handleCancelEdit}
+              className="px-4 py-1 rounded bg-black/30 text-white border border-white/20"
+              disabled={loadingEdit}
             >
-              <motion.div
-                whileHover={{ scale: 1.2 }}
-                whileTap={{ scale: 0.8 }}
-                animate={isLiked ? { scale: [1, 1.3, 1] } : {}}
-                transition={{ duration: 0.2 }}
-              >
-                <Heart size={18} className={`mr-1 ${isLiked ? 'fill-crimson' : 'group-hover:fill-crimson/20'}`} /> 
-              </motion.div>
-              {likes}
-            </Button>
-            <Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/5">
-              <MessageCircle size={18} className="mr-1" /> 0
-            </Button>
-            <Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/5">
-              <Share size={18} className="mr-1" /> Share
-            </Button>
-          </div>
-          
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className={`${isBookmarked ? 'text-crimson' : 'text-white/70'} hover:text-crimson hover:bg-white/5`}
-            onClick={handleBookmark}
-          >
-            <BookmarkIcon size={18} className={isBookmarked ? 'fill-crimson' : ''} />
-          </Button>
-        </CardFooter>
-        
-        {/* Hot post indicator */}
-        {likes > 5 && (
-          <div className="absolute top-2 right-2">
-            <Badge variant="crimson" className="flex items-center gap-1 px-2">
-              <Flame size={12} className="text-white" />
-              Hot
-            </Badge>
+              Cancel
+            </button>
+            <button
+              onClick={updatePost}
+              className="px-4 py-1 rounded bg-crimson text-white"
+              disabled={loadingEdit}
+            >
+              {loadingEdit ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Save'
+              )}
+            </button>
           </div>
         )}
+        
+        {/* Post Actions */}
+        <PostActions 
+          likeCount={likeCount}
+          commentCount={comments.length}
+          isLiked={isLiked}
+          isBookmarked={isBookmarked}
+          loadingLikes={loadingLikes}
+          loadingBookmark={loadingBookmark}
+          onToggleLike={toggleLike}
+          onToggleBookmark={toggleBookmark}
+          onToggleComments={toggleShowAllComments}
+        />
+        
+        {/* Comments List */}
+        <CommentsList 
+          comments={comments}
+          loading={loadingComments}
+          showAllComments={showAllComments}
+          toggleShowAllComments={toggleShowAllComments}
+        />
+        
+        {/* Comment Form */}
+        {user && (
+          <CommentForm 
+            onSubmit={submitComment}
+            disabled={!user}
+          />
+        )}
+        
+        {/* Confirmation Dialogs */}
+        <ConfirmationDialog
+          isOpen={showConfirmation}
+          title="Delete Post"
+          message="Are you sure you want to delete this post? This action cannot be undone."
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          isLoading={loadingDelete}
+          onConfirm={deletePost}
+          onCancel={() => setShowConfirmation(false)}
+        />
+        
+        <ConfirmationDialog
+          isOpen={showFlagConfirmation}
+          title="Report Post"
+          message="Are you sure you want to report this post for inappropriate content?"
+          confirmLabel="Report"
+          cancelLabel="Cancel"
+          isLoading={false}
+          onConfirm={flagPost}
+          onCancel={() => setShowFlagConfirmation(false)}
+        />
       </Card>
     </motion.div>
   );
