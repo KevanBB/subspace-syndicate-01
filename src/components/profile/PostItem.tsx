@@ -450,7 +450,11 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
       layout
       className="overflow-hidden"
     >
-      <Card className="bg-black/30 border-white/10 backdrop-blur-md shadow-lg shadow-crimson/5 overflow-hidden">
+      <Card 
+        variant="dark" 
+        elevated={true}
+        className="overflow-hidden backdrop-blur-md shadow-lg shadow-crimson/5"
+      >
         <PostHeader 
           post={post}
           isCurrentUser={isCurrentUser}
@@ -523,7 +527,6 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
         
         <PostMenu 
           isOpen={showMenu}
-          show={showMenu}
           onClose={() => setShowMenu(false)}
           onEdit={handleEditClick}
           onDelete={handleDeleteClick}
