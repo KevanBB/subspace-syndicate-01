@@ -23,6 +23,7 @@ const PostActions: React.FC<PostActionsProps> = ({
   isBookmarked,
   loadingLikes,
   loadingBookmark,
+  showComments,
   onToggleLike,
   onToggleBookmark,
   onToggleComments
@@ -44,7 +45,7 @@ const PostActions: React.FC<PostActionsProps> = ({
         <Button
           variant="ghost"
           size="sm"
-          className="gap-2 text-sm text-white/70 hover:text-white"
+          className={`gap-2 text-sm text-white/70 hover:text-white ${showComments ? 'text-crimson' : ''}`}
           onClick={onToggleComments}
         >
           <MessageSquare className="h-4 w-4" />

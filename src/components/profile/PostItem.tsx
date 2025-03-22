@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import PostHeader from './post/PostHeader';
 import PostContent from './post/PostContent';
 import PostActions from './post/PostActions';
-import CommentsList from './post/CommentsList';
+import CommentsList, { Comment } from './post/CommentsList';
 import CommentForm from './post/CommentForm';
 import PostMenu from './post/PostMenu';
 import ConfirmationDialog from './post/ConfirmationDialog';
@@ -30,19 +30,6 @@ interface PostWithProfile {
   user_id: string;
   media_url: string | null;
   media_type: string | null;
-  profiles?: ProfileData;
-  username?: string;
-  avatar_url?: string;
-  bdsm_role?: string;
-}
-
-interface Comment {
-  id: string;
-  content: string;
-  created_at: string;
-  user_id: string;
-  post_id: string;
-  parent_id?: string | null;
   profiles?: ProfileData;
   username?: string;
   avatar_url?: string;
@@ -517,6 +504,7 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
           loadingLikes={loadingLikes}
           loadingBookmark={loadingBookmark}
           onToggleComments={toggleShowAllComments}
+          showComments={showAllComments}
         />
         
         <div className={`border-t border-white/10 ${showAllComments ? 'block' : 'hidden'}`}>
@@ -535,6 +523,7 @@ const PostItem = ({ post }: { post: PostWithProfile }) => {
         
         <PostMenu 
           isOpen={showMenu}
+          show={showMenu}
           onClose={() => setShowMenu(false)}
           onEdit={handleEditClick}
           onDelete={handleDeleteClick}

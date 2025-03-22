@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -6,7 +7,7 @@ import { Loader2, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CommentForm from './CommentForm';
 
-interface Comment {
+export interface Comment {
   id: string;
   content: string;
   created_at: string;
