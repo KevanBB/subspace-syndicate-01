@@ -1,3 +1,4 @@
+
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { MessageSquare, X } from 'lucide-react';
@@ -6,7 +7,11 @@ import GroupChat from './GroupChat';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 
-const GroupChatButton: React.FC = () => {
+interface GroupChatButtonProps {
+  onlineCount?: number;
+}
+
+const GroupChatButton: React.FC<GroupChatButtonProps> = ({ onlineCount = 0 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [unreadCount, setUnreadCount] = React.useState(0);
   const COMMUNITY_ROOM_ID = 'community_room';
@@ -74,4 +79,4 @@ const GroupChatButton: React.FC = () => {
   );
 };
 
-export default GroupChatButton; 
+export default GroupChatButton;
