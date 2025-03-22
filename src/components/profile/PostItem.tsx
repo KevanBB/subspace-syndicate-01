@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Lightbox } from '@/components/ui/lightbox';
 import { formatTextWithHashtags } from '@/utils/hashtags';
 import VideoPlayer from '@/components/video/VideoPlayer';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type PostItemProps = {
   post: {
@@ -30,6 +32,7 @@ const PostItem: React.FC<PostItemProps> = ({ post }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const isMobile = useIsMobile();
   
   const username = post.username || 'User';
   const formattedDate = post.created_at ? format(new Date(post.created_at), 'MMM d, yyyy • h:mm a') : '';
@@ -120,20 +123,24 @@ const PostItem: React.FC<PostItemProps> = ({ post }) => {
                 className="cursor-pointer"
                 onClick={openLightbox}
               >
-                <img 
-                  src={mediaUrls[currentMediaIndex]} 
-                  alt="Post media" 
-                  className="w-full object-contain max-h-[500px]"
-                />
+                <AspectRatio ratio={16/9} className="bg-black/40">
+                  <img 
+                    src={mediaUrls[currentMediaIndex]} 
+                    alt="Post media" 
+                    className="w-full h-full object-contain mx-auto max-h-[70vh] md:max-h-[80vh]"
+                  />
+                </AspectRatio>
               </div>
             )}
             
             {mediaTypes[currentMediaIndex] === 'video' && (
-              <div className="max-h-[90vh]">
-                <VideoPlayer 
-                  videoUrl={mediaUrls[currentMediaIndex]} 
-                  title={`${username}'s video`}
-                />
+              <div className="max-h-[70vh] md:max-h-[80vh] lg:max-h-[90vh] overflow-hidden">
+                <AspectRatio ratio={16/9} className="bg-black/40">
+                  <VideoPlayer 
+                    videoUrl={mediaUrls[currentMediaIndex]} 
+                    title={`${username}'s video`}
+                  />
+                </AspectRatio>
               </div>
             )}
             
@@ -149,7 +156,7 @@ const PostItem: React.FC<PostItemProps> = ({ post }) => {
                   }}
                   disabled={currentMediaIndex === 0}
                 >
-                  <ChevronLeft size={20} />
+                  <ChevronLeft size={isMobile ? 16 : 20} />
                 </Button>
                 <Button 
                   variant="ghost" 
@@ -161,7 +168,7 @@ const PostItem: React.FC<PostItemProps> = ({ post }) => {
                   }}
                   disabled={currentMediaIndex === mediaUrls.length - 1}
                 >
-                  <ChevronRight size={20} />
+                  <ChevronRight size={isMobile ? 16 : 20} />
                 </Button>
                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10">
                   <div className="flex gap-1">
