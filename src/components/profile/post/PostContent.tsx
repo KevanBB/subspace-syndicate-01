@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
-import { parseHashtags } from '@/utils/hashtags';
+import React from 'react';
+import { Textarea } from '@/components/ui/textarea';
+import { formatTextWithHashtags } from '@/utils/hashtags';
 import VideoPlayer from '@/components/ui/VideoPlayer';
 
 interface PostContentProps {
@@ -12,70 +13,38 @@ interface PostContentProps {
   onEditChange: (value: string) => void;
 }
 
-const PostContent: React.FC<PostContentProps> = ({ 
-  content, 
-  media_url, 
+const PostContent: React.FC<PostContentProps> = ({
+  content,
+  media_url,
   media_type,
   isEditing,
   editedContent,
-  onEditChange
+  onEditChange,
 }) => {
-  const [isTruncated, setIsTruncated] = useState(true);
-  const [showFullMedia, setShowFullMedia] = useState(false);
-  const [mediaLoading, setMediaLoading] = useState(false);
-  const [mediaError, setMediaError] = useState<string | null>(null);
-
-  const toggleTruncate = () => setIsTruncated(!isTruncated);
-  const toggleMediaSize = () => setShowFullMedia(!showFullMedia);
-
-  // Determine if content is long enough to truncate
-  const isLongContent = content.length > 300;
-  const displayContent = isTruncated && isLongContent ? `${content.substring(0, 300)}...` : content;
-
   return (
-    <div className="px-4 pt-2 pb-4">
+    <div className="p-4">
       {isEditing ? (
-        <textarea
+        <Textarea
           value={editedContent}
           onChange={(e) => onEditChange(e.target.value)}
-          className="w-full bg-black/30 border border-white/20 rounded-md p-3 text-white"
-          rows={4}
+          placeholder="What's on your mind?"
+          className="bg-black/20 border-white/20 min-h-[100px]"
         />
       ) : (
-        <div className="text-white/90 whitespace-pre-wrap">
-          <div className="space-x-1">
-            {parseHashtags(displayContent)}
-          </div>
-          
-          {isLongContent && (
-            <button
-              onClick={toggleTruncate}
-              className="text-crimson text-sm mt-2 hover:underline"
-            >
-              {isTruncated ? "Read more" : "Show less"}
-            </button>
-          )}
+        <div className="text-white whitespace-pre-wrap break-words">
+          {formatTextWithHashtags(content)}
         </div>
       )}
-
-      {media_url && (
-        <div className={`mt-4 overflow-hidden rounded-md ${showFullMedia ? 'max-h-none' : 'max-h-96'}`}>
-          {media_type?.startsWith('image/') ? (
-            <>
-              <img
-                src={media_url}
-                alt="Post media"
-                className="w-full h-auto rounded-md cursor-pointer"
-                onClick={toggleMediaSize}
-                onLoad={() => setMediaLoading(false)}
-                onError={() => {
-                  setMediaLoading(false);
-                  setMediaError("Failed to load image");
-                }}
-              />
-              {mediaError && <p className="text-red-500 text-sm mt-1">{mediaError}</p>}
-            </>
-          ) : media_type?.startsWith('video/') ? (
+      
+      {media_url && !isEditing && (
+        <div className="mt-4 rounded-md overflow-hidden">
+          {media_type === 'image' ? (
+            <img 
+              src={media_url}
+              alt="Post media" 
+              className="max-w-full object-contain rounded-md"
+            />
+          ) : media_type === 'video' ? (
             <VideoPlayer src={media_url} />
           ) : null}
         </div>

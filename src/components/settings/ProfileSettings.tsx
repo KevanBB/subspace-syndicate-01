@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,37 +18,42 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { Upload, X } from 'lucide-react';
 
-// Extended profile type with the new fields
 interface ProfileData {
   id: string;
   username: string;
-  bio: string;
-  avatar_url: string;
+  bio: string | null;
+  avatar_url: string | null;
   bdsm_role: string;
-  location: string;
-  birthday: string;
-  orientation: string;
-  created_at: string;
-  last_active: string;
-  visibility: string;
-  media_visibility: string;
-  allow_messages: boolean;
-  username_normalized: string;
-  looking_for?: string;  // Make these optional to be backward compatible
-  kinks?: string;
-  soft_limits?: string;
-  hard_limits?: string;
+  location: string | null;
+  birthday: string | null;
+  orientation: string | null;
+  created_at: string | null;
+  last_active: string | null;
+  visibility: string | null;
+  media_visibility: string | null;
+  allow_messages: boolean | null;
+  username_normalized?: string;
+  user_role?: string;
+  show_online_status?: boolean;
+  looking_for: string | null;
+  kinks: string | null;
+  soft_limits: string | null;
+  hard_limits: string | null;
 }
 
 const ProfileSettings = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
-  const [profileData, setProfileData] = useState<Partial<ProfileData>>({});
+  const [profileData, setProfileData] = useState<Partial<ProfileData>>({
+    looking_for: '',
+    kinks: '',
+    soft_limits: '',
+    hard_limits: '',
+  });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string>('');
   
-  // Form states
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [location, setLocation] = useState('');
@@ -78,17 +82,25 @@ const ProfileSettings = () => {
       if (error) throw error;
       
       if (data) {
-        setProfileData(data);
-        setUsername(data.username || '');
-        setBio(data.bio || '');
-        setLocation(data.location || '');
-        setOrientation(data.orientation || '');
-        setVisibility(data.visibility || 'public');
-        setBdsmRole(data.bdsm_role || '');
-        setLookingFor(data.looking_for || '');
-        setKinks(data.kinks || '');
-        setSoftLimits(data.soft_limits || '');
-        setHardLimits(data.hard_limits || '');
+        const safeData: ProfileData = {
+          ...data,
+          looking_for: data.looking_for ?? '',
+          kinks: data.kinks ?? '',
+          soft_limits: data.soft_limits ?? '',
+          hard_limits: data.hard_limits ?? '',
+        };
+        
+        setProfileData(safeData);
+        setUsername(safeData.username || '');
+        setBio(safeData.bio || '');
+        setLocation(safeData.location || '');
+        setOrientation(safeData.orientation || '');
+        setVisibility(safeData.visibility || 'public');
+        setBdsmRole(safeData.bdsm_role || '');
+        setLookingFor(safeData.looking_for || '');
+        setKinks(safeData.kinks || '');
+        setSoftLimits(safeData.soft_limits || '');
+        setHardLimits(safeData.hard_limits || '');
       }
     } catch (error: any) {
       console.error('Error fetching profile:', error.message);
@@ -101,7 +113,6 @@ const ProfileSettings = () => {
     const file = e.target.files[0];
     setAvatarFile(file);
     
-    // Create a preview
     const objectUrl = URL.createObjectURL(file);
     setAvatarPreview(objectUrl);
   };
@@ -112,26 +123,22 @@ const ProfileSettings = () => {
     setAvatarLoading(true);
     
     try {
-      // Get file extension
       const fileExt = avatarFile.name.split('.').pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
       
-      // Upload file to storage
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, avatarFile);
         
       if (uploadError) throw uploadError;
       
-      // Get the public URL
       const { data: publicUrlData } = await supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
         
       const avatarUrl = publicUrlData.publicUrl;
       
-      // Update profile
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: avatarUrl })
@@ -198,7 +205,6 @@ const ProfileSettings = () => {
         description: 'Your profile has been updated successfully.',
       });
       
-      // Refresh profile data
       await fetchProfileData();
       
     } catch (error: any) {
@@ -212,7 +218,6 @@ const ProfileSettings = () => {
     }
   };
 
-  // For the user's initials in avatar
   const initials = username
     ? username.substring(0, 2).toUpperCase()
     : user?.email
@@ -226,7 +231,6 @@ const ProfileSettings = () => {
         <p className="text-gray-400 mb-6">Manage your profile information and visibility</p>
       </div>
       
-      {/* Avatar Upload */}
       <Card className="bg-black/30 border-white/10">
         <CardHeader>
           <CardTitle className="text-white">Profile Picture</CardTitle>
@@ -293,7 +297,6 @@ const ProfileSettings = () => {
         </CardContent>
       </Card>
       
-      {/* Basic Information */}
       <Card className="bg-black/30 border-white/10">
         <CardHeader>
           <CardTitle className="text-white">Basic Information</CardTitle>
@@ -373,7 +376,6 @@ const ProfileSettings = () => {
         </CardContent>
       </Card>
       
-      {/* Bio */}
       <Card className="bg-black/30 border-white/10">
         <CardHeader>
           <CardTitle className="text-white">Bio</CardTitle>
@@ -391,7 +393,6 @@ const ProfileSettings = () => {
         </CardContent>
       </Card>
       
-      {/* Looking For */}
       <Card className="bg-black/30 border-white/10">
         <CardHeader>
           <CardTitle className="text-white">Looking For</CardTitle>
@@ -409,7 +410,6 @@ const ProfileSettings = () => {
         </CardContent>
       </Card>
       
-      {/* Kinks/Fetishes */}
       <Card className="bg-black/30 border-white/10">
         <CardHeader>
           <CardTitle className="text-white">Kinks/Fetishes</CardTitle>
@@ -427,7 +427,6 @@ const ProfileSettings = () => {
         </CardContent>
       </Card>
       
-      {/* Soft Limits */}
       <Card className="bg-black/30 border-white/10">
         <CardHeader>
           <CardTitle className="text-white">Soft Limits</CardTitle>
@@ -445,7 +444,6 @@ const ProfileSettings = () => {
         </CardContent>
       </Card>
       
-      {/* Hard Limits */}
       <Card className="bg-black/30 border-white/10">
         <CardHeader>
           <CardTitle className="text-white">Hard Limits</CardTitle>

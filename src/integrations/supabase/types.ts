@@ -132,12 +132,16 @@ export type Database = {
           bio: string | null
           birthday: string | null
           created_at: string | null
+          hard_limits: string | null
           id: string
+          kinks: string | null
           last_active: string | null
           location: string | null
+          looking_for: string | null
           media_visibility: string | null
           orientation: string | null
           show_online_status: boolean | null
+          soft_limits: string | null
           user_role: string | null
           username: string | null
           visibility: string | null
@@ -149,12 +153,16 @@ export type Database = {
           bio?: string | null
           birthday?: string | null
           created_at?: string | null
+          hard_limits?: string | null
           id: string
+          kinks?: string | null
           last_active?: string | null
           location?: string | null
+          looking_for?: string | null
           media_visibility?: string | null
           orientation?: string | null
           show_online_status?: boolean | null
+          soft_limits?: string | null
           user_role?: string | null
           username?: string | null
           visibility?: string | null
@@ -166,12 +174,16 @@ export type Database = {
           bio?: string | null
           birthday?: string | null
           created_at?: string | null
+          hard_limits?: string | null
           id?: string
+          kinks?: string | null
           last_active?: string | null
           location?: string | null
+          looking_for?: string | null
           media_visibility?: string | null
           orientation?: string | null
           show_online_status?: boolean | null
+          soft_limits?: string | null
           user_role?: string | null
           username?: string | null
           visibility?: string | null
