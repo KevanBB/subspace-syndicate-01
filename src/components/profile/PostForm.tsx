@@ -1,7 +1,7 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import { Input } from '@/components/ui/input';
 import { formatTextWithHashtags } from '@/utils/hashtags';
 
 const PostForm: React.FC = () => {
@@ -230,157 +229,138 @@ const PostForm: React.FC = () => {
           </AvatarFallback>
         </Avatar>
         <div className="flex-1">
-          <div className="bg-black/30 border-white/10 border rounded-t-md p-2 flex gap-1 flex-wrap">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
-              onClick={() => applyTextFormat('bold')}
-              type="button"
-            >
-              <Bold size={16} />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
-              onClick={() => applyTextFormat('italic')}
-              type="button"
-            >
-              <Italic size={16} />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
-              onClick={() => applyTextFormat('underline')}
-              type="button"
-            >
-              <Underline size={16} />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
-              onClick={() => applyTextFormat('heading')}
-              type="button"
-            >
-              <Heading size={16} />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
-              onClick={() => applyTextFormat('list')}
-              type="button"
-            >
-              <List size={16} />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
-              onClick={() => applyTextFormat('ordered-list')}
-              type="button"
-            >
-              <ListOrdered size={16} />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
-              onClick={() => applyTextFormat('hashtag')}
-              type="button"
-            >
-              <Hash size={16} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-white/70 hover:text-white hover:bg-white/10 ml-auto h-8"
-              onClick={() => setShowPreview(!showPreview)}
-              type="button"
-            >
-              {showPreview ? "Hide Preview" : "Preview"}
-            </Button>
-          </div>
-          
-          <Textarea 
-            placeholder="What's on your mind?" 
-            className="bg-black/30 border-white/10 border-t-0 rounded-t-none resize-none text-white placeholder:text-white/50 min-h-[120px]"
+          <Textarea
+            ref={textareaRef}
+            placeholder="What's on your mind?"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            ref={textareaRef}
-            style={{ display: showPreview ? 'none' : 'block' }}
+            className="bg-black/20 border-white/10 resize-none min-h-[100px] text-white placeholder:text-white/50 mb-2 focus:ring-crimson/50 focus-visible:ring-crimson/50 focus:border-crimson"
+            rows={2}
           />
           
-          {showPreview && (
-            <div className="bg-black/30 border-white/10 border-t-0 rounded-t-none p-4 text-white min-h-[120px] whitespace-pre-wrap">
-              {formatTextWithHashtags(content)}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex gap-1 bg-black/30 border-white/10 border rounded-md p-1">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
+                onClick={() => applyTextFormat('bold')}
+                type="button"
+                title="Bold"
+              >
+                <Bold size={14} />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
+                onClick={() => applyTextFormat('italic')}
+                type="button"
+                title="Italic"
+              >
+                <Italic size={14} />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
+                onClick={() => applyTextFormat('hashtag')}
+                type="button"
+                title="Add hashtag"
+              >
+                <Hash size={14} />
+              </Button>
             </div>
-          )}
-          
+          </div>
+
           {previews.length > 0 && (
-            <div className="mt-2 grid grid-cols-2 gap-2">
+            <div className="flex flex-wrap gap-2 my-3">
               {previews.map((preview, index) => (
-                <div key={index} className="relative rounded-md overflow-hidden">
-                  <img src={preview} alt={`Preview ${index}`} className="h-32 w-full object-cover rounded-md" />
-                  <Button 
-                    variant="destructive" 
+                <div key={index} className="relative group">
+                  <div className="w-20 h-20 rounded-md overflow-hidden">
+                    <img 
+                      src={preview} 
+                      alt={`Preview ${index+1}`} 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <Button
+                    variant="destructive"
                     size="icon"
-                    className="absolute top-2 right-2 w-6 h-6 opacity-90 rounded-full"
+                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full opacity-80 group-hover:opacity-100"
                     onClick={() => removeMediaFile(index)}
                   >
-                    <X size={14} />
+                    <X size={12} />
                   </Button>
                 </div>
               ))}
             </div>
           )}
-          
-          <div className="flex justify-between mt-2">
+
+          <div className="flex items-center justify-between">
             <div className="flex gap-2">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                className="hidden"
-                accept="image/*,video/*"
-                id="post-media"
-                multiple
-              />
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="text-white/70 hover:text-white hover:bg-white/10"
-                onClick={() => fileInputRef.current?.click()}
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 rounded-full bg-white/5 text-white hover:bg-white/10"
+                  onClick={() => fileInputRef.current?.click()}
+                  type="button"
+                  title="Add media"
+                >
+                  <Image size={18} />
+                </Button>
+                <Input
+                  type="file"
+                  accept="image/*,video/*"
+                  multiple
+                  onChange={handleFileChange}
+                  className="hidden"
+                  ref={fileInputRef}
+                />
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded-full bg-white/5 text-white hover:bg-white/10"
+                onClick={() => setShowPreview(!showPreview)}
                 type="button"
+                title="Preview"
               >
-                <Image size={20} />
-              </Button>
-              <Button variant="ghost" size="icon" className="text-white/70 hover:text-white hover:bg-white/10">
-                <Smile size={20} />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="text-white/70 hover:text-white hover:bg-white/10"
-                onClick={() => applyTextFormat('hashtag')}
-                type="button"
-              >
-                <Hash size={20} />
+                <Smile size={18} />
               </Button>
             </div>
-            <Button 
-              className="bg-crimson hover:bg-crimson/80"
+            
+            <Button
+              variant="default"
+              className="bg-crimson hover:bg-crimson/90 text-white px-5"
               onClick={handleSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || (!content.trim() && mediaFiles.length === 0)}
             >
-              <Send size={16} className="mr-2" /> Post
+              {isSubmitting ? (
+                <>
+                  <span className="mr-2">Posting...</span>
+                  <span className="animate-spin">⏳</span>
+                </>
+              ) : (
+                <>
+                  <Send size={16} className="mr-2" />
+                  Post
+                </>
+              )}
             </Button>
           </div>
         </div>
       </div>
+
+      {showPreview && content.trim() && (
+        <div className="bg-black/30 border border-white/10 rounded-md p-4 mt-3">
+          <h3 className="text-white/70 text-sm font-semibold mb-2">Preview</h3>
+          <div className="text-white whitespace-pre-wrap">
+            {formatTextWithHashtags(content)}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

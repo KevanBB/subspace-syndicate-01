@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatMessage, TypingIndicator } from '../types/ChatTypes';
@@ -13,8 +12,9 @@ export const useGroupChat = (roomId: string, userId?: string) => {
   const [isLoading, setIsLoading] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const [typingUsers, setTypingUsers] = useState<TypingIndicator[]>([]);
+  const [isSending, setIsSending] = useState(false);
 
-  const { isSending, markMessageAsRead, sendMessageWithMedia } = useMessageOperations({ roomId, userId });
+  const { isSending: messageOperationsSending, markMessageAsRead, sendMessageWithMedia } = useMessageOperations({ roomId, userId });
   const { selectedFile, setSelectedFile, isUploading, uploadProgress, uploadMedia } = useMediaUpload({ roomId });
   const { handleInputChange } = useTypingIndicator({ roomId, userId });
 
@@ -134,7 +134,8 @@ export const useGroupChat = (roomId: string, userId?: string) => {
           created_at: message.created_at,
           username: profile?.username,
           avatar_url: profile?.avatar_url,
-          read_by: userId ? [userId] : []
+          read_by: userId ? [userId] : [],
+          isOptimistic: false
         } as ChatMessage;
       });
       
@@ -157,13 +158,47 @@ export const useGroupChat = (roomId: string, userId?: string) => {
     if ((!newMessage.trim() && !selectedFile) || !userId) return;
     
     try {
+      setIsSending(true);
       let mediaUrl = null;
       let mediaType = null;
+      
+      // Create an optimistic message to show immediately
+      const optimisticMessageId = `temp-${Date.now()}`;
+      const { data: userData } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', userId)
+        .single();
+        
+      // Add optimistic message to the UI immediately
+      const optimisticMessage: ChatMessage = {
+        id: optimisticMessageId,
+        room_id: roomId,
+        user_id: userId,
+        content: newMessage.trim(),
+        media_url: null,
+        media_type: null,
+        created_at: new Date().toISOString(),
+        username: userData?.username,
+        avatar_url: userData?.avatar_url,
+        read_by: [userId],
+        isOptimistic: true
+      };
+      
+      // Update UI immediately
+      setMessages(previous => [...previous, optimisticMessage]);
       
       if (selectedFile) {
         const uploadResult = await uploadMedia(selectedFile);
         mediaUrl = uploadResult.url;
         mediaType = uploadResult.type;
+        
+        // Update the optimistic message with media info
+        setMessages(previous => previous.map(msg => 
+          msg.id === optimisticMessageId 
+            ? { ...msg, media_url: mediaUrl, media_type: mediaType } 
+            : msg
+        ));
       }
       
       const success = await sendMessageWithMedia(newMessage, mediaUrl, mediaType);
@@ -171,9 +206,14 @@ export const useGroupChat = (roomId: string, userId?: string) => {
       if (success) {
         setNewMessage('');
         setSelectedFile(null);
+      } else {
+        // If sending failed, remove the optimistic message
+        setMessages(previous => previous.filter(msg => msg.id !== optimisticMessageId));
       }
     } catch (error) {
       console.error('Error in send message process:', error);
+    } finally {
+      setIsSending(false);
     }
   };
 

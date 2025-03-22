@@ -1,4 +1,3 @@
-
 export interface ChatMessage {
   id: string;
   room_id: string;
@@ -10,6 +9,7 @@ export interface ChatMessage {
   username?: string;
   avatar_url?: string;
   read_by?: string[]; // Array of user IDs who read this message
+  isOptimistic?: boolean; // Flag to identify locally added messages before server confirmation
 }
 
 export interface MessageFromDB {

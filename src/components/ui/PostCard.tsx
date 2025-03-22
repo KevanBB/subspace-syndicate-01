@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Card } from '@/components/ui/card';
@@ -159,56 +158,62 @@ const PostCard: React.FC<PostCardProps> = ({
                   <img 
                     src={media[currentMediaIndex].url} 
                     alt="Post media" 
-                    className="w-full object-cover rounded-xl max-h-[500px]"
+                    className="w-full object-contain mx-auto rounded-xl max-h-[600px]"
+                    style={{
+                      aspectRatio: media[currentMediaIndex].aspectRatio || 'auto',
+                      maxWidth: '100%'
+                    }}
                   />
                 ) : media[currentMediaIndex].type === 'video' ? (
                   <video 
                     src={media[currentMediaIndex].url} 
                     controls 
-                    className="w-full object-contain rounded-xl max-h-[500px]"
+                    className="w-full mx-auto rounded-xl max-h-[600px]"
+                    style={{ maxWidth: '100%' }}
                   />
                 ) : (
                   <img 
                     src={media[currentMediaIndex].url} 
                     alt="GIF" 
-                    className="w-full object-cover rounded-xl max-h-[500px]"
+                    className="w-full object-contain mx-auto rounded-xl max-h-[600px]"
+                    style={{ maxWidth: '100%' }}
                   />
                 )}
                 
-                {/* Media Navigation */}
+                {/* Media Navigation with improved styling */}
                 {hasMultipleMedia && (
                   <>
                     <div className="absolute top-1/2 left-2 transform -translate-y-1/2 flex">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 rounded-full bg-black/60 text-white hover:bg-black/80 disabled:opacity-30"
+                        className="h-10 w-10 rounded-full bg-black/70 text-white hover:bg-black/90 disabled:opacity-30 shadow-lg"
                         onClick={goToPreviousMedia}
                         disabled={currentMediaIndex === 0}
                       >
-                        <ArrowLeft size={16} />
+                        <ArrowLeft size={20} />
                       </Button>
                     </div>
                     <div className="absolute top-1/2 right-2 transform -translate-y-1/2 flex">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 rounded-full bg-black/60 text-white hover:bg-black/80 disabled:opacity-30"
+                        className="h-10 w-10 rounded-full bg-black/70 text-white hover:bg-black/90 disabled:opacity-30 shadow-lg"
                         onClick={goToNextMedia}
                         disabled={currentMediaIndex === media.length - 1}
                       >
-                        <ArrowRight size={16} />
+                        <ArrowRight size={20} />
                       </Button>
                     </div>
-                    <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1">
+                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-1 bg-black/50 px-3 py-1.5 rounded-full">
                       {media.map((_, i) => (
                         <div 
                           key={i} 
                           className={cn(
-                            "h-1.5 rounded-full",
+                            "h-2 rounded-full transition-all duration-300",
                             i === currentMediaIndex 
-                              ? "w-6 bg-white" 
-                              : "w-1.5 bg-white/50"
+                              ? "w-8 bg-white" 
+                              : "w-2 bg-white/50"
                           )}
                         />
                       ))}
