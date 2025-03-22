@@ -106,6 +106,7 @@ declare module 'lucide-react' {
   export const AlertCircle: LucideIcon;
   export const AlertTriangle: LucideIcon;
   export const ExternalLink: LucideIcon;
+  export const Loader2: LucideIcon;
   
   // Export the icons object for dynamic imports
   export const icons: Record<string, LucideIcon>;

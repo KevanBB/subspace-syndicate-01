@@ -20,7 +20,7 @@ export interface MessageWithSender extends Message {
     username: string;
     avatar_url: string | null;
     last_active: string | null;
-  } | null;
+  };
 }
 
 export interface Conversation {

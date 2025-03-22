@@ -7,24 +7,14 @@ import { Button } from '@/components/ui/button';
 import { MessageCircle } from 'lucide-react';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
-import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { Message } from '@/types/messages';
+import { Message, MessageWithSender } from '@/types/messages';
 
 const PUBLIC_CHANNEL_ID = 'public-chat';
 
 interface PublicChatProps {
   className?: string;
-}
-
-// Add a proper MessageWithSender type to fix the typechecking issues
-interface MessageWithSender extends Message {
-  sender: {
-    username: string;
-    avatar_url: string | null;
-    last_active: string | null;
-  } | null;
 }
 
 const PublicChat: React.FC<PublicChatProps> = ({ className }) => {
@@ -70,7 +60,11 @@ const PublicChat: React.FC<PublicChatProps> = ({ className }) => {
 
             return {
               ...message,
-              sender: senderData || null
+              sender: senderData || { 
+                username: 'Unknown User', 
+                avatar_url: null, 
+                last_active: null 
+              }
             } as MessageWithSender;
           })
         );
@@ -109,8 +103,12 @@ const PublicChat: React.FC<PublicChatProps> = ({ className }) => {
             .single();
 
           const newMessage: MessageWithSender = {
-            ...payload.new,
-            sender: senderData || null
+            ...payload.new as Message,
+            sender: senderData || { 
+              username: 'Unknown User', 
+              avatar_url: null, 
+              last_active: null 
+            }
           };
 
           setMessages(prev => [...prev, newMessage]);
