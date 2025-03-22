@@ -1,14 +1,15 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Heart, MessageCircle, Share, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
-import ReactMarkdown from 'react-markdown';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Lightbox } from '@/components/ui/lightbox';
 import { formatTextWithHashtags } from '@/utils/hashtags';
+import VideoPlayer from '@/components/video/VideoPlayer';
 
 type PostItemProps = {
   post: {
@@ -113,24 +114,24 @@ const PostItem: React.FC<PostItemProps> = ({ post }) => {
         </div>
         
         {mediaUrls.length > 0 && (
-          <div 
-            className="mt-3 rounded-md overflow-hidden relative cursor-pointer"
-            onClick={openLightbox}
-          >
+          <div className="mt-3 rounded-md overflow-hidden relative">
             {mediaTypes[currentMediaIndex] === 'image' && (
-              <img 
-                src={mediaUrls[currentMediaIndex]} 
-                alt="Post media" 
-                className="w-full object-contain max-h-[500px]"
-              />
+              <div 
+                className="cursor-pointer"
+                onClick={openLightbox}
+              >
+                <img 
+                  src={mediaUrls[currentMediaIndex]} 
+                  alt="Post media" 
+                  className="w-full object-contain max-h-[500px]"
+                />
+              </div>
             )}
             
             {mediaTypes[currentMediaIndex] === 'video' && (
-              <video 
-                src={mediaUrls[currentMediaIndex]} 
-                controls
-                className="w-full object-contain max-h-[500px]"
-                onClick={(e) => e.stopPropagation()} // Prevent lightbox when clicking video controls
+              <VideoPlayer 
+                videoUrl={mediaUrls[currentMediaIndex]} 
+                title={`${username}'s video`}
               />
             )}
             
@@ -139,7 +140,7 @@ const PostItem: React.FC<PostItemProps> = ({ post }) => {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 z-10"
                   onClick={(e) => {
                     e.stopPropagation();
                     prevMedia();
@@ -151,7 +152,7 @@ const PostItem: React.FC<PostItemProps> = ({ post }) => {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 z-10"
                   onClick={(e) => {
                     e.stopPropagation();
                     nextMedia();
@@ -160,7 +161,7 @@ const PostItem: React.FC<PostItemProps> = ({ post }) => {
                 >
                   <ChevronRight size={20} />
                 </Button>
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2">
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10">
                   <div className="flex gap-1">
                     {mediaUrls.map((_, index) => (
                       <div 
