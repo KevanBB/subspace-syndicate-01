@@ -21,22 +21,24 @@ import { Upload, X } from 'lucide-react';
 interface ProfileData {
   id: string;
   username: string;
-  bio: string;
-  avatar_url: string;
+  bio: string | null;
+  avatar_url: string | null;
   bdsm_role: string;
-  location: string;
-  birthday: string;
-  orientation: string;
-  created_at: string;
-  last_active: string;
-  visibility: string;
-  media_visibility: string;
-  allow_messages: boolean;
-  username_normalized: string;
-  looking_for: string;
-  kinks: string;
-  soft_limits: string;
-  hard_limits: string;
+  location: string | null;
+  birthday: string | null;
+  orientation: string | null;
+  created_at: string | null;
+  last_active: string | null;
+  visibility: string | null;
+  media_visibility: string | null;
+  allow_messages: boolean | null;
+  username_normalized?: string;
+  looking_for?: string;
+  kinks?: string;
+  soft_limits?: string;
+  hard_limits?: string;
+  user_role?: string;
+  show_online_status?: boolean;
 }
 
 const ProfileSettings = () => {
@@ -80,17 +82,25 @@ const ProfileSettings = () => {
       if (error) throw error;
       
       if (data) {
-        setProfileData(data);
-        setUsername(data.username || '');
-        setBio(data.bio || '');
-        setLocation(data.location || '');
-        setOrientation(data.orientation || '');
-        setVisibility(data.visibility || 'public');
-        setBdsmRole(data.bdsm_role || '');
-        setLookingFor(data.looking_for || '');
-        setKinks(data.kinks || '');
-        setSoftLimits(data.soft_limits || '');
-        setHardLimits(data.hard_limits || '');
+        const safeData: ProfileData = {
+          ...data,
+          looking_for: data.looking_for || '',
+          kinks: data.kinks || '',
+          soft_limits: data.soft_limits || '',
+          hard_limits: data.hard_limits || '',
+        };
+        
+        setProfileData(safeData);
+        setUsername(safeData.username || '');
+        setBio(safeData.bio || '');
+        setLocation(safeData.location || '');
+        setOrientation(safeData.orientation || '');
+        setVisibility(safeData.visibility || 'public');
+        setBdsmRole(safeData.bdsm_role || '');
+        setLookingFor(safeData.looking_for || '');
+        setKinks(safeData.kinks || '');
+        setSoftLimits(safeData.soft_limits || '');
+        setHardLimits(safeData.hard_limits || '');
       }
     } catch (error: any) {
       console.error('Error fetching profile:', error.message);

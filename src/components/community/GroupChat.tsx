@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Send, Users, X, Image, Play, Paperclip, Loader2, XCircle } from 'lucide-react';
+import { Send, Users, X, Image, Play, Loader2, XCircle as CircleX, Paperclip as Clip } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,16 @@ interface ChatMessage {
   avatar_url?: string;
 }
 
+interface MessageFromDB {
+  id: string;
+  content: string;
+  sender_id?: string;
+  conversation_id?: string;
+  created_at: string;
+  read?: boolean;
+  updated_at?: string;
+}
+
 interface GroupChatProps {
   isOpen?: boolean;
   onClose?: () => void;
@@ -44,14 +54,13 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const COMMUNITY_ROOM_ID = 'community_room'; // Fixed room ID for the community
+  const COMMUNITY_ROOM_ID = 'community_room';
 
   useEffect(() => {
     if (isOpen) {
       fetchMessages();
       fetchOnlineUsers();
       
-      // Set up real-time listener for new messages
       const messageSubscription = supabase
         .channel('public:messages')
         .on('postgres_changes', 
@@ -62,7 +71,6 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
             filter: `room_id=eq.${COMMUNITY_ROOM_ID}`
           }, 
           async (payload) => {
-            // Fetch the user data for this message
             const { data: userData } = await supabase
               .from('profiles')
               .select('username, avatar_url')
@@ -80,7 +88,6 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
         )
         .subscribe();
         
-      // Set up real-time listener for online users
       const presenceSubscription = supabase
         .channel('online-users')
         .on('presence', { event: 'sync' }, () => {
@@ -93,7 +100,6 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
               .update({ last_active: new Date().toISOString() })
               .eq('id', user.id);
               
-            // Set presence for current user
             const channel = supabase.channel('online-users');
             channel.track({
               user_id: user.id,
@@ -109,7 +115,6 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
     }
   }, [isOpen, user]);
   
-  // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -118,18 +123,16 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
     try {
       setIsLoading(true);
       
-      // Get the last 50 messages
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .eq('room_id', COMMUNITY_ROOM_ID)
+        .eq('conversation_id', COMMUNITY_ROOM_ID)
         .order('created_at', { ascending: true })
         .limit(50);
         
       if (error) throw error;
       
-      // Get profile data for all users
-      const userIds = [...new Set(data?.map(m => m.user_id))];
+      const userIds = [...new Set(data?.map(m => m.sender_id))];
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('id, username, avatar_url')
@@ -143,14 +146,17 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
         });
       });
       
-      // Enrich messages with user data
-      const enrichedMessages = data?.map(message => {
-        const profile = profilesMap.get(message.user_id);
+      const enrichedMessages = data?.map((message: MessageFromDB) => {
+        const profile = profilesMap.get(message.sender_id);
         return {
-          ...message,
+          id: message.id,
+          room_id: message.conversation_id || COMMUNITY_ROOM_ID,
+          user_id: message.sender_id || '',
+          content: message.content,
+          created_at: message.created_at,
           username: profile?.username,
           avatar_url: profile?.avatar_url
-        };
+        } as ChatMessage;
       });
       
       setMessages(enrichedMessages || []);
@@ -163,7 +169,6 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
   
   const fetchOnlineUsers = async () => {
     try {
-      // Get all users who were active in the last 5 minutes
       const fiveMinutesAgo = new Date();
       fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
       
@@ -184,9 +189,7 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      // Check if file is an image or video
       if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
-        // Check file size (limit to 10MB)
         if (file.size <= 10 * 1024 * 1024) {
           setSelectedFile(file);
         } else {
@@ -215,21 +218,22 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
       const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
       const filePath = `community/${COMMUNITY_ROOM_ID}/${fileName}`;
       
-      // Upload file to Supabase Storage
+      const options = {
+        cacheControl: '3600',
+        upsert: false
+      };
+      
+      const progressCallback = (progress: { loaded: number; total: number }) => {
+        const percent = Math.round((progress.loaded / progress.total) * 100);
+        setUploadProgress(percent);
+      };
+      
       const { data, error } = await supabase.storage
         .from('media')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-          onUploadProgress: (progress) => {
-            const percent = Math.round((progress.loaded / progress.total) * 100);
-            setUploadProgress(percent);
-          }
-        });
+        .upload(filePath, file, options);
       
       if (error) throw error;
       
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('media')
         .getPublicUrl(filePath);
@@ -254,14 +258,12 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
       let mediaUrl = null;
       let mediaType = null;
       
-      // Upload media if selected
       if (selectedFile) {
         const uploadResult = await uploadMedia(selectedFile);
         mediaUrl = uploadResult.url;
         mediaType = uploadResult.type;
       }
       
-      // Insert message into database
       const { error } = await supabase
         .from('messages')
         .insert({
@@ -274,7 +276,6 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
         
       if (error) throw error;
       
-      // Update user activity
       await supabase
         .from('profiles')
         .update({ last_active: new Date().toISOString() })
@@ -306,7 +307,7 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
           className="absolute top-1 right-1 h-6 w-6 rounded-full bg-black/60 z-10"
           onClick={handleRemoveSelectedFile}
         >
-          <XCircle className="h-4 w-4" />
+          <CircleX className="h-4 w-4" />
         </Button>
         
         {isImage ? (
@@ -383,7 +384,6 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
             
             <CardContent className="p-0">
               <div className="flex">
-                {/* Online users sidebar */}
                 <div className="w-16 bg-black/40 p-2 max-h-96 overflow-auto">
                   <div className="flex flex-col gap-2">
                     <TooltipProvider>
@@ -412,7 +412,6 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
                   </div>
                 </div>
                 
-                {/* Chat area */}
                 <div className="flex-grow">
                   <ScrollArea className="h-96 p-4">
                     {isLoading ? (
@@ -477,10 +476,8 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
             </CardContent>
             
             <CardFooter className="p-3 border-t border-white/10 bg-black/30 flex-col">
-              {/* Media preview area */}
               {renderMediaPreview()}
               
-              {/* Upload progress */}
               {isUploading && (
                 <div className="w-full mb-2">
                   <div className="w-full h-1 bg-gray-700 rounded-full overflow-hidden">
@@ -515,7 +512,7 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isSending || isUploading || !user}
                       >
-                        <Paperclip className="h-5 w-5" />
+                        <Clip className="h-5 w-5" />
                         <input
                           ref={fileInputRef}
                           type="file"
@@ -551,4 +548,4 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
   );
 };
 
-export default GroupChat; 
+export default GroupChat;

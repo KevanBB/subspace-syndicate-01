@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type OnlineIndicatorProps = {
-  lastActive: string | null;
+  lastActive?: string | null;
   className?: string;
   showTooltip?: boolean;
 };
@@ -14,7 +14,21 @@ const OnlineIndicator: React.FC<OnlineIndicatorProps> = ({
   className,
   showTooltip = true
 }) => {
-  if (!lastActive) return null;
+  // Consider the user online if lastActive is not provided
+  if (!lastActive) {
+    // Just render a static indicator if lastActive is not provided
+    return (
+      <span 
+        className={cn(
+          "relative inline-block h-2 w-2 rounded-full bg-green-500", 
+          className
+        )} 
+        aria-label="Online"
+      >
+        <span className="absolute top-0 left-0 h-full w-full rounded-full bg-green-500 animate-ping opacity-75"></span>
+      </span>
+    );
+  }
   
   const lastActiveDate = new Date(lastActive);
   const now = new Date();

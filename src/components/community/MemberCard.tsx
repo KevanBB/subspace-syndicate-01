@@ -14,6 +14,7 @@ export interface MemberCardProps {
     role?: string;
     isOnline?: boolean;
     location?: string;
+    last_active?: string;
   };
 }
 
@@ -38,7 +39,7 @@ const MemberCard: React.FC<MemberCardProps> = ({ member }) => {
                 {member.username?.substring(0, 2).toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
-            {member.isOnline && <OnlineIndicator className="absolute -bottom-1 -right-1" />}
+            {member.isOnline && <OnlineIndicator lastActive={member.last_active} className="absolute -bottom-1 -right-1" />}
           </div>
           
           <div>
