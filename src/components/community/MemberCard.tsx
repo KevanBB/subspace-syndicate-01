@@ -27,26 +27,28 @@ const MemberCard: React.FC<MemberCardProps> = ({ member }) => {
   
   return (
     <Card 
-      className="bg-black/30 border-white/10 overflow-hidden cursor-pointer transition-all hover:shadow-lg hover:border-white/30"
+      variant="dark"
+      size="sm"
+      interactive={true}
+      elevated={true}
+      className="overflow-hidden cursor-pointer"
       onClick={goToProfile}
     >
-      <div className="p-4">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Avatar className="h-10 w-10 border border-white/10">
-              <AvatarImage src={member.avatar} />
-              <AvatarFallback className="bg-crimson text-white">
-                {member.username?.substring(0, 2).toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
-            {member.isOnline && <OnlineIndicator lastActive={member.last_active} className="absolute -bottom-1 -right-1" />}
-          </div>
-          
-          <div>
-            <div className="font-medium text-white">{member.username}</div>
-            <div className="text-xs text-white/60 flex items-center gap-1">
-              {member.role || 'Member'} {member.location && `• ${member.location}`}
-            </div>
+      <div className="flex items-center gap-3">
+        <div className="relative">
+          <Avatar className="h-10 w-10 border border-white/10">
+            <AvatarImage src={member.avatar} />
+            <AvatarFallback className="bg-crimson text-white">
+              {member.username?.substring(0, 2).toUpperCase() || 'U'}
+            </AvatarFallback>
+          </Avatar>
+          {member.isOnline && <OnlineIndicator lastActive={member.last_active} className="absolute -bottom-1 -right-1" />}
+        </div>
+        
+        <div>
+          <div className="font-medium text-white">{member.username}</div>
+          <div className="text-xs text-white/60 flex items-center gap-1">
+            {member.role || 'Member'} {member.location && `• ${member.location}`}
           </div>
         </div>
       </div>
