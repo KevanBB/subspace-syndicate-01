@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,11 +35,10 @@ interface ProfileData {
   username_normalized?: string;
   user_role?: string;
   show_online_status?: boolean;
-  // Add the missing fields to fix the TypeScript errors
-  looking_for?: string | null;
-  kinks?: string | null;
-  soft_limits?: string | null;
-  hard_limits?: string | null;
+  looking_for: string | null;
+  kinks: string | null;
+  soft_limits: string | null;
+  hard_limits: string | null;
 }
 
 const ProfileSettings = () => {
@@ -84,7 +82,6 @@ const ProfileSettings = () => {
       if (error) throw error;
       
       if (data) {
-        // Create a safe data object with defaults for missing fields
         const safeData: ProfileData = {
           ...data,
           looking_for: data.looking_for ?? '',
@@ -92,22 +89,6 @@ const ProfileSettings = () => {
           soft_limits: data.soft_limits ?? '',
           hard_limits: data.hard_limits ?? '',
         };
-        
-        // Update Supabase profiles table with these fields if they don't exist
-        if (data.looking_for === undefined || 
-            data.kinks === undefined || 
-            data.soft_limits === undefined || 
-            data.hard_limits === undefined) {
-          await supabase
-            .from('profiles')
-            .update({
-              looking_for: data.looking_for ?? '',
-              kinks: data.kinks ?? '',
-              soft_limits: data.soft_limits ?? '',
-              hard_limits: data.hard_limits ?? ''
-            })
-            .eq('id', user?.id);
-        }
         
         setProfileData(safeData);
         setUsername(safeData.username || '');
