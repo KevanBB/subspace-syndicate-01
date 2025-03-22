@@ -35,20 +35,20 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
   if (!isOpen) return null;
   
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
-      <div className="w-[90%] h-[75vh] max-h-[75vh]">
-        <Card className="bg-black/50 border-white/20 backdrop-blur-lg shadow-xl overflow-hidden h-full flex flex-col">
-          <CardHeader className="bg-black/30 border-b border-white/10 flex flex-row items-center justify-between p-3">
-            <CardTitle className="text-lg font-medium flex items-center">
-              <Users className="mr-2 h-5 w-5 text-crimson" /> 
+    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/80 backdrop-blur-sm">
+      <div className="w-full h-full max-w-[100vw] max-h-[100vh] p-2 sm:p-4 md:p-6">
+        <Card className="bg-black/60 border-white/20 backdrop-blur-lg shadow-xl overflow-hidden h-full flex flex-col">
+          <CardHeader className="bg-black/40 border-b border-white/10 flex flex-row items-center justify-between p-3">
+            <CardTitle className="text-xl font-semibold flex items-center">
+              <Users className="mr-3 h-6 w-6 text-crimson" /> 
               Community Chat
-              <span className="ml-2 text-xs px-2 py-0.5 bg-crimson text-white rounded-full">
+              <span className="ml-3 text-sm px-2.5 py-1 bg-crimson/90 text-white rounded-full">
                 {onlineUsers.length} online
               </span>
             </CardTitle>
             {onClose && (
-              <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
-                <X className="h-4 w-4" />
+              <Button variant="ghost" size="icon" onClick={onClose} className="h-10 w-10 rounded-full bg-black/30 hover:bg-black/60">
+                <X className="h-5 w-5" />
               </Button>
             )}
           </CardHeader>
@@ -69,7 +69,7 @@ const GroupChat: React.FC<GroupChatProps> = ({ isOpen = true, onClose }) => {
             </div>
           </CardContent>
           
-          <CardFooter className="p-0">
+          <CardFooter className="p-0 border-t border-white/10 bg-black/30">
             <MessageInput 
               newMessage={newMessage}
               setNewMessage={setNewMessage}

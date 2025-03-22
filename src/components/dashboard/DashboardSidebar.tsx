@@ -29,7 +29,8 @@ import {
   ChevronRight,
   Monitor,
   Upload,
-  Search
+  Search,
+  Activity
 } from 'lucide-react';
 
 const DashboardSidebar = () => {
@@ -125,6 +126,15 @@ const DashboardSidebar = () => {
               <Link to="/dashboard">
                 <LayoutDashboard />
                 <span>Dashboard</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={location.pathname === '/feed'}>
+              <Link to="/feed">
+                <Activity />
+                <span>News Feed</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

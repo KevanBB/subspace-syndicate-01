@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   BrowserRouter as Router, 
@@ -22,6 +21,7 @@ import SubSpaceTVBrowse from './pages/SubSpaceTVBrowse';
 import SubSpaceTVUpload from './pages/SubSpaceTVUpload';
 import SubSpaceTVMyContent from './pages/SubSpaceTVMyContent';
 import VideoWatchPage from './pages/VideoWatchPage';
+import NewsFeed from './pages/NewsFeed';
 
 const queryClient = new QueryClient();
 
@@ -37,6 +37,7 @@ function App() {
             <Route path="/messages" element={<Messages />} />
             <Route path="/messages/:conversationId" element={<Messages />} />
             <Route path="/community" element={<Community />} />
+            <Route path="/feed" element={<NewsFeed />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/:username" element={<ProfileView />} />

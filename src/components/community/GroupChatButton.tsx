@@ -1,7 +1,6 @@
-
-import * as React from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, X } from 'lucide-react';
+import { MessageSquare, X, Maximize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GroupChat from './GroupChat';
 import { Badge } from '@/components/ui/badge';
@@ -55,19 +54,24 @@ const GroupChatButton: React.FC<GroupChatButtonProps> = ({ onlineCount = 0 }) =>
       
       <Button 
         onClick={toggleChat}
-        className="fixed bottom-4 right-4 z-40 h-12 px-4 bg-crimson hover:bg-crimson/90"
+        className="fixed bottom-4 right-4 z-40 h-12 px-4 bg-crimson hover:bg-crimson/90 shadow-lg flex items-center gap-2"
       >
         {isOpen ? (
-          <X className="h-5 w-5 mr-2" />
+          <X className="h-5 w-5" />
         ) : (
-          <MessageSquare className="h-5 w-5 mr-2" />
+          <>
+            <MessageSquare className="h-5 w-5" />
+            <Maximize2 className="h-4 w-4" />
+          </>
         )}
-        Community Chat
+        <span className="ml-1">
+          {isOpen ? "Close Chat" : "Full Screen Chat"}
+        </span>
         {!isOpen && unreadCount > 0 && (
           <motion.div
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="ml-2"
+            className="ml-1"
           >
             <Badge variant="crimson" className="font-bold">
               {unreadCount}
