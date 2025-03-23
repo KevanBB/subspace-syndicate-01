@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ImageIcon, Loader2 } from 'lucide-react';
+import { Image, Loader2 } from 'lucide-react';
 import { HashtagInput } from './HashtagInput';
 import { MAX_HASHTAGS } from './hooks/useHashtagManager';
 
@@ -36,7 +36,7 @@ const PostToolbar: React.FC<PostToolbarProps> = ({
           onClick={handleUploadClick}
           disabled={mediaItemsCount >= maxMediaItems || isPosting}
         >
-          <ImageIcon className="h-5 w-5 mr-1" />
+          <Image className="h-5 w-5 mr-1" />
           Media
         </Button>
         
