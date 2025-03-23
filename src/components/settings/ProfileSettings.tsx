@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, ensureBucketExists } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +16,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FileUploader } from '@/components/ui/file-uploader';
 
 interface ProfileData {
   id: string;
@@ -57,6 +59,7 @@ const ProfileSettings = () => {
   const [avatarPreview, setAvatarPreview] = useState<string>('');
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string>('');
+  const [bucketError, setBucketError] = useState<string | null>(null);
   
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
@@ -120,16 +123,40 @@ const ProfileSettings = () => {
     const objectUrl = URL.createObjectURL(file);
     setAvatarPreview(objectUrl);
   };
+
+  const handleFilesSelected = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    setAvatarFile(file);
+    const objectUrl = URL.createObjectURL(file);
+    setAvatarPreview(objectUrl);
+  };
+
+  const handleBannerFilesSelected = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    setBannerFile(file);
+    const objectUrl = URL.createObjectURL(file);
+    setBannerPreview(objectUrl);
+  };
   
   const uploadAvatar = async () => {
     if (!avatarFile || !user) return;
     
     setAvatarLoading(true);
+    setBucketError(null);
     
     try {
+      // Check if avatars bucket exists
+      const bucketExists = await ensureBucketExists('avatars');
+      
+      if (!bucketExists) {
+        throw new Error("The avatars storage bucket doesn't exist. Please contact support.");
+      }
+      
       const fileExt = avatarFile.name.split('.').pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const filePath = `${fileName}`;
       
       const { error: uploadError } = await supabase.storage
         .from('avatars')
@@ -160,6 +187,10 @@ const ProfileSettings = () => {
       setAvatarFile(null);
       
     } catch (error: any) {
+      console.error('Avatar upload error:', error);
+      if (error.message.includes("bucket") || error.message.includes("storage")) {
+        setBucketError(error.message);
+      }
       toast({
         title: 'Error updating avatar',
         description: error.message,
@@ -192,21 +223,28 @@ const ProfileSettings = () => {
     if (!bannerFile || !user) return;
     
     setBannerLoading(true);
+    setBucketError(null);
     
     try {
+      // Check if avatars bucket exists
+      const bucketExists = await ensureBucketExists('avatars');
+      
+      if (!bucketExists) {
+        throw new Error("The avatars storage bucket doesn't exist. Please contact support.");
+      }
+      
       const fileExt = bannerFile.name.split('.').pop();
-      const fileName = `banner-${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `banners/${fileName}`;
+      const fileName = `banners/${user.id}-${Date.now()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, bannerFile);
+        .upload(fileName, bannerFile);
         
       if (uploadError) throw uploadError;
       
       const { data: publicUrlData } = await supabase.storage
         .from('avatars')
-        .getPublicUrl(filePath);
+        .getPublicUrl(fileName);
         
       const bannerUrl = publicUrlData.publicUrl;
       
@@ -227,6 +265,10 @@ const ProfileSettings = () => {
       setBannerFile(null);
       
     } catch (error: any) {
+      console.error('Banner upload error:', error);
+      if (error.message.includes("bucket") || error.message.includes("storage")) {
+        setBucketError(error.message);
+      }
       toast({
         title: 'Error updating banner',
         description: error.message,
@@ -302,6 +344,15 @@ const ProfileSettings = () => {
         <p className="text-gray-400 mb-6">Manage your profile information and visibility</p>
       </div>
       
+      {bucketError && (
+        <Alert variant="destructive" className="bg-red-900/30 border-red-700">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            {bucketError}
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <Card className="bg-black/30 border-white/10">
         <CardHeader>
           <CardTitle className="text-white">Profile Picture</CardTitle>
@@ -346,22 +397,18 @@ const ProfileSettings = () => {
                   </Button>
                 </>
               ) : (
-                <div>
-                  <Input
-                    id="avatar-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarChange}
-                    className="hidden"
-                  />
+                <FileUploader
+                  accept="image/*"
+                  onFilesSelected={handleFilesSelected}
+                  maxSize={5} // 5MB
+                >
                   <Button 
-                    onClick={() => document.getElementById('avatar-upload')?.click()}
                     variant="outline"
                     className="border-white/20"
                   >
                     <Upload className="mr-2 h-4 w-4" /> Change Avatar
                   </Button>
-                </div>
+                </FileUploader>
               )}
             </div>
           </div>
@@ -417,22 +464,18 @@ const ProfileSettings = () => {
                   </Button>
                 </>
               ) : (
-                <div>
-                  <Input
-                    id="banner-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleBannerChange}
-                    className="hidden"
-                  />
+                <FileUploader
+                  accept="image/*"
+                  onFilesSelected={handleBannerFilesSelected}
+                  maxSize={10} // 10MB
+                >
                   <Button 
-                    onClick={() => document.getElementById('banner-upload')?.click()}
                     variant="outline"
                     className="border-white/20"
                   >
                     <Upload className="mr-2 h-4 w-4" /> Upload Banner
                   </Button>
-                </div>
+                </FileUploader>
               )}
             </div>
           </div>
