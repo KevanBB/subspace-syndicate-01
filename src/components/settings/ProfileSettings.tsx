@@ -1,337 +1,69 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase, ensureBucketExists } from '@/integrations/supabase/client';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { toast } from '@/hooks/use-toast';
-import { Upload, X, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { FileUploader } from '@/components/ui/file-uploader';
+import { Button } from '@/components/ui/button';
+import { AlertTriangle } from 'lucide-react';
+import { useProfileData } from '@/hooks/useProfileData';
+import { useProfileMedia } from '@/hooks/useProfileMedia';
 
-interface ProfileData {
-  id: string;
-  username: string;
-  bio: string | null;
-  avatar_url: string | null;
-  banner_url: string | null;
-  bdsm_role: string;
-  location: string | null;
-  birthday: string | null;
-  orientation: string | null;
-  created_at: string | null;
-  last_active: string | null;
-  visibility: string | null;
-  media_visibility: string | null;
-  allow_messages: boolean | null;
-  username_normalized?: string;
-  user_role?: string;
-  show_online_status?: boolean;
-  looking_for: string | null;
-  kinks: string | null;
-  soft_limits: string | null;
-  hard_limits: string | null;
-}
+// Import individual section components
+import AvatarSection from './profile/AvatarSection';
+import BannerSection from './profile/BannerSection';
+import BasicInfoSection from './profile/BasicInfoSection';
+import TextAreaSection from './profile/TextAreaSection';
 
 const ProfileSettings = () => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [avatarLoading, setAvatarLoading] = useState(false);
-  const [bannerLoading, setBannerLoading] = useState(false);
-  const [profileData, setProfileData] = useState<Partial<ProfileData>>({
-    looking_for: '',
-    kinks: '',
-    soft_limits: '',
-    hard_limits: '',
-    banner_url: null,
-  });
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string>('');
-  const [bannerFile, setBannerFile] = useState<File | null>(null);
-  const [bannerPreview, setBannerPreview] = useState<string>('');
-  const [bucketError, setBucketError] = useState<string | null>(null);
   
-  const [username, setUsername] = useState('');
-  const [bio, setBio] = useState('');
-  const [location, setLocation] = useState('');
-  const [orientation, setOrientation] = useState('');
-  const [visibility, setVisibility] = useState('public');
-  const [bdsmRole, setBdsmRole] = useState('');
-  const [lookingFor, setLookingFor] = useState('');
-  const [kinks, setKinks] = useState('');
-  const [softLimits, setSoftLimits] = useState('');
-  const [hardLimits, setHardLimits] = useState('');
+  const {
+    loading,
+    profileData,
+    username,
+    setUsername,
+    bio,
+    setBio,
+    location,
+    setLocation,
+    orientation,
+    setOrientation,
+    visibility,
+    setVisibility,
+    bdsmRole,
+    setBdsmRole,
+    lookingFor,
+    setLookingFor,
+    kinks,
+    setKinks,
+    softLimits,
+    setSoftLimits,
+    hardLimits,
+    setHardLimits,
+    fetchProfileData,
+    updateProfile
+  } = useProfileData(user?.id);
+  
+  const {
+    avatarLoading,
+    bannerLoading,
+    avatarFile,
+    avatarPreview,
+    bannerFile,
+    bannerPreview,
+    bucketError,
+    handleAvatarChange,
+    handleBannerChange,
+    uploadAvatar,
+    cancelAvatarUpload,
+    uploadBanner,
+    cancelBannerUpload
+  } = useProfileMedia({ userId: user?.id });
   
   useEffect(() => {
     if (user?.id) {
       fetchProfileData();
     }
   }, [user]);
-  
-  const fetchProfileData = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user?.id)
-        .single();
-        
-      if (error) throw error;
-      
-      if (data) {
-        const safeData: ProfileData = {
-          ...data,
-          looking_for: data.looking_for ?? '',
-          kinks: data.kinks ?? '',
-          soft_limits: data.soft_limits ?? '',
-          hard_limits: data.hard_limits ?? '',
-          banner_url: data.banner_url ?? null,
-        };
-        
-        setProfileData(safeData);
-        setUsername(safeData.username || '');
-        setBio(safeData.bio || '');
-        setLocation(safeData.location || '');
-        setOrientation(safeData.orientation || '');
-        setVisibility(safeData.visibility || 'public');
-        setBdsmRole(safeData.bdsm_role || '');
-        setLookingFor(safeData.looking_for || '');
-        setKinks(safeData.kinks || '');
-        setSoftLimits(safeData.soft_limits || '');
-        setHardLimits(safeData.hard_limits || '');
-      }
-    } catch (error: any) {
-      console.error('Error fetching profile:', error.message);
-    }
-  };
-  
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    
-    const file = e.target.files[0];
-    setAvatarFile(file);
-    
-    const objectUrl = URL.createObjectURL(file);
-    setAvatarPreview(objectUrl);
-  };
-
-  const handleFilesSelected = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    const file = files[0];
-    setAvatarFile(file);
-    const objectUrl = URL.createObjectURL(file);
-    setAvatarPreview(objectUrl);
-  };
-
-  const handleBannerFilesSelected = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    const file = files[0];
-    setBannerFile(file);
-    const objectUrl = URL.createObjectURL(file);
-    setBannerPreview(objectUrl);
-  };
-  
-  const uploadAvatar = async () => {
-    if (!avatarFile || !user) return;
-    
-    setAvatarLoading(true);
-    setBucketError(null);
-    
-    try {
-      const bucketExists = await ensureBucketExists('avatars');
-      
-      if (!bucketExists) {
-        throw new Error("The avatars storage bucket doesn't exist. Please contact support.");
-      }
-      
-      const fileExt = avatarFile.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, avatarFile);
-        
-      if (uploadError) throw uploadError;
-      
-      const { data: publicUrlData } = await supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-        
-      const avatarUrl = publicUrlData.publicUrl;
-      
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: avatarUrl })
-        .eq('id', user.id);
-        
-      if (updateError) throw updateError;
-      
-      setProfileData({ ...profileData, avatar_url: avatarUrl });
-      
-      toast({
-        title: 'Avatar updated',
-        description: 'Your profile picture has been updated.',
-      });
-      
-      setAvatarFile(null);
-      
-    } catch (error: any) {
-      console.error('Avatar upload error:', error);
-      if (error.message.includes("bucket") || error.message.includes("storage")) {
-        setBucketError(error.message);
-      }
-      toast({
-        title: 'Error updating avatar',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setAvatarLoading(false);
-    }
-  };
-  
-  const cancelAvatarUpload = () => {
-    if (avatarPreview) {
-      URL.revokeObjectURL(avatarPreview);
-    }
-    setAvatarFile(null);
-    setAvatarPreview('');
-  };
-  
-  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    
-    const file = e.target.files[0];
-    setBannerFile(file);
-    
-    const objectUrl = URL.createObjectURL(file);
-    setBannerPreview(objectUrl);
-  };
-  
-  const uploadBanner = async () => {
-    if (!bannerFile || !user) return;
-    
-    setBannerLoading(true);
-    setBucketError(null);
-    
-    try {
-      const bucketExists = await ensureBucketExists('avatars');
-      
-      if (!bucketExists) {
-        throw new Error("The avatars storage bucket doesn't exist. Please contact support.");
-      }
-      
-      const fileExt = bannerFile.name.split('.').pop();
-      const fileName = `banners/${user.id}-${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, bannerFile);
-        
-      if (uploadError) throw uploadError;
-      
-      const { data: publicUrlData } = await supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
-        
-      const bannerUrl = publicUrlData.publicUrl;
-      
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ banner_url: bannerUrl })
-        .eq('id', user.id);
-        
-      if (updateError) throw updateError;
-      
-      setProfileData({ ...profileData, banner_url: bannerUrl });
-      
-      toast({
-        title: 'Banner updated',
-        description: 'Your profile banner has been updated.',
-      });
-      
-      setBannerFile(null);
-      
-    } catch (error: any) {
-      console.error('Banner upload error:', error);
-      if (error.message.includes("bucket") || error.message.includes("storage")) {
-        setBucketError(error.message);
-      }
-      toast({
-        title: 'Error updating banner',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setBannerLoading(false);
-    }
-  };
-  
-  const cancelBannerUpload = () => {
-    if (bannerPreview) {
-      URL.revokeObjectURL(bannerPreview);
-    }
-    setBannerFile(null);
-    setBannerPreview('');
-  };
-  
-  const updateProfile = async () => {
-    if (!user) return;
-    
-    setLoading(true);
-    
-    try {
-      const updates = {
-        username,
-        bio,
-        location,
-        orientation,
-        visibility,
-        bdsm_role: bdsmRole,
-        looking_for: lookingFor,
-        kinks: kinks,
-        soft_limits: softLimits,
-        hard_limits: hardLimits,
-        banner_url: profileData.banner_url,
-      };
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id);
-        
-      if (error) throw error;
-      
-      toast({
-        title: 'Profile updated',
-        description: 'Your profile has been updated successfully.',
-      });
-      
-      await fetchProfileData();
-      
-    } catch (error: any) {
-      toast({
-        title: 'Error updating profile',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const initials = username
     ? username.substring(0, 2).toUpperCase()
@@ -355,298 +87,80 @@ const ProfileSettings = () => {
         </Alert>
       )}
       
-      <Card className="bg-black/30 border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white">Profile Picture</CardTitle>
-          <CardDescription className="text-white/70">
-            This is your public profile image. It will be displayed on your profile and comments.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row items-center gap-6">
-            <div className="relative">
-              <Avatar className="w-24 h-24 border-2 border-white/20">
-                {avatarPreview ? (
-                  <AvatarImage src={avatarPreview} alt="Preview" />
-                ) : (
-                  <>
-                    <AvatarImage src={profileData.avatar_url || ""} alt={username} />
-                    <AvatarFallback className="bg-crimson text-white text-xl">
-                      {initials}
-                    </AvatarFallback>
-                  </>
-                )}
-              </Avatar>
-            </div>
-            
-            <div className="flex flex-col gap-3 sm:flex-row">
-              {avatarFile ? (
-                <>
-                  <Button 
-                    onClick={uploadAvatar}
-                    disabled={avatarLoading}
-                    className="bg-crimson hover:bg-crimson/90 text-white"
-                  >
-                    {avatarLoading ? "Uploading..." : "Save Avatar"}
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={cancelAvatarUpload}
-                    disabled={avatarLoading}
-                    className="border-white/20"
-                  >
-                    Cancel
-                  </Button>
-                </>
-              ) : (
-                <FileUploader
-                  accept="image/*"
-                  onFilesSelected={handleFilesSelected}
-                  maxSize={5} // 5MB
-                >
-                  <Button 
-                    variant="outline"
-                    className="border-white/20"
-                  >
-                    <Upload className="mr-2 h-4 w-4" /> Change Avatar
-                  </Button>
-                </FileUploader>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <AvatarSection 
+        avatarUrl={profileData.avatar_url || null}
+        username={username}
+        initials={initials}
+        avatarPreview={avatarPreview}
+        avatarFile={avatarFile}
+        avatarLoading={avatarLoading}
+        onAvatarSelect={handleAvatarChange}
+        onUploadAvatar={uploadAvatar}
+        onCancelAvatarUpload={cancelAvatarUpload}
+      />
       
-      <Card className="bg-black/30 border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white">Profile Banner</CardTitle>
-          <CardDescription className="text-white/70">
-            This is your profile header image. It will be displayed at the top of your profile page.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-6">
-            <div className="relative w-full h-48 bg-black/20 rounded-md overflow-hidden border border-white/10">
-              {bannerPreview ? (
-                <img 
-                  src={bannerPreview} 
-                  alt="Banner Preview" 
-                  className="w-full h-full object-cover"
-                />
-              ) : profileData.banner_url ? (
-                <img 
-                  src={profileData.banner_url} 
-                  alt="Profile Banner" 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-white/50">
-                  No banner image set
-                </div>
-              )}
-            </div>
-            
-            <div className="flex flex-col gap-3 sm:flex-row">
-              {bannerFile ? (
-                <>
-                  <Button 
-                    onClick={uploadBanner}
-                    disabled={bannerLoading}
-                    className="bg-crimson hover:bg-crimson/90 text-white"
-                  >
-                    {bannerLoading ? "Uploading..." : "Save Banner"}
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={cancelBannerUpload}
-                    disabled={bannerLoading}
-                    className="border-white/20"
-                  >
-                    Cancel
-                  </Button>
-                </>
-              ) : (
-                <FileUploader
-                  accept="image/*"
-                  onFilesSelected={handleBannerFilesSelected}
-                  maxSize={10} // 10MB
-                >
-                  <Button 
-                    variant="outline"
-                    className="border-white/20"
-                  >
-                    <Upload className="mr-2 h-4 w-4" /> Upload Banner
-                  </Button>
-                </FileUploader>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <BannerSection 
+        bannerUrl={profileData.banner_url || null}
+        bannerPreview={bannerPreview}
+        bannerFile={bannerFile}
+        bannerLoading={bannerLoading}
+        onBannerSelect={handleBannerChange}
+        onUploadBanner={uploadBanner}
+        onCancelBannerUpload={cancelBannerUpload}
+      />
       
-      <Card className="bg-black/30 border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white">Basic Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="bg-black/30 border-white/10"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="bg-black/30 border-white/10"
-              />
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="orientation">Orientation</Label>
-              <Select value={orientation} onValueChange={setOrientation}>
-                <SelectTrigger className="bg-black/30 border-white/10 w-full">
-                  <SelectValue placeholder="Select orientation" />
-                </SelectTrigger>
-                <SelectContent className="bg-black/95 border-white/10 text-white">
-                  <SelectItem value="hetero">Hetero</SelectItem>
-                  <SelectItem value="gay">Gay</SelectItem>
-                  <SelectItem value="lesbian">Lesbian</SelectItem>
-                  <SelectItem value="bisexual">Bisexual</SelectItem>
-                  <SelectItem value="pansexual">Pansexual</SelectItem>
-                  <SelectItem value="asexual">Asexual</SelectItem>
-                  <SelectItem value="queer">Queer</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="bdsm-role">BDSM Role</Label>
-              <Select value={bdsmRole} onValueChange={setBdsmRole}>
-                <SelectTrigger className="bg-black/30 border-white/10 w-full">
-                  <SelectValue placeholder="Select BDSM role" />
-                </SelectTrigger>
-                <SelectContent className="bg-black/95 border-white/10 text-white">
-                  <SelectItem value="dominant">Dominant</SelectItem>
-                  <SelectItem value="submissive">Submissive</SelectItem>
-                  <SelectItem value="switch">Switch</SelectItem>
-                  <SelectItem value="exploring">Exploring</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="visibility">Profile Visibility</Label>
-            <Select value={visibility} onValueChange={setVisibility}>
-              <SelectTrigger className="bg-black/30 border-white/10 w-full">
-                <SelectValue placeholder="Select visibility" />
-              </SelectTrigger>
-              <SelectContent className="bg-black/95 border-white/10 text-white">
-                <SelectItem value="public">Public</SelectItem>
-                <SelectItem value="members-only">Members Only</SelectItem>
-                <SelectItem value="private">Private</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      <BasicInfoSection 
+        username={username}
+        setUsername={setUsername}
+        location={location}
+        setLocation={setLocation}
+        orientation={orientation}
+        setOrientation={setOrientation}
+        bdsmRole={bdsmRole}
+        setBdsmRole={setBdsmRole}
+        visibility={visibility}
+        setVisibility={setVisibility}
+      />
       
-      <Card className="bg-black/30 border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white">Bio</CardTitle>
-          <CardDescription className="text-white/70">
-            Tell others about yourself
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            placeholder="Write a short bio about yourself..."
-            className="bg-black/30 border-white/10 min-h-[120px]"
-          />
-        </CardContent>
-      </Card>
+      <TextAreaSection 
+        title="Bio"
+        description="Tell others about yourself"
+        value={bio}
+        onChange={setBio}
+        placeholder="Write a short bio about yourself..."
+      />
       
-      <Card className="bg-black/30 border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white">Looking For</CardTitle>
-          <CardDescription className="text-white/70">
-            Describe what you're seeking in a connection
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            value={lookingFor}
-            onChange={(e) => setLookingFor(e.target.value)}
-            placeholder="What are you looking for on this platform?"
-            className="bg-black/30 border-white/10 min-h-[100px]"
-          />
-        </CardContent>
-      </Card>
+      <TextAreaSection 
+        title="Looking For"
+        description="Describe what you're seeking in a connection"
+        value={lookingFor}
+        onChange={setLookingFor}
+        placeholder="What are you looking for on this platform?"
+      />
       
-      <Card className="bg-black/30 border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white">Kinks/Fetishes</CardTitle>
-          <CardDescription className="text-white/70">
-            List your interests, kinks, and fetishes
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            value={kinks}
-            onChange={(e) => setKinks(e.target.value)}
-            placeholder="List your kinks and fetishes..."
-            className="bg-black/30 border-white/10 min-h-[100px]"
-          />
-        </CardContent>
-      </Card>
+      <TextAreaSection 
+        title="Kinks/Fetishes"
+        description="List your interests, kinks, and fetishes"
+        value={kinks}
+        onChange={setKinks}
+        placeholder="List your kinks and fetishes..."
+      />
       
-      <Card className="bg-black/30 border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white">Soft Limits</CardTitle>
-          <CardDescription className="text-white/70">
-            Activities you may consider under specific circumstances
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            value={softLimits}
-            onChange={(e) => setSoftLimits(e.target.value)}
-            placeholder="List your soft limits..."
-            className="bg-black/30 border-white/10 min-h-[100px]"
-          />
-        </CardContent>
-      </Card>
+      <TextAreaSection 
+        title="Soft Limits"
+        description="Activities you may consider under specific circumstances"
+        value={softLimits}
+        onChange={setSoftLimits}
+        placeholder="List your soft limits..."
+      />
       
-      <Card className="bg-black/30 border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white">Hard Limits</CardTitle>
-          <CardDescription className="text-white/70">
-            Activities you absolutely will not engage in
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            value={hardLimits}
-            onChange={(e) => setHardLimits(e.target.value)}
-            placeholder="List your hard limits..."
-            className="bg-black/30 border-white/10 min-h-[100px]"
-          />
-        </CardContent>
-      </Card>
+      <TextAreaSection 
+        title="Hard Limits"
+        description="Activities you absolutely will not engage in"
+        value={hardLimits}
+        onChange={setHardLimits}
+        placeholder="List your hard limits..."
+      />
       
       <div className="flex justify-end">
         <Button 
