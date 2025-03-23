@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,7 +32,7 @@ import { format } from 'date-fns';
 const getStatusVariant = (status: string) => {
   switch (status) {
     case 'approved':
-      return 'success';
+      return 'default';
     case 'rejected':
       return 'destructive';
     case 'pending':

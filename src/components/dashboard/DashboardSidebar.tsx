@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,7 +31,7 @@ import {
   Upload,
   Search,
   TrendingUp,
-  ShieldAlert
+  Shield
 } from 'lucide-react';
 
 const DashboardSidebar = () => {
@@ -229,7 +228,7 @@ const DashboardSidebar = () => {
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={location.pathname === '/admin'}>
                 <Link to="/admin">
-                  <ShieldAlert />
+                  <Shield />
                   <span>Admin</span>
                 </Link>
               </SidebarMenuButton>
