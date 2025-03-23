@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { supabase, ensureBucketExists } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 interface UseProfileMediaProps {
@@ -43,25 +43,19 @@ export const useProfileMedia = ({ userId }: UseProfileMediaProps) => {
     setBucketError(null);
     
     try {
-      const bucketExists = await ensureBucketExists('avatars');
-      
-      if (!bucketExists) {
-        throw new Error("The avatars storage bucket doesn't exist. Please contact support.");
-      }
-      
+      // Using the media bucket instead of avatars
       const fileExt = avatarFile.name.split('.').pop();
-      const fileName = `${userId}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      const fileName = `avatars/${userId}-${Date.now()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, avatarFile);
+        .from('media')
+        .upload(fileName, avatarFile);
         
       if (uploadError) throw uploadError;
       
       const { data: publicUrlData } = await supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
+        .from('media')
+        .getPublicUrl(fileName);
         
       const avatarUrl = publicUrlData.publicUrl;
       
@@ -112,23 +106,18 @@ export const useProfileMedia = ({ userId }: UseProfileMediaProps) => {
     setBucketError(null);
     
     try {
-      const bucketExists = await ensureBucketExists('avatars');
-      
-      if (!bucketExists) {
-        throw new Error("The avatars storage bucket doesn't exist. Please contact support.");
-      }
-      
+      // Using the media bucket instead of avatars
       const fileExt = bannerFile.name.split('.').pop();
       const fileName = `banners/${userId}-${Date.now()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
-        .from('avatars')
+        .from('media')
         .upload(fileName, bannerFile);
         
       if (uploadError) throw uploadError;
       
       const { data: publicUrlData } = await supabase.storage
-        .from('avatars')
+        .from('media')
         .getPublicUrl(fileName);
         
       const bannerUrl = publicUrlData.publicUrl;

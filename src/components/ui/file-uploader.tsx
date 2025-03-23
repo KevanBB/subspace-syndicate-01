@@ -73,7 +73,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
   const childrenWithProps = children 
     ? React.Children.map(children, child => {
         if (React.isValidElement(child)) {
-          return React.cloneElement(child, { 
+          return React.cloneElement(child as React.ReactElement<any>, { 
             onClick: (e: React.MouseEvent) => {
               e.preventDefault();
               handleButtonClick();
