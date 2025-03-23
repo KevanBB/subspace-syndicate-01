@@ -77,6 +77,7 @@ const MessageView: React.FC<MessageViewProps> = ({
           filter: `conversation_id=eq.${conversation.id}`
         }, 
         (payload) => {
+          // Check if message is already in state before adding it
           if (!messages.some(msg => msg.id === payload.new.id)) {
             const fetchSenderInfo = async () => {
               const { data } = await supabase
@@ -96,7 +97,22 @@ const MessageView: React.FC<MessageViewProps> = ({
                 sender: data || null
               };
               
-              setMessages(prev => [...prev, newMsg]);
+              // Remove any optimistic versions of this message first
+              setMessages(prev => {
+                // First filter out any temporary optimistic messages from this sender with similar content
+                const filteredMessages = prev.filter(m => 
+                  !(m.id.startsWith('temp-') && 
+                    m.sender_id === payload.new.sender_id && 
+                    m.content === payload.new.content)
+                );
+                
+                // Then add the new message if it's not already in the list
+                if (!filteredMessages.some(m => m.id === newMsg.id)) {
+                  return [...filteredMessages, newMsg];
+                }
+                
+                return filteredMessages;
+              });
               
               if (payload.new.sender_id !== currentUserId) {
                 markMessageAsRead(payload.new.id);
@@ -269,7 +285,8 @@ const MessageView: React.FC<MessageViewProps> = ({
       
       handleTypingStatus(false);
       
-      const tempId = crypto.randomUUID();
+      // Create a unique temporary ID with a timestamp to better identify this message
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
       const optimisticMessage: MessageWithSender = {
         id: tempId,
@@ -282,6 +299,7 @@ const MessageView: React.FC<MessageViewProps> = ({
         sender: currentUserProfile
       };
       
+      // Add the optimistic message to the UI
       setMessages(prev => [...prev, optimisticMessage]);
       
       const { data, error } = await supabase
@@ -295,6 +313,9 @@ const MessageView: React.FC<MessageViewProps> = ({
         
       if (error) throw error;
       
+      // No need to update messages state here, the realtime subscription will handle it
+      // and remove the optimistic message
+      
       await supabase
         .from('conversations')
         .update({ updated_at: new Date().toISOString() })
@@ -307,6 +328,9 @@ const MessageView: React.FC<MessageViewProps> = ({
         description: error.message,
         variant: 'destructive',
       });
+      
+      // If there's an error, remove the optimistic message
+      setMessages(prev => prev.filter(msg => !msg.id.startsWith('temp-')));
     } finally {
       setIsSending(false);
     }

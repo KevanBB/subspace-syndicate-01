@@ -47,8 +47,11 @@ const RealtimeSubscriptions: React.FC<RealtimeSubscriptionsProps> = ({
           table: 'messages'
         },
         (payload) => {
-          // If the message belongs to one of our conversations, update the conversation list
-          if (conversations.some(c => c.id === payload.new.conversation_id)) {
+          // Check if the message belongs to one of our conversations before updating
+          const belongsToUserConversation = conversations.some(c => c.id === payload.new.conversation_id);
+          
+          if (belongsToUserConversation) {
+            // Debounce multiple messages coming in at once
             onFetchConversations();
             
             // If the new message is for our currently selected conversation and from the other user,
