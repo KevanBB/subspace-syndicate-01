@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, ensureBucketExists } from '@/integrations/supabase/client';
@@ -305,6 +306,7 @@ const ProfileSettings = () => {
         kinks: kinks,
         soft_limits: softLimits,
         hard_limits: hardLimits,
+        banner_url: profileData.banner_url,
       };
       
       const { error } = await supabase
