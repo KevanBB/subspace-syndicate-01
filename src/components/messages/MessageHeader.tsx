@@ -1,11 +1,13 @@
-
-import React from 'react';
-import { Conversation } from '@/types/messages';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ChevronLeft, Trash2 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import OnlineIndicator from '@/components/community/OnlineIndicator';
+import { MoreVertical, ArrowLeft, Trash2 } from 'lucide-react';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,99 +17,127 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog';
+import OnlineIndicator from '@/components/community/OnlineIndicator';
+import { ConversationParticipant } from '@/types/messages';
 
 interface MessageHeaderProps {
-  conversation: Conversation;
-  currentUserId: string;
+  otherParticipant: ConversationParticipant | null;
   onBack: () => void;
   onDeleteConversation: () => void;
   isDeleting: boolean;
 }
 
-const MessageHeader: React.FC<MessageHeaderProps> = ({ 
-  conversation, 
-  currentUserId,
-  onBack, 
+const MessageHeader: React.FC<MessageHeaderProps> = ({
+  otherParticipant,
+  onBack,
   onDeleteConversation,
   isDeleting
 }) => {
-  const otherParticipant = conversation.participants?.find(p => p.user_id !== currentUserId);
-  const username = otherParticipant?.profile?.username || 'User';
-  const avatarUrl = otherParticipant?.profile?.avatar_url;
-  const lastActive = otherParticipant?.profile?.last_active;
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  
+  // If we can't find the other participant, show a fallback
+  if (!otherParticipant?.profile) {
+    return (
+      <div className="p-4 border-b border-white/10 bg-black/30 flex items-center">
+        <Button variant="ghost" size="icon" onClick={onBack} className="mr-2">
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div className="text-lg font-medium">Unknown User</div>
+      </div>
+    );
+  }
+  
+  const username = otherParticipant.profile.username;
+  const avatarUrl = otherParticipant.profile.avatar_url;
+  const lastActive = otherParticipant.profile.last_active;
   const initials = username.substring(0, 2).toUpperCase();
-
+  
   return (
-    <div className="p-4 border-b border-white/10 flex items-center gap-3">
-      <Button 
-        variant="ghost" 
-        size="icon"
-        onClick={onBack}
-        className="md:hidden"
-      >
-        <ChevronLeft className="h-5 w-5" />
-      </Button>
-      
-      <div className="relative">
-        <Avatar className="h-10 w-10">
-          <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={username} />
-          <AvatarFallback className="bg-crimson text-white">{initials}</AvatarFallback>
-        </Avatar>
-        
-        {lastActive && (
-          <OnlineIndicator 
-            lastActive={lastActive} 
-            className="absolute -bottom-1 -right-1 border-2 border-gray-900" 
-          />
-        )}
-      </div>
-      
-      <div className="flex-1">
-        <h3 className="font-medium text-white">{username}</h3>
-        {lastActive && (
-          <p className="text-xs text-white/60">
-            {new Date(lastActive).getTime() > Date.now() - 5 * 60 * 1000
-              ? 'Online now'
-              : `Last active ${formatDistanceToNow(new Date(lastActive), { addSuffix: true })}`}
-          </p>
-        )}
-      </div>
-      
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="text-white/70 hover:text-white hover:bg-red-500/20"
-          >
-            <Trash2 className="h-5 w-5" />
+    <>
+      <div className="p-3 border-b border-white/10 bg-black/30 flex justify-between items-center">
+        <div className="flex items-center">
+          <Button variant="ghost" size="icon" onClick={onBack} className="mr-2 md:hidden">
+            <ArrowLeft className="h-5 w-5" />
           </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent className="bg-gray-900 border-white/10 text-white">
+          
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Avatar className="h-9 w-9">
+                <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={username} />
+                <AvatarFallback className="bg-crimson text-white">{initials}</AvatarFallback>
+              </Avatar>
+              {lastActive && (
+                <OnlineIndicator 
+                  lastActive={lastActive} 
+                  className="absolute -bottom-1 -right-1 border-2 border-gray-900 h-3 w-3" 
+                />
+              )}
+            </div>
+            
+            <div>
+              <h2 className="font-medium text-white">{username}</h2>
+              {lastActive && <OnlineStatus lastActive={lastActive} />}
+            </div>
+          </div>
+        </div>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreVertical className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-gray-900 border-white/10">
+            <DropdownMenuItem 
+              className="text-red-500 cursor-pointer" 
+              onClick={() => setShowDeleteAlert(true)}
+              disabled={isDeleting}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete Conversation
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      
+      <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+        <AlertDialogContent className="bg-gray-900 border-white/10">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
+            <AlertDialogTitle className="text-white">Delete Conversation?</AlertDialogTitle>
             <AlertDialogDescription className="text-white/70">
-              Are you sure you want to delete this conversation? This action cannot be undone.
+              This will permanently delete the entire conversation history. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-gray-800 text-white border-white/10 hover:bg-gray-700">
+            <AlertDialogCancel className="border-white/10 bg-gray-800 text-white">
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
               onClick={onDeleteConversation}
               disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700 text-white"
             >
-              {isDeleting ? 'Deleting...' : 'Delete'}
+              {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
+};
+
+// Helper component to display online status
+const OnlineStatus: React.FC<{ lastActive: string }> = ({ lastActive }) => {
+  const lastActiveDate = new Date(lastActive);
+  const now = new Date();
+  const diffMinutes = Math.floor((now.getTime() - lastActiveDate.getTime()) / (1000 * 60));
+  
+  if (diffMinutes < 5) {
+    return <span className="text-xs text-green-500">Online now</span>;
+  }
+  
+  return null;
 };
 
 export default MessageHeader;

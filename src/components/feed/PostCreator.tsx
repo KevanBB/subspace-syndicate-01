@@ -168,28 +168,29 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
       const uploadedMedia: PostMedia[] = [];
       
       if (mediaItems.length > 0) {
-        const { error: bucketError } = await supabase.storage.createBucket('post-media', {
+        const { error: bucketError } = await supabase.storage.createBucket('post_media', {
           public: true,
           fileSizeLimit: 52428800, // 50MB
         });
         
         if (bucketError && bucketError.message !== 'Bucket already exists') {
           console.error('Error creating bucket:', bucketError);
+          throw new Error("Storage is not available. Please try again later.");
         }
         
         for (const item of mediaItems) {
           if (item.file) {
             const fileName = `${user?.id}/${uuidv4()}-${item.file.name}`;
-            const filePath = `media/${fileName}`;
+            const filePath = `${user?.id}/${fileName}`;
             
             const { data, error: uploadError } = await supabase.storage
-              .from('post-media')
+              .from('post_media')
               .upload(filePath, item.file);
               
             if (uploadError) throw uploadError;
             
             const { data: urlData } = supabase.storage
-              .from('post-media')
+              .from('post_media')
               .getPublicUrl(filePath);
               
             uploadedMedia.push({

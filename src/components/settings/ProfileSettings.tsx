@@ -23,6 +23,7 @@ interface ProfileData {
   username: string;
   bio: string | null;
   avatar_url: string | null;
+  banner_url: string | null;
   bdsm_role: string;
   location: string | null;
   birthday: string | null;
@@ -45,6 +46,7 @@ const ProfileSettings = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
+  const [bannerLoading, setBannerLoading] = useState(false);
   const [profileData, setProfileData] = useState<Partial<ProfileData>>({
     looking_for: '',
     kinks: '',
@@ -53,6 +55,8 @@ const ProfileSettings = () => {
   });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string>('');
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string>('');
   
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
@@ -174,6 +178,73 @@ const ProfileSettings = () => {
     setAvatarPreview('');
   };
   
+  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    
+    const file = e.target.files[0];
+    setBannerFile(file);
+    
+    const objectUrl = URL.createObjectURL(file);
+    setBannerPreview(objectUrl);
+  };
+  
+  const uploadBanner = async () => {
+    if (!bannerFile || !user) return;
+    
+    setBannerLoading(true);
+    
+    try {
+      const fileExt = bannerFile.name.split('.').pop();
+      const fileName = `banner-${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `banners/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, bannerFile);
+        
+      if (uploadError) throw uploadError;
+      
+      const { data: publicUrlData } = await supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+        
+      const bannerUrl = publicUrlData.publicUrl;
+      
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ banner_url: bannerUrl })
+        .eq('id', user.id);
+        
+      if (updateError) throw updateError;
+      
+      setProfileData({ ...profileData, banner_url: bannerUrl });
+      
+      toast({
+        title: 'Banner updated',
+        description: 'Your profile banner has been updated.',
+      });
+      
+      setBannerFile(null);
+      
+    } catch (error: any) {
+      toast({
+        title: 'Error updating banner',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setBannerLoading(false);
+    }
+  };
+  
+  const cancelBannerUpload = () => {
+    if (bannerPreview) {
+      URL.revokeObjectURL(bannerPreview);
+    }
+    setBannerFile(null);
+    setBannerPreview('');
+  };
+  
   const updateProfile = async () => {
     if (!user) return;
     
@@ -289,6 +360,77 @@ const ProfileSettings = () => {
                     className="border-white/20"
                   >
                     <Upload className="mr-2 h-4 w-4" /> Change Avatar
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <Card className="bg-black/30 border-white/10">
+        <CardHeader>
+          <CardTitle className="text-white">Profile Banner</CardTitle>
+          <CardDescription className="text-white/70">
+            This is your profile header image. It will be displayed at the top of your profile page.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-6">
+            <div className="relative w-full h-48 bg-black/20 rounded-md overflow-hidden border border-white/10">
+              {bannerPreview ? (
+                <img 
+                  src={bannerPreview} 
+                  alt="Banner Preview" 
+                  className="w-full h-full object-cover"
+                />
+              ) : profileData.banner_url ? (
+                <img 
+                  src={profileData.banner_url} 
+                  alt="Profile Banner" 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-white/50">
+                  No banner image set
+                </div>
+              )}
+            </div>
+            
+            <div className="flex flex-col gap-3 sm:flex-row">
+              {bannerFile ? (
+                <>
+                  <Button 
+                    onClick={uploadBanner}
+                    disabled={bannerLoading}
+                    className="bg-crimson hover:bg-crimson/90 text-white"
+                  >
+                    {bannerLoading ? "Uploading..." : "Save Banner"}
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={cancelBannerUpload}
+                    disabled={bannerLoading}
+                    className="border-white/20"
+                  >
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <div>
+                  <Input
+                    id="banner-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBannerChange}
+                    className="hidden"
+                  />
+                  <Button 
+                    onClick={() => document.getElementById('banner-upload')?.click()}
+                    variant="outline"
+                    className="border-white/20"
+                  >
+                    <Upload className="mr-2 h-4 w-4" /> Upload Banner
                   </Button>
                 </div>
               )}

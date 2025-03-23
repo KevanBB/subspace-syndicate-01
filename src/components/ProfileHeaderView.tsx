@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +14,7 @@ const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({ profile }) => {
   const orientation = profile?.orientation || '';
   const location = profile?.location || '';
   const avatarUrl = profile?.avatar_url || '';
+  const bannerUrl = profile?.banner_url;
   const bdsmRole = profile?.bdsm_role || 'Exploring';
   const profileId = profile?.id || '';
   
@@ -33,9 +33,15 @@ const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({ profile }) => {
     <div className="relative">
       {/* Banner Image */}
       <div className="relative w-full h-48 md:h-64 bg-gradient-to-r from-gray-800 to-abyss rounded-b-lg overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center" 
-             style={{ backgroundImage: "url('/placeholder.svg')" }}>
-        </div>
+        {bannerUrl ? (
+          <div className="absolute inset-0 bg-cover bg-center" 
+               style={{ backgroundImage: `url('${bannerUrl}')` }}>
+          </div>
+        ) : (
+          <div className="absolute inset-0 bg-cover bg-center" 
+               style={{ backgroundImage: "url('/placeholder.svg')" }}>
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
       </div>
       

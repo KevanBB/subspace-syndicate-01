@@ -1,4 +1,3 @@
-
 export interface Conversation {
   id: string;
   created_at: string;
@@ -32,4 +31,11 @@ export interface Message {
     avatar_url?: string;
     last_active?: string;
   };
+}
+
+export interface TypingStatus {
+  userId: string;
+  username: string;
+  isTyping: boolean;
+  timestamp: string;
 }

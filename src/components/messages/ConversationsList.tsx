@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { Conversation } from '@/types/messages';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
 import OnlineIndicator from '@/components/community/OnlineIndicator';
+import { Badge } from '@/components/ui/badge';
 
 interface ConversationsListProps {
   conversations: Conversation[];
@@ -44,7 +44,7 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
   };
 
   return (
-    <div className="overflow-y-auto max-h-[calc(80vh-64px)]">
+    <div className="divide-y divide-white/5">
       {conversations.map(conversation => {
         const otherParticipant = getOtherParticipant(conversation);
         
@@ -60,11 +60,14 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
         const lastMessageTime = conversation.lastMessage?.created_at 
           ? formatDistanceToNow(new Date(conversation.lastMessage.created_at), { addSuffix: true })
           : '';
+        const isUnread = conversation.lastMessage && 
+          !conversation.lastMessage.read && 
+          conversation.lastMessage.sender_id !== currentUserId;
 
         return (
           <div
             key={conversation.id}
-            className={`p-3 hover:bg-white/5 cursor-pointer border-b border-white/5 transition-colors ${
+            className={`p-4 hover:bg-white/5 cursor-pointer transition-colors ${
               isSelected ? 'bg-white/10' : ''
             }`}
             onClick={() => onSelectConversation(conversation)}
@@ -85,12 +88,21 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
               
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-center">
-                  <p className="font-medium text-white truncate">{username}</p>
+                  <p className={`font-medium ${isUnread ? 'text-white' : 'text-white/90'} truncate`}>
+                    {username}
+                  </p>
                   {lastMessageTime && (
                     <span className="text-xs text-white/50">{lastMessageTime}</span>
                   )}
                 </div>
-                <p className="text-sm text-white/70 truncate">{lastMessageText}</p>
+                <div className="flex items-center gap-2">
+                  <p className={`text-sm ${isUnread ? 'text-white font-medium' : 'text-white/70'} truncate`}>
+                    {lastMessageText}
+                  </p>
+                  {isUnread && (
+                    <div className="h-2 w-2 rounded-full bg-crimson"></div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

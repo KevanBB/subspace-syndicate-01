@@ -1,69 +1,173 @@
-# Welcome to your Lovable project
+# SubSpace Syndicate
 
-## Project info
+A feature-rich social networking platform designed for community building, content sharing, and interaction.
 
-**URL**: https://lovable.dev/projects/7d9f9519-8a41-4e0b-b3ae-13f85f92fa57
+## Project Overview
 
-## How can I edit this code?
+SubSpace Syndicate is a comprehensive social networking platform built with modern web technologies. The application includes features for user profiles, content sharing, messaging, video streaming, and community interaction.
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend**: React, TypeScript, Vite
+- **Styling**: Tailwind CSS, shadcn/ui components
+- **State Management**: React Context API, TanStack Query
+- **Authentication**: Supabase Auth
+- **Database**: Prisma with Supabase
+- **Routing**: React Router
+- **UI Enhancements**: Framer Motion, Lucide icons
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/7d9f9519-8a41-4e0b-b3ae-13f85f92fa57) and start prompting.
+## Features
 
-Changes made via Lovable will be committed automatically to this repo.
+### Authentication
+- User registration and login via Supabase
+- Protected routes and authenticated layouts
+- Persistent login sessions
 
-**Use your preferred IDE**
+### User Profiles
+- Customizable user profiles
+- Profile photos and bio information
+- Profile viewing for other users
+- BDSM role specification
+- Profile tabs for different content types
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Dashboard
+- Personalized feed with content from connections
+- Trending content tab
+- Video content tab
+- Active users display
+- Post creation and viewing
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Content Creation and Sharing
+- Post creation with text
+- Interactive post lists
+- Social interactions (likes, comments)
+- Hashtag support and searching
+- Content categorization
 
-Follow these steps:
+### SubSpace TV
+- Video upload functionality
+- Video browsing interface
+- Personal content management
+- Video watching experience
+
+### Messaging System
+- Private messaging between users
+- Conversation history
+- Real-time chat capabilities
+- Conversation management
+
+### Community Features
+- Community posts and discussions
+- Community interaction
+- Hashtag-based content discovery
+
+### News Feed
+- Customized content feed
+- Content filtering options
+- Recent activity display
+
+### Creator Program
+- Creator application process
+- Identity verification
+- Tax and payment information management
+- Creator profiles with specializations
+- Legal agreements and documentation
+
+## Components
+
+### Layout Components
+- `AuthenticatedLayout`: Base layout for authenticated pages with sidebar
+- `DashboardSidebar`: Navigation sidebar for the dashboard
+- `Navbar`: Main navigation bar
+- `Footer`: Site footer with links and information
+
+### Authentication Components
+- Auth forms for login and registration
+- Password reset functionality
+
+### Feed Components
+- Post creation forms
+- Post lists and individual post displays
+- Interaction elements (likes, comments)
+
+### Profile Components
+- `ProfileHeader`: User profile information display
+- `ProfileTabs`: Tab navigation for different profile sections
+- `UserProfile`: User profile components
+
+### Video Components
+- Video player
+- Video upload interface
+- Video browsing components
+
+### Community Components
+- Community posts and interactions
+- Trending topics
+
+### UI Components
+- Custom UI components built on shadcn/ui
+- Modal dialogs
+- Tooltips and popovers
+- Form elements
+- Navigation menus
+- Notification components
+
+### Utility Components
+- Loading indicators
+- Error displays
+- Empty state placeholders
+
+## Routes
+- `/`: Landing page
+- `/auth`: Authentication page
+- `/dashboard`: User dashboard
+- `/messages`: Messaging interface
+- `/messages/:conversationId`: Specific conversation
+- `/community`: Community page
+- `/feed`: News feed
+- `/settings`: User settings
+- `/profile`: Current user profile
+- `/profile/:username`: Other user profiles
+- `/hashtag/:tag`: Hashtag search results
+- `/subspacetv`: Video browsing
+- `/subspacetv/upload`: Video uploads
+- `/subspacetv/my-content`: User's video content
+- `/subspacetv/watch/:id`: Video watching
+
+## Models/Database Schema
+- `CreatorApplication`: Creator program applications
+- `Identity`: User identity verification
+- `TaxInfo`: Creator tax information
+- `PaymentInfo`: Payment processing details
+- `CreatorProfile`: Public creator profile information
+- `Agreement`: Legal agreements
+
+## Setup and Installation
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Clone the repository
+git clone <repository-url>
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Navigate to the project directory
+cd subspace-syndicate-01
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Development
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+The project is built with Vite for fast development and optimized production builds. It uses TypeScript for type safety and includes ESLint for code quality.
 
-**Use GitHub Codespaces**
+## Deployment
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+The project can be deployed using the standard Vite build process:
 
-## What technologies are used for this project?
+```sh
+npm run build
+```
 
-This project is built with .
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/7d9f9519-8a41-4e0b-b3ae-13f85f92fa57) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+This will generate optimized production files in the `dist` directory that can be deployed to any static hosting service.

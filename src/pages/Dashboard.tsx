@@ -3,7 +3,6 @@ import { Card } from '@/components/ui/card';
 import PostForm from '@/components/profile/PostForm';
 import PostsList from '@/components/profile/PostsList';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
-import VideoPlayer from '@/components/video/VideoPlayer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VideoIcon, MessageSquare, Flame, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,13 +11,6 @@ import { useAuth } from '@/contexts/AuthContext';
 const Dashboard = () => {
   const { user } = useAuth();
   const [activeUsers, setActiveUsers] = useState<any[]>([]);
-  
-  // Sample videos for demonstration - in a real app these would come from the database
-  const featuredVideos = [
-    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
-  ];
   
   // Fetch active users
   useEffect(() => {
@@ -118,23 +110,6 @@ const Dashboard = () => {
         
         {/* Sidebar area */}
         <div className="md:col-span-4 space-y-6">
-          {/* Featured Video Player with enhanced styling */}
-          <Card className="bg-black/30 border-white/10 backdrop-blur-md p-5 shadow-xl shadow-crimson/5 rounded-xl">
-            <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
-              <VideoIcon className="mr-2 h-5 w-5 text-crimson" />
-              Featured Videos
-            </h2>
-            <div className="rounded-lg overflow-hidden">
-              <VideoPlayer 
-                videoUrl={featuredVideos} 
-                title="Featured Content"
-              />
-            </div>
-            <p className="text-xs text-white/50 mt-2 text-center">
-              Swipe or use arrows to navigate between videos
-            </p>
-          </Card>
-          
           {/* Online Users with improved styling */}
           <Card className="bg-black/30 border-white/10 backdrop-blur-md p-5 shadow-xl shadow-crimson/5 rounded-xl">
             <h2 className="text-xl font-semibold text-white mb-4 flex items-center">

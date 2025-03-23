@@ -1,11 +1,12 @@
-
-import React, { useState, useEffect } from 'react';
-import { Conversation, Message } from '@/types/messages';
+import React, { useState, useEffect, useRef } from 'react';
+import { Conversation, Message, TypingStatus } from '@/types/messages';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import MessageHeader from './MessageHeader';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
+import { CheckCheck } from 'lucide-react';
+import TypingIndicator from './TypingIndicator';
 
 interface MessageViewProps {
   conversation: Conversation;
@@ -37,6 +38,8 @@ const MessageView: React.FC<MessageViewProps> = ({
     avatar_url?: string;
     last_active?: string;
   } | null>(null);
+  const [typingStatus, setTypingStatus] = useState<TypingStatus | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fetch current user profile on component mount
   useEffect(() => {
@@ -65,7 +68,7 @@ const MessageView: React.FC<MessageViewProps> = ({
     fetchMessages();
     
     // Set up real-time subscription for new messages
-    const channel = supabase
+    const messageChannel = supabase
       .channel(`messages-${conversation.id}`)
       .on('postgres_changes', 
         { 
@@ -97,6 +100,11 @@ const MessageView: React.FC<MessageViewProps> = ({
               };
               
               setMessages(prev => [...prev, newMsg]);
+              
+              // If the message is from someone else, mark it as read immediately
+              if (payload.new.sender_id !== currentUserId) {
+                markMessageAsRead(payload.new.id);
+              }
             };
             
             fetchSenderInfo();
@@ -105,10 +113,61 @@ const MessageView: React.FC<MessageViewProps> = ({
       )
       .subscribe();
       
+    // Set up real-time subscription for typing status
+    const typingChannel = supabase
+      .channel(`typing-${conversation.id}`)
+      .on('broadcast', { event: 'typing' }, (payload) => {
+        if (payload.payload.userId !== currentUserId) {
+          setTypingStatus({
+            userId: payload.payload.userId,
+            isTyping: payload.payload.isTyping,
+            username: payload.payload.username
+          });
+          
+          // Clear typing status after 3 seconds if no updates
+          if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+          }
+          
+          if (payload.payload.isTyping) {
+            typingTimeoutRef.current = setTimeout(() => {
+              setTypingStatus(null);
+            }, 3000);
+          }
+        }
+      })
+      .subscribe();
+      
+    // Set up real-time subscription for read receipts
+    const readChannel = supabase
+      .channel(`read-${conversation.id}`)
+      .on('postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversation.id} AND read=eq.true`
+        },
+        (payload) => {
+          setMessages(prev => 
+            prev.map(msg => 
+              msg.id === payload.new.id ? { ...msg, read: true } : msg
+            )
+          );
+        }
+      )
+      .subscribe();
+      
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(messageChannel);
+      supabase.removeChannel(typingChannel);
+      supabase.removeChannel(readChannel);
+      
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
     };
-  }, [conversation.id]);
+  }, [conversation.id, currentUserId, messages]);
 
   const fetchMessages = async () => {
     try {
@@ -160,11 +219,7 @@ const MessageView: React.FC<MessageViewProps> = ({
         
         if (unreadMessages.length > 0) {
           const unreadIds = unreadMessages.map(msg => msg.id);
-          
-          await supabase
-            .from('messages')
-            .update({ read: true })
-            .in('id', unreadIds);
+          markMessagesAsRead(unreadIds);
         }
       }
     } catch (error: any) {
@@ -179,9 +234,42 @@ const MessageView: React.FC<MessageViewProps> = ({
     }
   };
 
+  const markMessageAsRead = async (messageId: string) => {
+    await supabase
+      .from('messages')
+      .update({ read: true })
+      .eq('id', messageId);
+  };
+
+  const markMessagesAsRead = async (messageIds: string[]) => {
+    await supabase
+      .from('messages')
+      .update({ read: true })
+      .in('id', messageIds);
+  };
+
+  const handleTypingStatus = (isTyping: boolean) => {
+    if (!currentUserProfile) return;
+    
+    supabase
+      .channel(`typing-${conversation.id}`)
+      .send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: {
+          userId: currentUserId,
+          isTyping,
+          username: currentUserProfile.username
+        }
+      });
+  };
+
   const handleSendMessage = async (messageContent: string) => {
     try {
       setIsSending(true);
+      
+      // Clear typing status
+      handleTypingStatus(false);
       
       // Create a temporary message ID for optimistic update
       const tempId = crypto.randomUUID();
@@ -251,7 +339,7 @@ const MessageView: React.FC<MessageViewProps> = ({
         
       if (participantsError) throw participantsError;
       
-      // 3. Delete the conversation itself
+      // 3. Finally, delete the conversation itself
       const { error: conversationError } = await supabase
         .from('conversations')
         .delete()
@@ -259,18 +347,18 @@ const MessageView: React.FC<MessageViewProps> = ({
         
       if (conversationError) throw conversationError;
       
-      toast({
-        title: "Conversation deleted",
-        description: "The conversation has been successfully deleted.",
-      });
-      
-      // Call the callback to notify parent component
+      // Notify parent component
       if (onConversationDeleted) {
         onConversationDeleted();
       }
       
-      // Go back to conversation list
+      // Go back to the messages list
       onBack();
+      
+      toast({
+        title: 'Conversation deleted',
+        description: 'The conversation has been successfully deleted',
+      });
     } catch (error: any) {
       console.error('Error deleting conversation:', error);
       toast({
@@ -282,28 +370,60 @@ const MessageView: React.FC<MessageViewProps> = ({
       setIsDeleting(false);
     }
   };
+  
+  // Get the other participant (not the current user)
+  const getOtherParticipant = () => {
+    if (!conversation.participants || conversation.participants.length !== 2) return null;
+    return conversation.participants.find(p => p.user_id !== currentUserId);
+  };
 
+  // Find the latest sent message by the current user
+  const getLatestSentMessage = () => {
+    const userMessages = messages.filter(msg => msg.sender_id === currentUserId);
+    if (userMessages.length === 0) return null;
+    return userMessages[userMessages.length - 1];
+  };
+
+  const otherParticipant = getOtherParticipant();
+  const latestSentMessage = getLatestSentMessage();
+  
   return (
-    <>
-      <MessageHeader 
-        conversation={conversation}
-        currentUserId={currentUserId}
+    <div className="flex flex-col h-full">
+      <MessageHeader
+        otherParticipant={otherParticipant}
         onBack={onBack}
         onDeleteConversation={handleDeleteConversation}
         isDeleting={isDeleting}
       />
       
-      <MessageList 
-        messages={messages}
-        currentUserId={currentUserId}
-        isLoading={isLoading}
-      />
+      <div className="flex-1 overflow-y-auto bg-black/20">
+        <MessageList
+          messages={messages}
+          currentUserId={currentUserId}
+          isLoading={isLoading}
+        />
+        
+        {/* Typing indicator */}
+        {typingStatus?.isTyping && (
+          <TypingIndicator username={typingStatus.username} />
+        )}
+        
+        {/* Read receipts */}
+        {latestSentMessage && latestSentMessage.read && (
+          <div className="flex items-center justify-end px-4 pb-1">
+            <span className="text-xs text-white/60 flex items-center gap-1">
+              <CheckCheck className="h-3 w-3" /> Read
+            </span>
+          </div>
+        )}
+      </div>
       
-      <MessageInput 
+      <MessageInput
         onSendMessage={handleSendMessage}
         isSending={isSending}
+        onTypingChange={handleTypingStatus}
       />
-    </>
+    </div>
   );
 };
 
