@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, ensureBucketExists } from '@/integrations/supabase/client';
@@ -96,6 +97,7 @@ const ProfileSettings = () => {
           kinks: data.kinks ?? '',
           soft_limits: data.soft_limits ?? '',
           hard_limits: data.hard_limits ?? '',
+          banner_url: data.banner_url ?? null,
         };
         
         setProfileData(safeData);
@@ -660,4 +662,3 @@ const ProfileSettings = () => {
 };
 
 export default ProfileSettings;
-
