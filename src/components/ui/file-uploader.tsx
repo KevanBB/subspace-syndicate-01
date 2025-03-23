@@ -64,8 +64,29 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
   };
 
   const handleButtonClick = () => {
-    inputRef.current?.click();
+    if (inputRef.current) {
+      inputRef.current.click();
+    }
   };
+
+  // Create a cloned version of children with the proper onClick handler
+  const childrenWithProps = children 
+    ? React.Children.map(children, child => {
+        if (React.isValidElement(child)) {
+          return React.cloneElement(child, { 
+            onClick: (e: React.MouseEvent) => {
+              e.preventDefault();
+              handleButtonClick();
+              // Preserve original onClick if it exists
+              if (child.props.onClick) {
+                child.props.onClick(e);
+              }
+            }
+          });
+        }
+        return child;
+      })
+    : null;
 
   return (
     <div 
@@ -81,7 +102,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
         onChange={handleFileInputChange}
       />
       
-      {children || (
+      {childrenWithProps || (
         <div 
           className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
             dragActive 
