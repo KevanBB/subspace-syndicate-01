@@ -66,7 +66,7 @@ const RealtimeSubscriptions: React.FC<RealtimeSubscriptionsProps> = ({
       supabase.removeChannel(conversationsChannel);
       supabase.removeChannel(messagesChannel);
     };
-  }, [userId, conversations, selectedConversation]);
+  }, [userId, conversations, selectedConversation, onFetchConversations, onUpdateSelectedConversation]);
 
   return null; // This component doesn't render anything
 };

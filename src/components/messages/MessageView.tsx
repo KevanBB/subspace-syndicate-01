@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Conversation, Message, TypingStatus } from '@/types/messages';
 import { supabase } from '@/integrations/supabase/client';
@@ -139,7 +140,7 @@ const MessageView: React.FC<MessageViewProps> = ({
           event: 'UPDATE',
           schema: 'public',
           table: 'messages',
-          filter: `conversation_id=eq.${conversation.id} AND read=eq.true`
+          filter: `conversation_id=eq.${conversation.id}`
         },
         (payload) => {
           setMessages(prev => 
@@ -160,7 +161,7 @@ const MessageView: React.FC<MessageViewProps> = ({
         clearTimeout(typingTimeoutRef.current);
       }
     };
-  }, [conversation.id, currentUserId, messages]);
+  }, [conversation.id, currentUserId]);
 
   const fetchMessages = async () => {
     try {
@@ -222,17 +223,27 @@ const MessageView: React.FC<MessageViewProps> = ({
   };
 
   const markMessageAsRead = async (messageId: string) => {
-    await supabase
-      .from('messages')
-      .update({ read: true })
-      .eq('id', messageId);
+    try {
+      await supabase
+        .from('messages')
+        .update({ read: true })
+        .eq('id', messageId);
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+    }
   };
 
   const markMessagesAsRead = async (messageIds: string[]) => {
-    await supabase
-      .from('messages')
-      .update({ read: true })
-      .in('id', messageIds);
+    if (!messageIds.length) return;
+    
+    try {
+      await supabase
+        .from('messages')
+        .update({ read: true })
+        .in('id', messageIds);
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+    }
   };
 
   const handleTypingStatus = (isTyping: boolean) => {
