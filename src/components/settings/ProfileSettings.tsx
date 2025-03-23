@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, ensureBucketExists } from '@/integrations/supabase/client';
@@ -149,7 +148,6 @@ const ProfileSettings = () => {
     setBucketError(null);
     
     try {
-      // Check if avatars bucket exists
       const bucketExists = await ensureBucketExists('avatars');
       
       if (!bucketExists) {
@@ -228,7 +226,6 @@ const ProfileSettings = () => {
     setBucketError(null);
     
     try {
-      // Check if avatars bucket exists
       const bucketExists = await ensureBucketExists('avatars');
       
       if (!bucketExists) {
@@ -663,3 +660,4 @@ const ProfileSettings = () => {
 };
 
 export default ProfileSettings;
+
