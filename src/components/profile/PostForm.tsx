@@ -1,11 +1,10 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, ensureBucketExists } from '@/integrations/supabase/client';
 import { 
   Image, 
   Smile, 
@@ -61,25 +60,20 @@ const PostForm: React.FC = () => {
       }
     };
     
-    // Create or check bucket existence
-    const ensureStorageBucket = async () => {
+    const checkStorageBucket = async () => {
       try {
-        const { error } = await supabase.storage.createBucket('post_media', {
-          public: true,
-          fileSizeLimit: 52428800, // 50MB
-        });
-        
-        if (error && error.message !== 'Bucket already exists') {
-          console.error('Error creating bucket:', error);
-          setBucketError(error.message);
+        const bucketExists = await ensureBucketExists('post_media');
+        if (!bucketExists) {
+          setBucketError('Media storage is not available. Please try again later or contact support.');
         }
       } catch (error) {
-        console.error('Error ensuring bucket exists:', error);
+        console.error('Error checking bucket exists:', error);
+        setBucketError('Error connecting to storage. Please try again later.');
       }
     };
     
     fetchUserAvatar();
-    ensureStorageBucket();
+    checkStorageBucket();
   }, [user]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -191,16 +185,10 @@ const PostForm: React.FC = () => {
       let mediaTypes: string[] = [];
 
       if (mediaFiles.length > 0) {
-        // Ensure bucket exists
-        const { error: bucketError } = await supabase.storage.createBucket('post_media', {
-          public: true,
-          fileSizeLimit: 52428800, // 50MB
-        });
+        const bucketExists = await ensureBucketExists('post_media');
         
-        // Only throw if it's not "bucket already exists" error
-        if (bucketError && bucketError.message !== 'Bucket already exists') {
-          console.error('Error creating bucket:', bucketError);
-          throw new Error("Failed to access storage. Please try again later.");
+        if (!bucketExists) {
+          throw new Error("Media storage is not available. Please try again later or contact support.");
         }
 
         const uploadPromises = mediaFiles.map(async (file) => {

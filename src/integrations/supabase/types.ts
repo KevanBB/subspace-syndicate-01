@@ -9,6 +9,44 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      agreements: {
+        Row: {
+          agrees_to_all_docs: boolean
+          application_id: string
+          created_at: string
+          id: string
+          signature: string
+          signature_date: string
+          updated_at: string
+        }
+        Insert: {
+          agrees_to_all_docs: boolean
+          application_id: string
+          created_at?: string
+          id?: string
+          signature: string
+          signature_date: string
+          updated_at?: string
+        }
+        Update: {
+          agrees_to_all_docs?: boolean
+          application_id?: string
+          created_at?: string
+          id?: string
+          signature?: string
+          signature_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agreements_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "creator_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           content: string
@@ -134,6 +172,80 @@ export type Database = {
         }
         Relationships: []
       }
+      creator_applications: {
+        Row: {
+          agrees_to_terms: boolean
+          created_at: string
+          date_submitted: string
+          id: string
+          is_over_18: boolean
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agrees_to_terms: boolean
+          created_at?: string
+          date_submitted: string
+          id?: string
+          is_over_18: boolean
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agrees_to_terms?: boolean
+          created_at?: string
+          date_submitted?: string
+          id?: string
+          is_over_18?: boolean
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      creator_profiles: {
+        Row: {
+          application_id: string
+          bio: string
+          content_categories: string[]
+          created_at: string
+          display_name: string
+          id: string
+          profile_photo_url: string
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          bio: string
+          content_categories: string[]
+          created_at?: string
+          display_name: string
+          id?: string
+          profile_photo_url: string
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          bio?: string
+          content_categories?: string[]
+          created_at?: string
+          display_name?: string
+          id?: string
+          profile_photo_url?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_profiles_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "creator_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hashtag_notification_preferences: {
         Row: {
           created_at: string | null
@@ -154,6 +266,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      identities: {
+        Row: {
+          application_id: string
+          country_of_residence: string
+          created_at: string
+          date_of_birth: string
+          full_name: string
+          government_id_back_url: string
+          government_id_front_url: string
+          id: string
+          selfie_url: string
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          country_of_residence: string
+          created_at?: string
+          date_of_birth: string
+          full_name: string
+          government_id_back_url: string
+          government_id_front_url: string
+          id?: string
+          selfie_url: string
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          country_of_residence?: string
+          created_at?: string
+          date_of_birth?: string
+          full_name?: string
+          government_id_back_url?: string
+          government_id_front_url?: string
+          id?: string
+          selfie_url?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "identities_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "creator_applications"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       messages: {
         Row: {
@@ -219,6 +378,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      payment_infos: {
+        Row: {
+          application_id: string
+          created_at: string
+          id: string
+          payout_currency: string
+          payout_schedule: string
+          stripe_connect_id: string
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          id?: string
+          payout_currency: string
+          payout_schedule: string
+          stripe_connect_id: string
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          id?: string
+          payout_currency?: string
+          payout_schedule?: string
+          stripe_connect_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_infos_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "creator_applications"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       post_hashtags: {
         Row: {
@@ -360,6 +557,7 @@ export type Database = {
           created_at: string | null
           hard_limits: string | null
           id: string
+          is_admin: boolean
           kinks: string | null
           last_active: string | null
           location: string | null
@@ -382,6 +580,7 @@ export type Database = {
           created_at?: string | null
           hard_limits?: string | null
           id: string
+          is_admin?: boolean
           kinks?: string | null
           last_active?: string | null
           location?: string | null
@@ -404,6 +603,7 @@ export type Database = {
           created_at?: string | null
           hard_limits?: string | null
           id?: string
+          is_admin?: boolean
           kinks?: string | null
           last_active?: string | null
           location?: string | null
@@ -417,6 +617,53 @@ export type Database = {
           visibility?: string | null
         }
         Relationships: []
+      }
+      tax_infos: {
+        Row: {
+          application_id: string
+          business_name: string | null
+          created_at: string
+          id: string
+          is_us_citizen: boolean
+          tax_address: string
+          tax_classification: string
+          tax_country: string
+          tax_id: string
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          business_name?: string | null
+          created_at?: string
+          id?: string
+          is_us_citizen: boolean
+          tax_address: string
+          tax_classification: string
+          tax_country: string
+          tax_id: string
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          business_name?: string | null
+          created_at?: string
+          id?: string
+          is_us_citizen?: boolean
+          tax_address?: string
+          tax_classification?: string
+          tax_country?: string
+          tax_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_infos_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "creator_applications"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       videos: {
         Row: {
@@ -501,6 +748,12 @@ export type Database = {
           user_id: string
         }
         Returns: string[]
+      }
+      is_admin: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
       }
       is_conversation_participant: {
         Args: {

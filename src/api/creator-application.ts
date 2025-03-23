@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 interface FileUploadUrls {
@@ -42,18 +43,25 @@ interface CreatorApplicationResult {
 
 export async function submitCreatorApplication(formData: FormData): Promise<CreatorApplicationResult> {
   try {
+    // Get the current user's ID
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    
     // Upload files to storage
-    const fileUploads = await uploadFiles(formData);
+    const fileUploads = await uploadFiles(formData, user.id);
     
     // Create the main application record
     const { data: application, error: applicationError } = await supabase
       .from('creator_applications')
       .insert({
-        user_id: supabase.auth.getUser().id,
+        user_id: user.id,
         status: 'pending',
         is_over_18: formData.isOver18,
         agrees_to_terms: formData.agreesToTerms,
-        date_submitted: new Date().toISOString(),
+        date_submitted: new Date(formData.dateSubmitted).toISOString(),
       })
       .select()
       .single();
@@ -66,7 +74,7 @@ export async function submitCreatorApplication(formData: FormData): Promise<Crea
       .insert({
         application_id: application.id,
         full_name: formData.fullName,
-        date_of_birth: formData.dateOfBirth,
+        date_of_birth: new Date(formData.dateOfBirth).toISOString(),
         country_of_residence: formData.countryOfResidence,
         government_id_front_url: fileUploads.governmentIdFrontUrl,
         government_id_back_url: fileUploads.governmentIdBackUrl,
@@ -95,7 +103,7 @@ export async function submitCreatorApplication(formData: FormData): Promise<Crea
       .from('payment_infos')
       .insert({
         application_id: application.id,
-        stripe_connect_id: 'placeholder-id', // Replace with actual Stripe Connect ID
+        stripe_connect_id: formData.stripeConnected ? 'connected' : 'not-connected',
         payout_currency: formData.payoutCurrency,
         payout_schedule: formData.payoutSchedule,
       });
@@ -134,7 +142,7 @@ export async function submitCreatorApplication(formData: FormData): Promise<Crea
   }
 }
 
-async function uploadFiles(formData: FormData): Promise<FileUploadUrls> {
+async function uploadFiles(formData: FormData, userId: string): Promise<FileUploadUrls> {
   const urls: FileUploadUrls = {
     governmentIdFrontUrl: '',
     governmentIdBackUrl: '',
@@ -148,12 +156,18 @@ async function uploadFiles(formData: FormData): Promise<FileUploadUrls> {
       const { data: frontData, error: frontError } = await supabase.storage
         .from('creator-verification')
         .upload(
-          `government-ids/${supabase.auth.getUser().id}/front-${Date.now()}`,
+          `${userId}/government-ids/front-${Date.now()}`,
           formData.governmentIdFront
         );
       
       if (frontError) throw frontError;
-      urls.governmentIdFrontUrl = frontData.path;
+      
+      // Get the public URL
+      const { data: frontUrlData } = supabase.storage
+        .from('creator-verification')
+        .getPublicUrl(frontData.path);
+      
+      urls.governmentIdFrontUrl = frontUrlData.publicUrl;
     }
     
     // Upload government ID back
@@ -161,12 +175,18 @@ async function uploadFiles(formData: FormData): Promise<FileUploadUrls> {
       const { data: backData, error: backError } = await supabase.storage
         .from('creator-verification')
         .upload(
-          `government-ids/${supabase.auth.getUser().id}/back-${Date.now()}`,
+          `${userId}/government-ids/back-${Date.now()}`,
           formData.governmentIdBack
         );
       
       if (backError) throw backError;
-      urls.governmentIdBackUrl = backData.path;
+      
+      // Get the public URL
+      const { data: backUrlData } = supabase.storage
+        .from('creator-verification')
+        .getPublicUrl(backData.path);
+      
+      urls.governmentIdBackUrl = backUrlData.publicUrl;
     }
     
     // Upload selfie
@@ -174,12 +194,18 @@ async function uploadFiles(formData: FormData): Promise<FileUploadUrls> {
       const { data: selfieData, error: selfieError } = await supabase.storage
         .from('creator-verification')
         .upload(
-          `selfies/${supabase.auth.getUser().id}/selfie-${Date.now()}`,
+          `${userId}/selfies/selfie-${Date.now()}`,
           formData.selfie
         );
       
       if (selfieError) throw selfieError;
-      urls.selfieUrl = selfieData.path;
+      
+      // Get the public URL
+      const { data: selfieUrlData } = supabase.storage
+        .from('creator-verification')
+        .getPublicUrl(selfieData.path);
+      
+      urls.selfieUrl = selfieUrlData.publicUrl;
     }
     
     // Upload profile photo
@@ -187,12 +213,18 @@ async function uploadFiles(formData: FormData): Promise<FileUploadUrls> {
       const { data: photoData, error: photoError } = await supabase.storage
         .from('creator-profiles')
         .upload(
-          `photos/${supabase.auth.getUser().id}/profile-${Date.now()}`,
+          `${userId}/profile-${Date.now()}`,
           formData.profilePhoto
         );
       
       if (photoError) throw photoError;
-      urls.profilePhotoUrl = photoData.path;
+      
+      // Get the public URL
+      const { data: photoUrlData } = supabase.storage
+        .from('creator-profiles')
+        .getPublicUrl(photoData.path);
+      
+      urls.profilePhotoUrl = photoUrlData.publicUrl;
     }
     
     return urls;
@@ -200,4 +232,4 @@ async function uploadFiles(formData: FormData): Promise<FileUploadUrls> {
     console.error('Error uploading files:', error);
     throw error;
   }
-} 
+}

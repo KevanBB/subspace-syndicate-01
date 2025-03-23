@@ -16,3 +16,18 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
   }
 });
+
+// Helper function to check if bucket exists - avoids permission errors
+export const ensureBucketExists = async (bucketName: string): Promise<boolean> => {
+  try {
+    const { data: buckets } = await supabase.storage.listBuckets();
+    const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
+    
+    // If bucket doesn't exist, we don't try to create it on the client side
+    // as this would require admin privileges
+    return !!bucketExists;
+  } catch (error) {
+    console.error(`Error checking if bucket ${bucketName} exists:`, error);
+    return false;
+  }
+};
