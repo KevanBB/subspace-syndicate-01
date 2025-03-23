@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MoreVertical, ArrowLeft, Trash2 } from 'lucide-react';
+import { MoreHorizontal, ArrowLeft, Trash2 } from 'lucide-react';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -85,7 +86,7 @@ const MessageHeader: React.FC<MessageHeaderProps> = ({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon">
-              <MoreVertical className="h-5 w-5" />
+              <MoreHorizontal className="h-5 w-5" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="bg-gray-900 border-white/10">

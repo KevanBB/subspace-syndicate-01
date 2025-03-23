@@ -5,7 +5,7 @@ import { toast } from '@/hooks/use-toast';
 import MessageHeader from './MessageHeader';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
-import { CheckCheck } from 'lucide-react';
+import { Check } from 'lucide-react';
 import TypingIndicator from './TypingIndicator';
 
 interface MessageViewProps {
@@ -41,7 +41,6 @@ const MessageView: React.FC<MessageViewProps> = ({
   const [typingStatus, setTypingStatus] = useState<TypingStatus | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Fetch current user profile on component mount
   useEffect(() => {
     const fetchCurrentUserProfile = async () => {
       if (!currentUserId) return;
@@ -67,7 +66,6 @@ const MessageView: React.FC<MessageViewProps> = ({
   useEffect(() => {
     fetchMessages();
     
-    // Set up real-time subscription for new messages
     const messageChannel = supabase
       .channel(`messages-${conversation.id}`)
       .on('postgres_changes', 
@@ -78,9 +76,7 @@ const MessageView: React.FC<MessageViewProps> = ({
           filter: `conversation_id=eq.${conversation.id}`
         }, 
         (payload) => {
-          // Only add the message if it's not already in the list (avoid duplicates from optimistic updates)
           if (!messages.some(msg => msg.id === payload.new.id)) {
-            // Fetch the sender info to attach to the message
             const fetchSenderInfo = async () => {
               const { data } = await supabase
                 .from('profiles')
@@ -101,7 +97,6 @@ const MessageView: React.FC<MessageViewProps> = ({
               
               setMessages(prev => [...prev, newMsg]);
               
-              // If the message is from someone else, mark it as read immediately
               if (payload.new.sender_id !== currentUserId) {
                 markMessageAsRead(payload.new.id);
               }
@@ -113,7 +108,6 @@ const MessageView: React.FC<MessageViewProps> = ({
       )
       .subscribe();
       
-    // Set up real-time subscription for typing status
     const typingChannel = supabase
       .channel(`typing-${conversation.id}`)
       .on('broadcast', { event: 'typing' }, (payload) => {
@@ -121,10 +115,10 @@ const MessageView: React.FC<MessageViewProps> = ({
           setTypingStatus({
             userId: payload.payload.userId,
             isTyping: payload.payload.isTyping,
-            username: payload.payload.username
+            username: payload.payload.username,
+            timestamp: payload.payload.timestamp || new Date().toISOString()
           });
           
-          // Clear typing status after 3 seconds if no updates
           if (typingTimeoutRef.current) {
             clearTimeout(typingTimeoutRef.current);
           }
@@ -138,7 +132,6 @@ const MessageView: React.FC<MessageViewProps> = ({
       })
       .subscribe();
       
-    // Set up real-time subscription for read receipts
     const readChannel = supabase
       .channel(`read-${conversation.id}`)
       .on('postgres_changes',
@@ -173,7 +166,6 @@ const MessageView: React.FC<MessageViewProps> = ({
     try {
       setIsLoading(true);
       
-      // Fetch messages first
       const { data: messagesData, error: messagesError } = await supabase
         .from('messages')
         .select('*')
@@ -188,10 +180,8 @@ const MessageView: React.FC<MessageViewProps> = ({
         return;
       }
       
-      // Extract unique sender IDs
       const senderIds = [...new Set(messagesData.map(msg => msg.sender_id))];
       
-      // Fetch sender profiles in a single query
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, username, avatar_url')
@@ -199,13 +189,11 @@ const MessageView: React.FC<MessageViewProps> = ({
         
       if (profilesError) throw profilesError;
       
-      // Create a map of profiles by ID for easy lookup
       const profilesMap = new Map();
       profilesData?.forEach(profile => {
         profilesMap.set(profile.id, profile);
       });
       
-      // Combine messages with sender information
       const messagesWithSenders: MessageWithSender[] = messagesData.map(msg => ({
         ...msg,
         sender: profilesMap.get(msg.sender_id) || null
@@ -213,7 +201,6 @@ const MessageView: React.FC<MessageViewProps> = ({
       
       setMessages(messagesWithSenders);
       
-      // Mark unread messages as read
       if (messagesWithSenders.length > 0) {
         const unreadMessages = messagesWithSenders.filter(msg => !msg.read && msg.sender_id !== currentUserId);
         
@@ -259,7 +246,8 @@ const MessageView: React.FC<MessageViewProps> = ({
         payload: {
           userId: currentUserId,
           isTyping,
-          username: currentUserProfile.username
+          username: currentUserProfile.username,
+          timestamp: new Date().toISOString()
         }
       });
   };
@@ -268,13 +256,10 @@ const MessageView: React.FC<MessageViewProps> = ({
     try {
       setIsSending(true);
       
-      // Clear typing status
       handleTypingStatus(false);
       
-      // Create a temporary message ID for optimistic update
       const tempId = crypto.randomUUID();
       
-      // Add optimistic message
       const optimisticMessage: MessageWithSender = {
         id: tempId,
         conversation_id: conversation.id,
@@ -286,10 +271,8 @@ const MessageView: React.FC<MessageViewProps> = ({
         sender: currentUserProfile
       };
       
-      // Add message to state immediately (optimistic update)
       setMessages(prev => [...prev, optimisticMessage]);
       
-      // Send to server
       const { data, error } = await supabase
         .from('messages')
         .insert({
@@ -301,7 +284,6 @@ const MessageView: React.FC<MessageViewProps> = ({
         
       if (error) throw error;
       
-      // Update the conversation's updated_at timestamp
       await supabase
         .from('conversations')
         .update({ updated_at: new Date().toISOString() })
@@ -323,7 +305,6 @@ const MessageView: React.FC<MessageViewProps> = ({
     try {
       setIsDeleting(true);
       
-      // 1. Delete all messages in the conversation
       const { error: messagesError } = await supabase
         .from('messages')
         .delete()
@@ -331,7 +312,6 @@ const MessageView: React.FC<MessageViewProps> = ({
         
       if (messagesError) throw messagesError;
       
-      // 2. Delete all conversation participants
       const { error: participantsError } = await supabase
         .from('conversation_participants')
         .delete()
@@ -339,7 +319,6 @@ const MessageView: React.FC<MessageViewProps> = ({
         
       if (participantsError) throw participantsError;
       
-      // 3. Finally, delete the conversation itself
       const { error: conversationError } = await supabase
         .from('conversations')
         .delete()
@@ -347,12 +326,10 @@ const MessageView: React.FC<MessageViewProps> = ({
         
       if (conversationError) throw conversationError;
       
-      // Notify parent component
       if (onConversationDeleted) {
         onConversationDeleted();
       }
       
-      // Go back to the messages list
       onBack();
       
       toast({
@@ -370,14 +347,12 @@ const MessageView: React.FC<MessageViewProps> = ({
       setIsDeleting(false);
     }
   };
-  
-  // Get the other participant (not the current user)
+
   const getOtherParticipant = () => {
     if (!conversation.participants || conversation.participants.length !== 2) return null;
     return conversation.participants.find(p => p.user_id !== currentUserId);
   };
 
-  // Find the latest sent message by the current user
   const getLatestSentMessage = () => {
     const userMessages = messages.filter(msg => msg.sender_id === currentUserId);
     if (userMessages.length === 0) return null;
@@ -403,16 +378,14 @@ const MessageView: React.FC<MessageViewProps> = ({
           isLoading={isLoading}
         />
         
-        {/* Typing indicator */}
         {typingStatus?.isTyping && (
           <TypingIndicator username={typingStatus.username} />
         )}
         
-        {/* Read receipts */}
         {latestSentMessage && latestSentMessage.read && (
           <div className="flex items-center justify-end px-4 pb-1">
             <span className="text-xs text-white/60 flex items-center gap-1">
-              <CheckCheck className="h-3 w-3" /> Read
+              <Check className="h-3 w-3" /> Read
             </span>
           </div>
         )}

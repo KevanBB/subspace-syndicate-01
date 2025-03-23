@@ -54,6 +54,7 @@ const ProfileSettings = () => {
     kinks: '',
     soft_limits: '',
     hard_limits: '',
+    banner_url: null,
   });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string>('');
