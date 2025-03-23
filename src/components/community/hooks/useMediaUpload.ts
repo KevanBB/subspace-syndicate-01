@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, ensureBucketExists } from '@/integrations/supabase/client';
 
 interface UseMediaUploadProps {
   roomId: string;
@@ -15,6 +15,14 @@ export const useMediaUpload = ({ roomId }: UseMediaUploadProps) => {
     try {
       setIsUploading(true);
       setUploadProgress(0);
+      
+      // Check if media bucket exists before trying to upload
+      const bucketExists = await ensureBucketExists('media');
+      
+      if (!bucketExists) {
+        throw new Error("Media storage is not available. Please try again later or contact support.");
+      }
+      
       const fileExt = file.name.split('.').pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const mediaType = file.type.startsWith('image/') ? 'image' : 'video';

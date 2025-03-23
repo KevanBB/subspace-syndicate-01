@@ -8,29 +8,20 @@ import { createPortal } from 'react-dom';
 
 // Create a storage bucket for videos if it doesn't exist
 // This would normally be done in a SQL migration
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, ensureBucketExists } from '@/integrations/supabase/client';
 
-// Check if the videos storage bucket exists, create it if it doesn't
-const ensureStorageBucket = async () => {
+// Check if the videos storage bucket exists
+const checkStorageBucket = async () => {
   try {
-    const { data: buckets } = await supabase.storage.listBuckets();
-    const videosBucketExists = buckets?.some(bucket => bucket.name === 'videos');
+    const bucketExists = await ensureBucketExists('videos');
     
-    if (!videosBucketExists) {
-      console.log("Videos bucket doesn't exist, attempting to create it");
-      const { error } = await supabase.storage.createBucket('videos', {
-        public: true,
-        fileSizeLimit: 524288000, // 500MB
-      });
-      
-      if (error) {
-        console.error("Error creating videos bucket:", error);
-      } else {
-        console.log("Videos bucket created successfully");
-      }
+    if (!bucketExists) {
+      console.log("Videos bucket doesn't exist. Video uploads may not work.");
+    } else {
+      console.log("Videos bucket exists");
     }
   } catch (error) {
-    console.error("Error checking/creating videos bucket:", error);
+    console.error("Error checking videos bucket:", error);
   }
 };
 
@@ -38,8 +29,8 @@ const SubSpaceTVUpload = () => {
   const { user } = useAuth();
   
   React.useEffect(() => {
-    // Ensure the storage bucket exists when the component mounts
-    ensureStorageBucket();
+    // Check if the storage bucket exists when the component mounts
+    checkStorageBucket();
   }, []);
 
   return (

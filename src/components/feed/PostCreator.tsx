@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, ensureBucketExists } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -168,13 +168,12 @@ const PostCreator: React.FC<PostCreatorProps> = ({ onPostCreated }) => {
       const uploadedMedia: PostMedia[] = [];
       
       if (mediaItems.length > 0) {
-        const { error: bucketError } = await supabase.storage.createBucket('post-media', {
-          public: true,
-          fileSizeLimit: 52428800, // 50MB
-        });
+        const bucketExists = await ensureBucketExists('post-media');
         
-        if (bucketError && bucketError.message !== 'Bucket already exists') {
-          console.error('Error creating bucket:', bucketError);
+        if (!bucketExists) {
+          setError('Media storage is not available. Please try again later or contact support.');
+          setIsPosting(false);
+          return;
         }
         
         for (const item of mediaItems) {

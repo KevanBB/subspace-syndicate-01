@@ -1,7 +1,6 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, ensureBucketExists } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -59,11 +58,6 @@ const VideoUploadForm = () => {
   const [seconds, setSeconds] = useState<number>(0);
   
   const tagInputRef = useRef<HTMLInputElement>(null);
-
-  // Update duration when minutes or seconds change
-  useEffect(() => {
-    setDuration(minutes * 60 + seconds);
-  }, [minutes, seconds]);
 
   useEffect(() => {
     const preventNavigation = (e: BeforeUnloadEvent) => {
@@ -194,6 +188,18 @@ const VideoUploadForm = () => {
       setUploading(true);
       setUploadProgress(0);
       
+      const bucketExists = await ensureBucketExists('videos');
+      
+      if (!bucketExists) {
+        toast({
+          title: "Storage not available",
+          description: "Video storage is not available. Please try again later or contact support.",
+          variant: "destructive"
+        });
+        setUploading(false);
+        return;
+      }
+      
       const videoId = uuidv4();
       const videoFileName = `${videoId}.${videoFile.name.split('.').pop()}`;
       const videoPath = `${user.id}/${videoFileName}`;
@@ -281,7 +287,6 @@ const VideoUploadForm = () => {
 
       console.log("Video record inserted:", videoRecord);
 
-      // Only trigger processing if not skipping
       if (!skipProcessing) {
         try {
           const processResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-video`, {
