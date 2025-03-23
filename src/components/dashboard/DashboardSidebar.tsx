@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,7 +31,8 @@ import {
   Monitor,
   Upload,
   Search,
-  TrendingUp
+  TrendingUp,
+  ShieldAlert
 } from 'lucide-react';
 
 const DashboardSidebar = () => {
@@ -75,6 +77,7 @@ const DashboardSidebar = () => {
   const username = profileData?.username || user?.user_metadata?.username || user?.email?.split('@')[0] || 'User';
   const bdsmRole = profileData?.bdsm_role || user?.user_metadata?.bdsm_role || 'Exploring';
   const avatarUrl = profileData?.avatar_url || user?.user_metadata?.avatar_url;
+  const isAdmin = profileData?.is_admin || false;
   
   const getBadgeVariant = (role: string) => {
     switch (role.toLowerCase()) {
@@ -220,6 +223,18 @@ const DashboardSidebar = () => {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          
+          {/* Admin Menu Item - Only visible for admins */}
+          {isAdmin && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={location.pathname === '/admin'}>
+                <Link to="/admin">
+                  <ShieldAlert />
+                  <span>Admin</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
         </SidebarMenu>
         
         <SidebarSeparator className="my-2" />

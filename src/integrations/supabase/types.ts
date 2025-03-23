@@ -556,6 +556,7 @@ export type Database = {
           created_at: string | null
           hard_limits: string | null
           id: string
+          is_admin: boolean
           kinks: string | null
           last_active: string | null
           location: string | null
@@ -577,6 +578,7 @@ export type Database = {
           created_at?: string | null
           hard_limits?: string | null
           id: string
+          is_admin?: boolean
           kinks?: string | null
           last_active?: string | null
           location?: string | null
@@ -598,6 +600,7 @@ export type Database = {
           created_at?: string | null
           hard_limits?: string | null
           id?: string
+          is_admin?: boolean
           kinks?: string | null
           last_active?: string | null
           location?: string | null
@@ -742,6 +745,12 @@ export type Database = {
           user_id: string
         }
         Returns: string[]
+      }
+      is_admin: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
       }
       is_conversation_participant: {
         Args: {
