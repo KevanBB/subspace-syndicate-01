@@ -550,6 +550,7 @@ export type Database = {
         Row: {
           allow_messages: boolean | null
           avatar_url: string | null
+          banner_url: string | null
           bdsm_role: string
           bio: string | null
           birthday: string | null
@@ -572,6 +573,7 @@ export type Database = {
         Insert: {
           allow_messages?: boolean | null
           avatar_url?: string | null
+          banner_url?: string | null
           bdsm_role?: string
           bio?: string | null
           birthday?: string | null
@@ -594,6 +596,7 @@ export type Database = {
         Update: {
           allow_messages?: boolean | null
           avatar_url?: string | null
+          banner_url?: string | null
           bdsm_role?: string
           bio?: string | null
           birthday?: string | null
