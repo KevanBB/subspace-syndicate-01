@@ -14,8 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useQuery } from '@tanstack/react-query';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface ApplicationDetailsModalProps {
   isOpen: boolean;
@@ -37,7 +36,7 @@ interface ApplicationData {
     government_id_front_url: string;
     government_id_back_url: string;
     selfie_url: string;
-  };
+  } | null;
   tax_infos: {
     is_us_citizen: boolean;
     tax_country: string;
@@ -45,23 +44,23 @@ interface ApplicationData {
     business_name: string | null;
     tax_address: string;
     tax_classification: string;
-  };
+  } | null;
   payment_infos: {
     stripe_connect_id: string;
     payout_currency: string;
     payout_schedule: string;
-  };
+  } | null;
   creator_profiles: {
     display_name: string;
     profile_photo_url: string;
     bio: string;
     content_categories: string[];
-  };
+  } | null;
   agreements: {
     agrees_to_all_docs: boolean;
     signature: string;
     signature_date: string;
-  };
+  } | null;
 }
 
 export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = ({
@@ -101,6 +100,11 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
       return;
     }
 
+    if (!application) {
+      toast.error('Application data not found');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       // Update application status
@@ -115,7 +119,7 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
       const { error: messageError } = await supabase
         .from('messages')
         .insert({
-          user_id: application?.user_id,
+          user_id: application.user_id,
           sender: 'Support',
           title: status === 'approved' 
             ? 'Creator Account Approved!' 
@@ -132,7 +136,7 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
       if (status === 'approved') {
         const { data: tokenData, error: tokenError } = await supabase
           .functions.invoke('generate-stripe-onboarding-token', {
-            body: { userId: application?.user_id }
+            body: { userId: application.user_id }
           });
 
         if (tokenError) throw tokenError;
@@ -173,6 +177,44 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
     return null;
   }
 
+  // Make sure we handle potentially null properties
+  const identities = application.identities || {
+    full_name: 'N/A',
+    date_of_birth: new Date().toISOString(),
+    country_of_residence: 'N/A',
+    government_id_front_url: '',
+    government_id_back_url: '',
+    selfie_url: '',
+  };
+
+  const tax_infos = application.tax_infos || {
+    is_us_citizen: false,
+    tax_country: 'N/A',
+    tax_id: 'N/A',
+    business_name: null,
+    tax_address: 'N/A',
+    tax_classification: 'N/A',
+  };
+
+  const payment_infos = application.payment_infos || {
+    stripe_connect_id: 'Not connected',
+    payout_currency: 'N/A',
+    payout_schedule: 'N/A',
+  };
+
+  const creator_profiles = application.creator_profiles || {
+    display_name: 'N/A',
+    profile_photo_url: '',
+    bio: 'N/A',
+    content_categories: [],
+  };
+
+  const agreements = application.agreements || {
+    agrees_to_all_docs: false,
+    signature: 'N/A',
+    signature_date: new Date().toISOString(),
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -209,26 +251,26 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Full Name</Label>
-                <p>{application.identities.full_name}</p>
+                <p>{identities.full_name}</p>
               </div>
               <div>
                 <Label>Date of Birth</Label>
-                <p>{format(new Date(application.identities.date_of_birth), 'PPP')}</p>
+                <p>{format(new Date(identities.date_of_birth), 'PPP')}</p>
               </div>
               <div>
                 <Label>Country of Residence</Label>
-                <p>{application.identities.country_of_residence}</p>
+                <p>{identities.country_of_residence}</p>
               </div>
               <div>
                 <Label>Government ID</Label>
                 <div className="space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => window.open(application.identities.government_id_front_url)}>
+                  <Button variant="outline" size="sm" onClick={() => identities.government_id_front_url && window.open(identities.government_id_front_url)}>
                     Front
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => window.open(application.identities.government_id_back_url)}>
+                  <Button variant="outline" size="sm" onClick={() => identities.government_id_back_url && window.open(identities.government_id_back_url)}>
                     Back
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => window.open(application.identities.selfie_url)}>
+                  <Button variant="outline" size="sm" onClick={() => identities.selfie_url && window.open(identities.selfie_url)}>
                     Selfie
                   </Button>
                 </div>
@@ -242,27 +284,27 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>US Citizen</Label>
-                <p>{application.tax_infos.is_us_citizen ? 'Yes' : 'No'}</p>
+                <p>{tax_infos.is_us_citizen ? 'Yes' : 'No'}</p>
               </div>
               <div>
                 <Label>Tax Country</Label>
-                <p>{application.tax_infos.tax_country}</p>
+                <p>{tax_infos.tax_country}</p>
               </div>
               <div>
                 <Label>Tax ID</Label>
-                <p>{application.tax_infos.tax_id}</p>
+                <p>{tax_infos.tax_id}</p>
               </div>
               <div>
                 <Label>Business Name</Label>
-                <p>{application.tax_infos.business_name || 'N/A'}</p>
+                <p>{tax_infos.business_name || 'N/A'}</p>
               </div>
               <div>
                 <Label>Tax Address</Label>
-                <p>{application.tax_infos.tax_address}</p>
+                <p>{tax_infos.tax_address}</p>
               </div>
               <div>
                 <Label>Tax Classification</Label>
-                <p>{application.tax_infos.tax_classification}</p>
+                <p>{tax_infos.tax_classification}</p>
               </div>
             </div>
           </div>
@@ -273,15 +315,15 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Payout Currency</Label>
-                <p>{application.payment_infos.payout_currency}</p>
+                <p>{payment_infos.payout_currency}</p>
               </div>
               <div>
                 <Label>Payout Schedule</Label>
-                <p>{application.payment_infos.payout_schedule}</p>
+                <p>{payment_infos.payout_schedule}</p>
               </div>
               <div>
                 <Label>Stripe Connect Status</Label>
-                <p>{application.payment_infos.stripe_connect_id === 'connected' ? 'Connected' : 'Not Connected'}</p>
+                <p>{payment_infos.stripe_connect_id === 'connected' ? 'Connected' : 'Not Connected'}</p>
               </div>
             </div>
           </div>
@@ -292,16 +334,16 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Display Name</Label>
-                <p>{application.creator_profiles.display_name}</p>
+                <p>{creator_profiles.display_name}</p>
               </div>
               <div>
                 <Label>Bio</Label>
-                <p>{application.creator_profiles.bio}</p>
+                <p>{creator_profiles.bio}</p>
               </div>
               <div>
                 <Label>Content Categories</Label>
                 <div className="flex flex-wrap gap-2">
-                  {application.creator_profiles.content_categories.map((category) => (
+                  {creator_profiles.content_categories.map((category) => (
                     <Badge key={category} variant="secondary">
                       {category}
                     </Badge>
@@ -317,11 +359,11 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Agrees to All Documents</Label>
-                <p>{application.agreements.agrees_to_all_docs ? 'Yes' : 'No'}</p>
+                <p>{agreements.agrees_to_all_docs ? 'Yes' : 'No'}</p>
               </div>
               <div>
                 <Label>Signature Date</Label>
-                <p>{format(new Date(application.agreements.signature_date), 'PPP')}</p>
+                <p>{format(new Date(agreements.signature_date), 'PPP')}</p>
               </div>
             </div>
           </div>
