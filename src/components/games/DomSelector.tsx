@@ -100,7 +100,7 @@ export const DomSelector: React.FC<DomSelectorProps> = ({ onDomSelected }) => {
                   </Avatar>
                   {dom.show_online_status && (
                     <div className="absolute -right-1 -bottom-1">
-                      <OnlineIndicator userId={dom.id} />
+                      <OnlineIndicator lastActive={dom.last_active} />
                     </div>
                   )}
                 </div>

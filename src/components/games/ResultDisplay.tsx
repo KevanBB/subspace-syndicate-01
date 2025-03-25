@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { SpinningWheel } from './SpinningWheel';
 import { SpinResult } from './SpinTheWheelGame';
 import { ProfileData } from '@/hooks/useProfileData';
-import { CreditCard, RefreshCcw } from 'lucide-react';
+import { CreditCard, RotateCw } from 'lucide-react';
 
 interface ResultDisplayProps {
   dom: ProfileData;
@@ -65,7 +66,7 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
       </CardContent>
       <CardFooter className="flex flex-col sm:flex-row gap-4 justify-between">
         <Button variant="outline" className="w-full sm:w-auto" onClick={onPlayAgain}>
-          <RefreshCcw className="mr-2 h-4 w-4" />
+          <RotateCw className="mr-2 h-4 w-4" />
           Spin Again
         </Button>
         <Button className="w-full sm:w-auto" onClick={handlePayment}>

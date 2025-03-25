@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -5,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, RefreshCcw } from 'lucide-react';
+import { ArrowLeft, RotateCw } from 'lucide-react';
 import { ProfileData } from '@/hooks/useProfileData';
 
 interface WheelSettingsProps {
@@ -164,7 +165,7 @@ export const WheelSettings: React.FC<WheelSettingsProps> = ({
             Back
           </Button>
           <Button type="submit">
-            <RefreshCcw className="mr-2 h-4 w-4" />
+            <RotateCw className="mr-2 h-4 w-4" />
             Spin the Wheel
           </Button>
         </CardFooter>
