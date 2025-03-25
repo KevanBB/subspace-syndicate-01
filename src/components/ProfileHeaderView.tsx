@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -6,7 +7,9 @@ import { CalendarDays, MapPin, Heart, Lock, ChevronDown, FileText, Search, Shiel
 import MessageButton from '@/components/messages/MessageButton';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+
 type BadgeVariant = keyof typeof badgeVariants.variants.variant;
+
 interface ProfileHeaderViewProps {
   profile: {
     id: string;
@@ -25,6 +28,7 @@ interface ProfileHeaderViewProps {
     hard_limits?: string;
   };
 }
+
 const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({
   profile
 }) => {
@@ -37,14 +41,13 @@ const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({
   const avatarUrl = profile?.avatar_url || '';
   const bannerUrl = profile?.banner_url;
   const bdsmRole = profile?.bdsm_role || 'Exploring';
-  const birthday = profile?.birthday;
-  const visibility = profile?.visibility || 'Public';
   const profileId = profile?.id || '';
   const bio = profile?.bio || 'No bio information provided yet.';
   const lookingFor = profile?.looking_for || 'Not specified';
   const kinks = profile?.kinks || 'Not specified';
   const softLimits = profile?.soft_limits || 'Not specified';
   const hardLimits = profile?.hard_limits || 'Not specified';
+
   const getBadgeVariant = (role: string): BadgeVariant => {
     switch (role.toLowerCase()) {
       case 'dominant':
@@ -57,19 +60,9 @@ const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({
         return 'exploring';
     }
   };
-  const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return 'Not specified';
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch (e) {
-      return 'Not specified';
-    }
-  };
+
   const isCurrentUser = user?.id === profileId;
+
   return <div className="relative">
       {/* Banner Image */}
       <div className="relative w-full h-48 md:h-64 bg-gradient-to-r from-gray-800 to-abyss rounded-b-lg overflow-hidden">
@@ -113,103 +106,65 @@ const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({
           </div>
         </div>
 
-        {/* Detailed user info */}
-        <div className="display: none;">
-          <div className="flex items-center gap-3">
-            <CalendarDays className="h-5 w-5 text-crimson" />
-            <div>
-              <p className="text-sm text-white/50">Birthday</p>
-              <p className="text-white">{formatDate(birthday)}</p>
+        {/* Compact Profile Information Container */}
+        <div className="mt-6 bg-black/20 rounded-lg border border-white/10 p-4 space-y-4">
+          {/* Bio Section */}
+          <div className="space-y-2">
+            <div className="flex items-start gap-3">
+              <FileText className="h-4 w-4 text-crimson shrink-0 mt-1" />
+              <div>
+                <h3 className="text-sm font-medium text-white/80">Bio</h3>
+                <p className="text-sm text-white/70 whitespace-pre-wrap">{bio}</p>
+              </div>
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
-            <MapPin className="h-5 w-5 text-crimson" />
-            <div>
-              <p className="text-sm text-white/50">Location</p>
-              <p className="text-white">{location || 'Not specified'}</p>
+          {/* Looking For */}
+          <div className="space-y-2">
+            <div className="flex items-start gap-3">
+              <Search className="h-4 w-4 text-crimson shrink-0 mt-1" />
+              <div>
+                <h3 className="text-sm font-medium text-white/80">Looking For</h3>
+                <p className="text-sm text-white/70 whitespace-pre-wrap">{lookingFor}</p>
+              </div>
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
-            <Heart className="h-5 w-5 text-crimson" />
-            <div>
-              <p className="text-sm text-white/50">Orientation</p>
-              <p className="text-white">{orientation || 'Not specified'}</p>
+          {/* Kinks/Fetishes */}
+          <div className="space-y-2">
+            <div className="flex items-start gap-3">
+              <Heart className="h-4 w-4 text-crimson shrink-0 mt-1" />
+              <div>
+                <h3 className="text-sm font-medium text-white/80">Kinks/Fetishes</h3>
+                <p className="text-sm text-white/70 whitespace-pre-wrap">{kinks}</p>
+              </div>
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
-            <Lock className="h-5 w-5 text-crimson" />
-            <div>
-              <p className="text-sm text-white/50">Profile Visibility</p>
-              <p className="text-white">{visibility}</p>
+          {/* Soft Limits */}
+          <div className="space-y-2">
+            <div className="flex items-start gap-3">
+              <Shield className="h-4 w-4 text-crimson shrink-0 mt-1" />
+              <div>
+                <h3 className="text-sm font-medium text-white/80">Soft Limits</h3>
+                <p className="text-sm text-white/70 whitespace-pre-wrap">{softLimits}</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Hard Limits */}
+          <div className="space-y-2">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-4 w-4 text-crimson shrink-0 mt-1" />
+              <div>
+                <h3 className="text-sm font-medium text-white/80">Hard Limits</h3>
+                <p className="text-sm text-white/70 whitespace-pre-wrap">{hardLimits}</p>
+              </div>
             </div>
           </div>
         </div>
-
-        {/* About Information */}
-        <Collapsible className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20 pointer-events-none" />
-            <div className="relative">
-              <div className="bg-black/20 p-4 rounded-lg border border-white/10">
-                <div className="flex items-start gap-3">
-                  <FileText className="h-5 w-5 text-crimson shrink-0 mt-1" />
-                  <p className="text-white/80 whitespace-pre-wrap line-clamp-3">{bio}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <CollapsibleTrigger className="w-full flex items-center justify-center gap-2 py-2 text-white/60 hover:text-white transition-colors">
-            <span className="text-sm">Show more</span>
-            <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-          </CollapsibleTrigger>
-          
-          <CollapsibleContent className="space-y-4">
-            <div className="bg-black/20 p-4 rounded-lg border border-white/10">
-              <div className="flex items-start gap-3">
-                <Search className="h-5 w-5 text-crimson shrink-0 mt-1" />
-                <div>
-                  <h3 className="text-white font-medium mb-2">Looking For</h3>
-                  <p className="text-white/80 whitespace-pre-wrap">{lookingFor}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-black/20 p-4 rounded-lg border border-white/10">
-              <div className="flex items-start gap-3">
-                <Heart className="h-5 w-5 text-crimson shrink-0 mt-1" />
-                <div>
-                  <h3 className="text-white font-medium mb-2">Kinks/Fetishes</h3>
-                  <p className="text-white/80 whitespace-pre-wrap">{kinks}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-black/20 p-4 rounded-lg border border-white/10">
-              <div className="flex items-start gap-3">
-                <Shield className="h-5 w-5 text-crimson shrink-0 mt-1" />
-                <div>
-                  <h3 className="text-white font-medium mb-2">Soft Limits</h3>
-                  <p className="text-white/80 whitespace-pre-wrap">{softLimits}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-black/20 p-4 rounded-lg border border-white/10">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-crimson shrink-0 mt-1" />
-                <div>
-                  <h3 className="text-white font-medium mb-2">Hard Limits</h3>
-                  <p className="text-white/80 whitespace-pre-wrap">{hardLimits}</p>
-                </div>
-              </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
       </div>
     </div>;
 };
+
 export default ProfileHeaderView;
