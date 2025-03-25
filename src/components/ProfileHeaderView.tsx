@@ -6,9 +6,7 @@ import { CalendarDays, MapPin, Heart, Lock, ChevronDown, FileText, Search, Shiel
 import MessageButton from '@/components/messages/MessageButton';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-
 type BadgeVariant = keyof typeof badgeVariants.variants.variant;
-
 interface ProfileHeaderViewProps {
   profile: {
     id: string;
@@ -27,9 +25,12 @@ interface ProfileHeaderViewProps {
     hard_limits?: string;
   };
 }
-
-const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({ profile }) => {
-  const { user } = useAuth();
+const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({
+  profile
+}) => {
+  const {
+    user
+  } = useAuth();
   const username = profile?.username || 'User';
   const orientation = profile?.orientation || '';
   const location = profile?.location || '';
@@ -44,16 +45,18 @@ const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({ profile }) => {
   const kinks = profile?.kinks || 'Not specified';
   const softLimits = profile?.soft_limits || 'Not specified';
   const hardLimits = profile?.hard_limits || 'Not specified';
-  
   const getBadgeVariant = (role: string): BadgeVariant => {
     switch (role.toLowerCase()) {
-      case 'dominant': return 'dominant';
-      case 'submissive': return 'submissive';
-      case 'switch': return 'switch';
-      default: return 'exploring';
+      case 'dominant':
+        return 'dominant';
+      case 'submissive':
+        return 'submissive';
+      case 'switch':
+        return 'switch';
+      default:
+        return 'exploring';
     }
   };
-
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return 'Not specified';
     try {
@@ -66,22 +69,17 @@ const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({ profile }) => {
       return 'Not specified';
     }
   };
-  
   const isCurrentUser = user?.id === profileId;
-  
-  return (
-    <div className="relative">
+  return <div className="relative">
       {/* Banner Image */}
       <div className="relative w-full h-48 md:h-64 bg-gradient-to-r from-gray-800 to-abyss rounded-b-lg overflow-hidden">
-        {bannerUrl ? (
-          <div className="absolute inset-0 bg-cover bg-center" 
-               style={{ backgroundImage: `url('${bannerUrl}')` }}>
-          </div>
-        ) : (
-          <div className="absolute inset-0 bg-cover bg-center" 
-               style={{ backgroundImage: "url('/placeholder.svg')" }}>
-          </div>
-        )}
+        {bannerUrl ? <div className="absolute inset-0 bg-cover bg-center" style={{
+        backgroundImage: `url('${bannerUrl}')`
+      }}>
+          </div> : <div className="absolute inset-0 bg-cover bg-center" style={{
+        backgroundImage: "url('/placeholder.svg')"
+      }}>
+          </div>}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
       </div>
       
@@ -99,7 +97,9 @@ const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({ profile }) => {
           <div className="mt-4 sm:mt-0 sm:ml-6 w-full text-center sm:text-left">
             <div className="flex items-center justify-center sm:justify-start gap-2">
               <h2 className="text-2xl font-bold text-white">{username}</h2>
-              <div className={cn(badgeVariants({ variant: getBadgeVariant(bdsmRole) }), "text-xs")}>
+              <div className={cn(badgeVariants({
+              variant: getBadgeVariant(bdsmRole)
+            }), "text-xs")}>
                 {bdsmRole}
               </div>
             </div>
@@ -107,16 +107,14 @@ const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({ profile }) => {
               {orientation || 'No orientation set'} • {location || 'No location set'}
             </p>
             
-            {!isCurrentUser && (
-              <div className="mt-4">
+            {!isCurrentUser && <div className="mt-4">
                 <MessageButton recipientId={profileId} />
-              </div>
-            )}
+              </div>}
           </div>
         </div>
 
         {/* Detailed user info */}
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-black/20 p-4 rounded-lg border border-white/10">
+        <div className="display: none;">
           <div className="flex items-center gap-3">
             <CalendarDays className="h-5 w-5 text-crimson" />
             <div>
@@ -212,8 +210,6 @@ const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({ profile }) => {
           </CollapsibleContent>
         </Collapsible>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default ProfileHeaderView;
