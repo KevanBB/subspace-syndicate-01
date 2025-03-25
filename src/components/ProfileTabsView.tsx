@@ -5,7 +5,7 @@ import UserPostsList from '@/components/profile/UserPostsList';
 import ActivityTab from '@/components/profile/ActivityTab';
 import MediaTab from '@/components/profile/MediaTab';
 import AboutTabView from '@/components/profile/AboutTabView';
-import { FileText, Activity, Image, Info } from 'lucide-react';
+import { FileText, Circle, Image, Info } from 'lucide-react';
 
 interface ProfileTabsViewProps {
   profileId: string;
@@ -21,7 +21,7 @@ const ProfileTabsView: React.FC<ProfileTabsViewProps> = ({ profileId, profile })
           Posts
         </TabsTrigger>
         <TabsTrigger value="activity" className="data-[state=active]:bg-crimson/20">
-          <Activity className="mr-2 h-4 w-4" />
+          <Circle className="mr-2 h-4 w-4" />
           Activity
         </TabsTrigger>
         <TabsTrigger value="media" className="data-[state=active]:bg-crimson/20">
