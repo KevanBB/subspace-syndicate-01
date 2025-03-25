@@ -27,6 +27,7 @@ import { toast } from '@/hooks/use-toast';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { ApplicationDetailsModal } from './ApplicationDetailsModal';
 
 // Status badge variant mapping
 const getStatusVariant = (status: string) => {
@@ -43,6 +44,7 @@ const getStatusVariant = (status: string) => {
 
 const AdminCreatorApplications = () => {
   const [page, setPage] = useState(1);
+  const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
   const pageSize = 10;
   const queryClient = useQueryClient();
   
@@ -150,101 +152,113 @@ const AdminCreatorApplications = () => {
   }
   
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Creator Applications</CardTitle>
-        <CardDescription>
-          Review and manage creator applications. Displaying {data.applications.length} of {data.totalCount} applications.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>#</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Date Submitted</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.applications.map((application, index) => (
-              <TableRow key={application.id}>
-                <TableCell>{(page - 1) * pageSize + index + 1}</TableCell>
-                <TableCell>{application.identities?.full_name}</TableCell>
-                <TableCell>
-                  {format(new Date(application.date_submitted), 'MMM d, yyyy')}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={getStatusVariant(application.status)}>
-                    {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex space-x-2">
-                    {application.status === 'pending' && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-green-500 hover:bg-green-500/10 text-green-500"
-                          onClick={() => handleStatusChange(application.id, 'approved')}
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-red-500 hover:bg-red-500/10 text-red-500"
-                          onClick={() => handleStatusChange(application.id, 'rejected')}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
-                    <Button size="sm" variant="outline">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Creator Applications</CardTitle>
+          <CardDescription>
+            Review and manage creator applications. Displaying {data.applications.length} of {data.totalCount} applications.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>#</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Date Submitted</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        
-        {data.totalPages > 1 && (
-          <Pagination className="mt-4">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious 
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  className={page === 1 ? "pointer-events-none opacity-50" : ""}
-                />
-              </PaginationItem>
-              
-              {Array.from({ length: data.totalPages }, (_, i) => i + 1).map(pageNum => (
-                <PaginationItem key={pageNum}>
-                  <PaginationLink
-                    onClick={() => setPage(pageNum)}
-                    isActive={page === pageNum}
-                  >
-                    {pageNum}
-                  </PaginationLink>
-                </PaginationItem>
+            </TableHeader>
+            <TableBody>
+              {data.applications.map((application, index) => (
+                <TableRow key={application.id}>
+                  <TableCell>{(page - 1) * pageSize + index + 1}</TableCell>
+                  <TableCell>{application.identities?.full_name}</TableCell>
+                  <TableCell>
+                    {format(new Date(application.date_submitted), 'MMM d, yyyy')}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusVariant(application.status)}>
+                      {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2">
+                      {application.status === 'pending' && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-green-500 hover:bg-green-500/10 text-green-500"
+                            onClick={() => handleStatusChange(application.id, 'approved')}
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-red-500 hover:bg-red-500/10 text-red-500"
+                            onClick={() => handleStatusChange(application.id, 'rejected')}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => setSelectedApplicationId(application.id)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
               ))}
-              
-              <PaginationItem>
-                <PaginationNext 
-                  onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
-                  className={page === data.totalPages ? "pointer-events-none opacity-50" : ""}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        )}
-      </CardContent>
-    </Card>
+            </TableBody>
+          </Table>
+          
+          {/* Pagination */}
+          <div className="mt-4">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                  />
+                </PaginationItem>
+                {Array.from({ length: data.totalPages }, (_, i) => i + 1).map((pageNum) => (
+                  <PaginationItem key={pageNum}>
+                    <PaginationLink
+                      onClick={() => setPage(pageNum)}
+                      isActive={pageNum === page}
+                    >
+                      {pageNum}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
+                    disabled={page === data.totalPages}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Application Details Modal */}
+      <ApplicationDetailsModal
+        isOpen={!!selectedApplicationId}
+        onClose={() => setSelectedApplicationId(null)}
+        applicationId={selectedApplicationId || ''}
+      />
+    </>
   );
 };
 
