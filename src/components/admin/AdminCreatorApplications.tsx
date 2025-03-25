@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -225,10 +226,14 @@ const AdminCreatorApplications = () => {
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
-                  <PaginationPrevious 
+                  <Button 
+                    variant="outline" 
+                    size="sm"
                     onClick={() => setPage(p => Math.max(1, p - 1))}
                     disabled={page === 1}
-                  />
+                  >
+                    Previous
+                  </Button>
                 </PaginationItem>
                 {Array.from({ length: data.totalPages }, (_, i) => i + 1).map((pageNum) => (
                   <PaginationItem key={pageNum}>
@@ -241,10 +246,14 @@ const AdminCreatorApplications = () => {
                   </PaginationItem>
                 ))}
                 <PaginationItem>
-                  <PaginationNext 
+                  <Button 
+                    variant="outline" 
+                    size="sm"
                     onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
                     disabled={page === data.totalPages}
-                  />
+                  >
+                    Next
+                  </Button>
                 </PaginationItem>
               </PaginationContent>
             </Pagination>

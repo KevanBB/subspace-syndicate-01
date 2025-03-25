@@ -24,13 +24,12 @@ interface ApplicationDetailsModalProps {
 }
 
 interface ApplicationData {
-  creator_applications: {
-    id: string;
-    status: string;
-    date_submitted: string;
-    is_over_18: boolean;
-    agrees_to_terms: boolean;
-  };
+  id: string;
+  status: string;
+  date_submitted: string;
+  is_over_18: boolean;
+  agrees_to_terms: boolean;
+  user_id: string;
   identities: {
     full_name: string;
     date_of_birth: string;
@@ -116,7 +115,7 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
       const { error: messageError } = await supabase
         .from('messages')
         .insert({
-          user_id: application?.creator_applications.user_id,
+          user_id: application?.user_id,
           sender: 'Support',
           title: status === 'approved' 
             ? 'Creator Account Approved!' 
@@ -133,7 +132,7 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
       if (status === 'approved') {
         const { data: tokenData, error: tokenError } = await supabase
           .functions.invoke('generate-stripe-onboarding-token', {
-            body: { userId: application?.creator_applications.user_id }
+            body: { userId: application?.user_id }
           });
 
         if (tokenError) throw tokenError;
@@ -191,15 +190,15 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Status</Label>
-                <Badge variant={application.creator_applications.status === 'approved' ? 'default' : 
-                              application.creator_applications.status === 'rejected' ? 'destructive' : 'secondary'}>
-                  {application.creator_applications.status.charAt(0).toUpperCase() + 
-                   application.creator_applications.status.slice(1)}
+                <Badge variant={application.status === 'approved' ? 'default' : 
+                              application.status === 'rejected' ? 'destructive' : 'secondary'}>
+                  {application.status.charAt(0).toUpperCase() + 
+                   application.status.slice(1)}
                 </Badge>
               </div>
               <div>
                 <Label>Date Submitted</Label>
-                <p>{format(new Date(application.creator_applications.date_submitted), 'PPP')}</p>
+                <p>{format(new Date(application.date_submitted), 'PPP')}</p>
               </div>
             </div>
           </div>
@@ -328,7 +327,7 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
           </div>
 
           {/* Action Buttons */}
-          {application.creator_applications.status === 'pending' && (
+          {application.status === 'pending' && (
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label htmlFor="denialReason">Reason for Denial (if applicable)</Label>
@@ -361,4 +360,4 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
       </DialogContent>
     </Dialog>
   );
-}; 
+};
