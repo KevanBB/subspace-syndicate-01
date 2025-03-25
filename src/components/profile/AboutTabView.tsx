@@ -22,20 +22,17 @@ const AboutTabView: React.FC<AboutTabViewProps> = ({ profile }) => {
   const bio = profile?.bio;
 
   return (
-    <div className="space-y-6">
-      {/* Bio Section */}
-      <Card className="bg-black/20 border-white/10 backdrop-blur-md">
-        <CardHeader>
-          <CardTitle className="text-white">Bio</CardTitle>
-        </CardHeader>
-        <CardContent className="text-white/80">
-          <div className="flex items-start gap-3">
-            <FileText className="h-5 w-5 text-crimson shrink-0 mt-1" />
-            <p className="whitespace-pre-wrap">{bio || 'No bio information provided yet.'}</p>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <Card className="bg-black/20 border-white/10 backdrop-blur-md">
+      <CardHeader>
+        <CardTitle className="text-white">Bio</CardTitle>
+      </CardHeader>
+      <CardContent className="text-white/80">
+        <div className="flex items-start gap-3">
+          <FileText className="h-5 w-5 text-crimson shrink-0 mt-1" />
+          <p className="whitespace-pre-wrap">{bio || 'No bio information provided yet.'}</p>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
