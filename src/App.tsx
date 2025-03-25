@@ -30,7 +30,6 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
-      // Removed the unsupported 'useErrorBoundary' property
       refetchOnWindowFocus: false,
     },
   },
@@ -45,8 +44,8 @@ const LoadingFallback = () => (
 
 function App() {
   return (
-    <Router>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <Router>
         <AuthProvider>
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
@@ -71,8 +70,8 @@ function App() {
           </Suspense>
           <Toaster />
         </AuthProvider>
-      </QueryClientProvider>
-    </Router>
+      </Router>
+    </QueryClientProvider>
   );
 }
 
