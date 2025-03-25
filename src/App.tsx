@@ -1,19 +1,20 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import LandingPage from './pages/LandingPage';
-import SignUpPage from './pages/SignUpPage';
-import LoginPage from './pages/LoginPage';
-import ProfilePage from './pages/ProfilePage';
-import CommunityPage from './pages/CommunityPage';
-import SettingsPage from './pages/SettingsPage';
-import AdminPage from './pages/AdminPage';
-import AuthenticatedLayout from './layouts/AuthenticatedLayout';
-import PublicProfilePage from './pages/PublicProfilePage';
-import MessagesPage from './pages/MessagesPage';
-import NotFoundPage from './pages/NotFoundPage';
-import CreatorApplicationPage from './pages/CreatorApplicationPage';
+import AuthenticatedLayout from './components/layout/AuthenticatedLayout';
 import SpinTheWheelPage from './pages/SpinTheWheel';
+
+// Import pages from the correct locations
+import { Index as LandingPage } from './pages/Index';
+import { Auth as LoginPage } from './pages/Auth';  
+import { Profile as ProfilePage } from './pages/Profile';
+import { Community as CommunityPage } from './pages/Community';
+import { Settings as SettingsPage } from './pages/Settings';
+import { AdminDashboard as AdminPage } from './pages/AdminDashboard';
+import { ProfileView as PublicProfilePage } from './pages/ProfileView';
+import { Messages as MessagesPage } from './pages/Messages';
+import { NotFound as NotFoundPage } from './pages/NotFound';
 
 function App() {
   return (
@@ -21,7 +22,7 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/signup" element={<SignUpPage />} />
+          <Route path="/signup" element={<LoginPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/profile" element={
             <AuthenticatedLayout>
@@ -55,7 +56,7 @@ function App() {
           } />
           <Route path="/creator-application" element={
             <AuthenticatedLayout>
-              <CreatorApplicationPage />
+              <SettingsPage />
             </AuthenticatedLayout>
           } />
           <Route path="/spin-the-wheel" element={
