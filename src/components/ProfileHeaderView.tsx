@@ -2,13 +2,11 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge, badgeVariants } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { CalendarDays, MapPin, Heart, Lock, ChevronDown, FileText, Search, Shield, AlertCircle } from 'lucide-react';
 import MessageButton from '@/components/messages/MessageButton';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-
-type BadgeVariant = keyof typeof badgeVariants.variants.variant;
 
 interface ProfileHeaderViewProps {
   profile: {
@@ -47,6 +45,8 @@ const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({
   const kinks = profile?.kinks || 'Not specified';
   const softLimits = profile?.soft_limits || 'Not specified';
   const hardLimits = profile?.hard_limits || 'Not specified';
+
+  type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "dominant" | "submissive" | "switch" | "exploring" | "crimson";
 
   const getBadgeVariant = (role: string): BadgeVariant => {
     switch (role.toLowerCase()) {
@@ -90,11 +90,9 @@ const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({
           <div className="mt-4 sm:mt-0 sm:ml-6 w-full text-center sm:text-left">
             <div className="flex items-center justify-center sm:justify-start gap-2">
               <h2 className="text-2xl font-bold text-white">{username}</h2>
-              <div className={cn(badgeVariants({
-              variant: getBadgeVariant(bdsmRole)
-            }), "text-xs")}>
+              <Badge variant={getBadgeVariant(bdsmRole)} className="text-xs">
                 {bdsmRole}
-              </div>
+              </Badge>
             </div>
             <p className="text-gray-400 mt-1">
               {orientation || 'No orientation set'} • {location || 'No location set'}

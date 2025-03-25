@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,7 +17,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge, badgeVariants } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { 
   LayoutDashboard, 
   UserRound, 
@@ -78,7 +79,9 @@ const DashboardSidebar = () => {
   const avatarUrl = profileData?.avatar_url || user?.user_metadata?.avatar_url;
   const isAdmin = profileData?.is_admin || false;
   
-  const getBadgeVariant = (role: string) => {
+  type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "dominant" | "submissive" | "switch" | "exploring" | "crimson";
+
+  const getBadgeVariant = (role: string): BadgeVariant => {
     switch (role.toLowerCase()) {
       case 'dominant': return 'dominant';
       case 'submissive': return 'submissive';
@@ -105,7 +108,7 @@ const DashboardSidebar = () => {
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <span className="font-medium text-base text-white">{username}</span>
-              <Badge variant={getBadgeVariant(bdsmRole) as keyof typeof badgeVariants.variants.variant} className="text-xs">
+              <Badge variant={getBadgeVariant(bdsmRole)} className="text-xs">
                 {bdsmRole}
               </Badge>
             </div>
