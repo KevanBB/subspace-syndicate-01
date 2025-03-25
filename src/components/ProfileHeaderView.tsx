@@ -116,41 +116,6 @@ const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({ profile }) => {
         </div>
 
         {/* Detailed user info */}
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-black/20 p-4 rounded-lg border border-white/10">
-          <div className="flex items-center gap-3">
-            <CalendarDays className="h-5 w-5 text-crimson" />
-            <div>
-              <p className="text-sm text-white/50">Birthday</p>
-              <p className="text-white">{formatDate(birthday)}</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <MapPin className="h-5 w-5 text-crimson" />
-            <div>
-              <p className="text-sm text-white/50">Location</p>
-              <p className="text-white">{location || 'Not specified'}</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <Heart className="h-5 w-5 text-crimson" />
-            <div>
-              <p className="text-sm text-white/50">Orientation</p>
-              <p className="text-white">{orientation || 'Not specified'}</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <Lock className="h-5 w-5 text-crimson" />
-            <div>
-              <p className="text-sm text-white/50">Profile Visibility</p>
-              <p className="text-white">{visibility}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* About Information */}
         <Collapsible className="mt-6">
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20 pointer-events-none" />
@@ -170,6 +135,42 @@ const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({ profile }) => {
           </CollapsibleTrigger>
           
           <CollapsibleContent className="space-y-4">
+            {/* Basic Info Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-black/20 p-4 rounded-lg border border-white/10">
+              <div className="flex items-center gap-3">
+                <CalendarDays className="h-5 w-5 text-crimson" />
+                <div>
+                  <p className="text-sm text-white/50">Birthday</p>
+                  <p className="text-white">{formatDate(birthday)}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <MapPin className="h-5 w-5 text-crimson" />
+                <div>
+                  <p className="text-sm text-white/50">Location</p>
+                  <p className="text-white">{location || 'Not specified'}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <Heart className="h-5 w-5 text-crimson" />
+                <div>
+                  <p className="text-sm text-white/50">Orientation</p>
+                  <p className="text-white">{orientation || 'Not specified'}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <Lock className="h-5 w-5 text-crimson" />
+                <div>
+                  <p className="text-sm text-white/50">Profile Visibility</p>
+                  <p className="text-white">{visibility}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Info */}
             <div className="bg-black/20 p-4 rounded-lg border border-white/10">
               <div className="flex items-start gap-3">
                 <Search className="h-5 w-5 text-crimson shrink-0 mt-1" />
