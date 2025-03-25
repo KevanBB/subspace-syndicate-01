@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
@@ -22,7 +21,7 @@ const MemberCard: React.FC<MemberCardProps> = ({ member }) => {
   const navigate = useNavigate();
   
   const goToProfile = () => {
-    navigate(`/profile/${member.id}`);
+    navigate(`/profile/${member.username}`);
   };
   
   return (

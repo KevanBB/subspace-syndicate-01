@@ -1,31 +1,23 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CalendarDays, MapPin, Heart, Lock, User, FileText, Search, Shield, AlertCircle } from 'lucide-react';
+import { FileText, Search, Heart, Shield, AlertCircle } from 'lucide-react';
 
 interface AboutTabViewProps {
-  profile: any;
+  profile: {
+    username?: string;
+    birthday?: string;
+    location?: string;
+    orientation?: string;
+    visibility?: string;
+    bio?: string;
+    looking_for?: string;
+    kinks?: string;
+    soft_limits?: string;
+    hard_limits?: string;
+  };
 }
 
 const AboutTabView: React.FC<AboutTabViewProps> = ({ profile }) => {
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'Not specified';
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch (e) {
-      return dateString;
-    }
-  };
-
-  const username = profile?.username || 'User';
-  const birthday = profile?.birthday;
-  const location = profile?.location;
-  const orientation = profile?.orientation;
-  const visibility = profile?.visibility || 'Public';
   const bio = profile?.bio;
   const lookingFor = profile?.looking_for || 'Not specified';
   const kinks = profile?.kinks || 'Not specified';
@@ -46,53 +38,6 @@ const AboutTabView: React.FC<AboutTabViewProps> = ({ profile }) => {
           </div>
         </CardContent>
       </Card>
-      
-      {/* User Details */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <User className="h-5 w-5 text-crimson" />
-            <div>
-              <p className="text-sm text-white/50">Username</p>
-              <p className="text-white">{username}</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <CalendarDays className="h-5 w-5 text-crimson" />
-            <div>
-              <p className="text-sm text-white/50">Birthday</p>
-              <p className="text-white">{formatDate(birthday)}</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <MapPin className="h-5 w-5 text-crimson" />
-            <div>
-              <p className="text-sm text-white/50">Location</p>
-              <p className="text-white">{location || 'Not specified'}</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <Heart className="h-5 w-5 text-crimson" />
-            <div>
-              <p className="text-sm text-white/50">Orientation</p>
-              <p className="text-white">{orientation || 'Not specified'}</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <Lock className="h-5 w-5 text-crimson" />
-            <div>
-              <p className="text-sm text-white/50">Profile Visibility</p>
-              <p className="text-white">{visibility}</p>
-            </div>
-          </div>
-        </div>
-      </div>
       
       {/* Looking For */}
       <Card className="bg-black/20 border-white/10 backdrop-blur-md">

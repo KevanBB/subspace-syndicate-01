@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import { Badge, badgeVariants } from '@/components/ui/badge';
 import { 
   LayoutDashboard, 
   UserRound, 
@@ -105,7 +105,7 @@ const DashboardSidebar = () => {
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <span className="font-medium text-base text-white">{username}</span>
-              <Badge variant={getBadgeVariant(bdsmRole)} className="text-xs">
+              <Badge variant={getBadgeVariant(bdsmRole) as keyof typeof badgeVariants.variants.variant} className="text-xs">
                 {bdsmRole}
               </Badge>
             </div>
@@ -143,7 +143,7 @@ const DashboardSidebar = () => {
           
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={location.pathname === '/profile'}>
-              <Link to="/profile">
+              <Link to={`/profile/${username}`}>
                 <UserRound />
                 <span>My Profile</span>
               </Link>
