@@ -3,8 +3,10 @@ import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Heart, Lock } from 'lucide-react';
+import { MapPin, Heart, Lock, Users } from 'lucide-react';
 import MessageButton from '@/components/messages/MessageButton';
+import FollowButton from '@/components/profile/FollowButton';
+import { useFollowCounts } from '@/hooks/useFollowCounts';
 import { cn } from '@/lib/utils';
 
 interface ProfileHeaderViewProps {
@@ -45,6 +47,8 @@ const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({
   const softLimits = profile?.soft_limits || 'Not specified';
   const hardLimits = profile?.hard_limits || 'Not specified';
   const visibility = profile?.visibility || 'Public';
+
+  const { followerCount, followingCount, loading: countsLoading } = useFollowCounts(profileId);
 
   type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "dominant" | "submissive" | "switch" | "exploring" | "crimson";
 
@@ -103,8 +107,21 @@ const ProfileHeaderView: React.FC<ProfileHeaderViewProps> = ({
               {orientation || 'No orientation set'} • {location || 'No location set'}
             </p>
             
+            {/* Followers & Following */}
+            <div className="flex items-center justify-center sm:justify-start gap-6 mt-2 text-sm text-white/70">
+              <div className="flex items-center gap-1">
+                <Users className="h-4 w-4 text-crimson" />
+                <span><strong>{followerCount}</strong> followers</span>
+              </div>
+              <div>
+                <span><strong>{followingCount}</strong> following</span>
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
             {!isCurrentUser && (
-              <div className="mt-4">
+              <div className="mt-4 flex gap-2 flex-wrap justify-center sm:justify-start">
+                <FollowButton profileId={profileId} />
                 <MessageButton recipientId={profileId} />
               </div>
             )}

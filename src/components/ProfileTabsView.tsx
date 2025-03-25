@@ -4,7 +4,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import UserPostsList from '@/components/profile/UserPostsList';
 import ActivityTab from '@/components/profile/ActivityTab';
 import MediaTab from '@/components/profile/MediaTab';
-import { FileText } from 'lucide-react';
+import AboutTabView from '@/components/profile/AboutTabView';
+import { FileText, Activity, Image, Info } from 'lucide-react';
 
 interface ProfileTabsViewProps {
   profileId: string;
@@ -14,13 +15,23 @@ interface ProfileTabsViewProps {
 const ProfileTabsView: React.FC<ProfileTabsViewProps> = ({ profileId, profile }) => {
   return (
     <Tabs defaultValue="posts" className="w-full">
-      <TabsList className="grid grid-cols-3 bg-black/20 border border-white/10 backdrop-blur-md">
+      <TabsList className="grid grid-cols-4 bg-black/20 border border-white/10 backdrop-blur-md">
         <TabsTrigger value="posts" className="data-[state=active]:bg-crimson/20">
           <FileText className="mr-2 h-4 w-4" />
           Posts
         </TabsTrigger>
-        <TabsTrigger value="activity" className="data-[state=active]:bg-crimson/20">Activity</TabsTrigger>
-        <TabsTrigger value="media" className="data-[state=active]:bg-crimson/20">Media</TabsTrigger>
+        <TabsTrigger value="activity" className="data-[state=active]:bg-crimson/20">
+          <Activity className="mr-2 h-4 w-4" />
+          Activity
+        </TabsTrigger>
+        <TabsTrigger value="media" className="data-[state=active]:bg-crimson/20">
+          <Image className="mr-2 h-4 w-4" />
+          Media
+        </TabsTrigger>
+        <TabsTrigger value="about" className="data-[state=active]:bg-crimson/20">
+          <Info className="mr-2 h-4 w-4" />
+          About
+        </TabsTrigger>
       </TabsList>
       
       <TabsContent value="posts" className="mt-6">
@@ -33,6 +44,10 @@ const ProfileTabsView: React.FC<ProfileTabsViewProps> = ({ profileId, profile })
       
       <TabsContent value="media" className="mt-6">
         <MediaTab />
+      </TabsContent>
+      
+      <TabsContent value="about" className="mt-6">
+        <AboutTabView profile={profile} />
       </TabsContent>
     </Tabs>
   );
