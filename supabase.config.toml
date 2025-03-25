@@ -3,3 +3,6 @@ project_id = "yjcdsudshecqgtvchhaj"
 
 [functions.process-video]
 verify_jwt = false
+
+[functions.spin-wheel]
+verify_jwt = true
