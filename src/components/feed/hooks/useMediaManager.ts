@@ -4,23 +4,14 @@ import { v4 as uuidv4 } from 'uuid';
 import { supabase, ensureBucketExists } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-
-export interface MediaItem {
-  id: string;
-  file?: File;
-  previewUrl: string;
-  type: 'image' | 'video' | 'gif';
-  aspectRatio?: number;
-  duration?: number;
-  url?: string;
-}
+import { PostMedia } from './usePostCreation';
 
 export const MAX_MEDIA_ITEMS = 4;
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export const useMediaManager = (setError: (error: string | null) => void) => {
   const { user } = useAuth();
-  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+  const [mediaItems, setMediaItems] = useState<PostMedia[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [bucketChecked, setBucketChecked] = useState(false);
   
@@ -49,7 +40,7 @@ export const useMediaManager = (setError: (error: string | null) => void) => {
       return;
     }
     
-    const newMediaItems: MediaItem[] = [];
+    const newMediaItems: PostMedia[] = [];
     
     for (let i = 0; i < e.target.files.length; i++) {
       const file = e.target.files[i];
@@ -61,9 +52,10 @@ export const useMediaManager = (setError: (error: string | null) => void) => {
       }
       
       // Create a media item
-      const mediaItem: MediaItem = {
+      const mediaItem: PostMedia = {
         id: uuidv4(),
         file,
+        url: '', // Add empty url to match PostMedia interface
         previewUrl: URL.createObjectURL(file),
         type: file.type.startsWith('image/') 
           ? 'image' 
