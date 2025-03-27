@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Album } from '@/types/albums';
 import AlbumCard from '@/components/albums/AlbumCard';
-import { Library, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 interface MediaTabProps {
   userId?: string;
@@ -71,7 +70,7 @@ const MediaTab: React.FC<MediaTabProps> = ({ userId }) => {
             variant="outline"
             onClick={handleCreateAlbumClick}
           >
-            <Library className="mr-2 h-4 w-4" />
+            <Plus className="mr-2 h-4 w-4" />
             View All Albums
           </Button>
         )}

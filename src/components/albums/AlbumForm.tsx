@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { FileUploader } from '@/components/ui/file-uploader';
-import { ImagePlus, X, Upload, Save } from 'lucide-react';
+import { X, Upload, Image as ImageIcon } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -205,7 +204,7 @@ const AlbumForm: React.FC<AlbumFormProps> = ({
               className="mt-1"
             >
               <Button variant="outline" type="button" className="w-full h-[120px]">
-                <ImagePlus className="h-5 w-5 mr-2" />
+                <ImageIcon className="h-5 w-5 mr-2" />
                 {isEditing ? 'Change Cover Image' : 'Upload Cover Image'}
               </Button>
             </FileUploader>
@@ -238,7 +237,7 @@ const AlbumForm: React.FC<AlbumFormProps> = ({
             <>Loading...</>
           ) : isEditing ? (
             <>
-              <Save className="mr-2 h-4 w-4" />
+              <Upload className="mr-2 h-4 w-4" />
               Save Changes
             </>
           ) : (

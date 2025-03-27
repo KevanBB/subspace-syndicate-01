@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, ensureBucketExists } from '@/integrations/supabase/client';
@@ -22,7 +21,6 @@ export const useMediaItems = (albumId?: string) => {
   const queryClient = useQueryClient();
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
 
-  // Fetch media for an album
   const {
     data: mediaItems,
     isLoading: isLoadingMedia,
@@ -49,7 +47,6 @@ export const useMediaItems = (albumId?: string) => {
     enabled: !!albumId
   });
 
-  // Upload media to an album
   const uploadMedia = async (input: UploadMediaInput): Promise<MediaItem | null> => {
     if (!user) {
       toast({
@@ -64,18 +61,15 @@ export const useMediaItems = (albumId?: string) => {
     setUploadProgress({ ...uploadProgress, [tempId]: 0 });
 
     try {
-      // Check if album_media bucket exists
       const bucketExists = await ensureBucketExists('album_media');
       if (!bucketExists) {
         throw new Error('Media storage is not available. Please try again later.');
       }
 
-      // Generate file path
       const fileExt = input.file.name.split('.').pop();
       const fileName = `${uuidv4()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
-      // Create XHR for upload progress tracking
       const xhr = new XMLHttpRequest();
       
       xhr.upload.addEventListener('progress', (event) => {
@@ -96,7 +90,6 @@ export const useMediaItems = (albumId?: string) => {
         xhr.onerror = () => reject(new Error('Upload failed'));
       });
       
-      // Get signed URL for direct upload
       const { data: uploadData } = await supabase.storage
         .from('album_media')
         .createSignedUploadUrl(filePath);
@@ -105,30 +98,23 @@ export const useMediaItems = (albumId?: string) => {
         throw new Error('Failed to get upload URL');
       }
       
-      // Perform the upload
       xhr.open('PUT', uploadData.signedUrl);
       xhr.setRequestHeader('Content-Type', input.file.type);
       xhr.send(input.file);
       
       await uploadPromise;
 
-      // Get public URL for the uploaded file
       const { data: urlData } = supabase.storage
         .from('album_media')
         .getPublicUrl(filePath);
 
-      // Create thumbnail for images
       let thumbnailUrl = null;
       if (input.file.type.startsWith('image/')) {
-        // For images, we can use the same URL as thumbnail
         thumbnailUrl = urlData.publicUrl;
       } else if (input.file.type.startsWith('video/')) {
-        // For videos, we'd ideally generate a thumbnail
-        // This is a placeholder for future implementation
         thumbnailUrl = null;
       }
 
-      // Get file dimensions for images and videos
       let width = null;
       let height = null;
       let duration = null;
@@ -142,7 +128,7 @@ export const useMediaItems = (albumId?: string) => {
             resolve();
           };
           img.onerror = () => {
-            resolve(); // Continue even if we can't get dimensions
+            resolve();
           };
         });
         img.src = URL.createObjectURL(input.file);
@@ -158,7 +144,7 @@ export const useMediaItems = (albumId?: string) => {
             resolve();
           };
           video.onerror = () => {
-            resolve(); // Continue even if we can't get dimensions
+            resolve();
           };
         });
         video.src = URL.createObjectURL(input.file);
@@ -166,7 +152,6 @@ export const useMediaItems = (albumId?: string) => {
         URL.revokeObjectURL(video.src);
       }
 
-      // Insert media record
       const { data: mediaData, error: mediaError } = await supabase
         .from('media')
         .insert({
@@ -187,21 +172,18 @@ export const useMediaItems = (albumId?: string) => {
 
       if (mediaError) throw mediaError;
 
-      // Update album cover image if this is the first media item
       const { data: albumMedia } = await supabase
         .from('media')
         .select('id')
         .eq('album_id', input.albumId);
 
       if (albumMedia && albumMedia.length === 1) {
-        // This is the first media item, update album cover
         await supabase
           .from('albums')
           .update({ cover_image_url: thumbnailUrl || urlData.publicUrl })
           .eq('id', input.albumId);
       }
 
-      // Refresh media list
       queryClient.invalidateQueries({ queryKey: ['media', input.albumId] });
       queryClient.invalidateQueries({ queryKey: ['albums'] });
 
@@ -230,7 +212,6 @@ export const useMediaItems = (albumId?: string) => {
     }
   };
 
-  // Delete media item
   const deleteMedia = async (mediaId: string): Promise<boolean> => {
     if (!user) {
       toast({
@@ -242,7 +223,6 @@ export const useMediaItems = (albumId?: string) => {
     }
 
     try {
-      // Get the media item to retrieve its URL
       const { data: mediaItem, error: fetchError } = await supabase
         .from('media')
         .select('*')
@@ -253,7 +233,6 @@ export const useMediaItems = (albumId?: string) => {
       if (fetchError) throw fetchError;
       if (!mediaItem) throw new Error('Media not found');
 
-      // Delete from database
       const { error: deleteError } = await supabase
         .from('media')
         .delete()
@@ -262,7 +241,6 @@ export const useMediaItems = (albumId?: string) => {
 
       if (deleteError) throw deleteError;
 
-      // Delete from storage
       if (mediaItem.url) {
         const url = new URL(mediaItem.url);
         const path = url.pathname.split('/').slice(-2).join('/');
@@ -272,7 +250,6 @@ export const useMediaItems = (albumId?: string) => {
           .remove([path]);
       }
 
-      // If thumbnail is different and exists
       if (mediaItem.thumbnail_url && mediaItem.thumbnail_url !== mediaItem.url) {
         const thumbUrl = new URL(mediaItem.thumbnail_url);
         const thumbPath = thumbUrl.pathname.split('/').slice(-2).join('/');
@@ -282,7 +259,6 @@ export const useMediaItems = (albumId?: string) => {
           .remove([thumbPath]);
       }
 
-      // Check if this was the cover image
       const { data: album } = await supabase
         .from('albums')
         .select('cover_image_url')
@@ -290,7 +266,6 @@ export const useMediaItems = (albumId?: string) => {
         .single();
 
       if (album && album.cover_image_url === mediaItem.url) {
-        // Find another media item to use as cover
         const { data: otherMedia } = await supabase
           .from('media')
           .select('url, thumbnail_url')
@@ -298,7 +273,6 @@ export const useMediaItems = (albumId?: string) => {
           .limit(1)
           .single();
 
-        // Update album cover
         await supabase
           .from('albums')
           .update({
@@ -309,7 +283,6 @@ export const useMediaItems = (albumId?: string) => {
           .eq('id', mediaItem.album_id);
       }
 
-      // Refresh media list
       queryClient.invalidateQueries({ queryKey: ['media', mediaItem.album_id] });
       queryClient.invalidateQueries({ queryKey: ['albums'] });
 
@@ -330,7 +303,6 @@ export const useMediaItems = (albumId?: string) => {
     }
   };
 
-  // Update media item
   const updateMedia = async (mediaId: string, updates: UpdateMediaInput): Promise<MediaItem | null> => {
     if (!user) {
       toast({
@@ -352,7 +324,6 @@ export const useMediaItems = (albumId?: string) => {
 
       if (error) throw error;
 
-      // Refresh media
       if (albumId) {
         queryClient.invalidateQueries({ queryKey: ['media', albumId] });
       }
@@ -375,12 +346,10 @@ export const useMediaItems = (albumId?: string) => {
     }
   };
 
-  // Like/unlike media mutation
   const likeMediaMutation = useMutation({
     mutationFn: async (mediaId: string) => {
       if (!user) throw new Error('Authentication required');
 
-      // Check if the user has already liked the media
       const { data: existingLike } = await supabase
         .from('media_likes')
         .select('id')
@@ -389,22 +358,16 @@ export const useMediaItems = (albumId?: string) => {
         .single();
 
       if (existingLike) {
-        // Unlike: Remove the like
         await supabase
           .from('media_likes')
           .delete()
           .eq('media_id', mediaId)
           .eq('user_id', user.id);
 
-        // Decrement likes count
-        await supabase
-          .from('media')
-          .update({ likes: supabase.rpc('decrement_media_likes', { media_id: mediaId }) })
-          .eq('id', mediaId);
+        const { data } = await supabase.rpc('decrement_media_likes', { media_id: mediaId });
         
-        return { liked: false };
+        return { liked: false, likes: data };
       } else {
-        // Like: Add a new like
         await supabase
           .from('media_likes')
           .insert({
@@ -412,13 +375,9 @@ export const useMediaItems = (albumId?: string) => {
             user_id: user.id
           });
 
-        // Increment likes count
-        await supabase
-          .from('media')
-          .update({ likes: supabase.rpc('increment_media_likes', { media_id: mediaId }) })
-          .eq('id', mediaId);
+        const { data } = await supabase.rpc('increment_media_likes', { media_id: mediaId });
         
-        return { liked: true };
+        return { liked: true, likes: data };
       }
     },
     onSuccess: () => {
@@ -427,12 +386,10 @@ export const useMediaItems = (albumId?: string) => {
     }
   });
 
-  // Bookmark/unbookmark media mutation
   const bookmarkMediaMutation = useMutation({
     mutationFn: async (mediaId: string) => {
       if (!user) throw new Error('Authentication required');
 
-      // Check if the user has already bookmarked the media
       const { data: existingBookmark } = await supabase
         .from('media_bookmarks')
         .select('id')
@@ -441,7 +398,6 @@ export const useMediaItems = (albumId?: string) => {
         .single();
 
       if (existingBookmark) {
-        // Remove bookmark
         await supabase
           .from('media_bookmarks')
           .delete()
@@ -450,7 +406,6 @@ export const useMediaItems = (albumId?: string) => {
         
         return { bookmarked: false };
       } else {
-        // Add bookmark
         await supabase
           .from('media_bookmarks')
           .insert({
@@ -480,12 +435,10 @@ export const useMediaItems = (albumId?: string) => {
   };
 };
 
-// Get a single media item
 export const useMediaItem = (mediaId: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
-  // Check if user has liked a media item
   const useMediaLiked = (mediaId: string) => {
     return useQuery({
       queryKey: ['media-likes', mediaId, user?.id],
@@ -505,7 +458,6 @@ export const useMediaItem = (mediaId: string) => {
     });
   };
   
-  // Check if user has bookmarked a media item
   const useMediaBookmarked = (mediaId: string) => {
     return useQuery({
       queryKey: ['media-bookmarks', mediaId, user?.id],
@@ -525,7 +477,6 @@ export const useMediaItem = (mediaId: string) => {
     });
   };
   
-  // Increment view count
   const incrementView = async () => {
     if (!mediaId) return;
     
@@ -536,7 +487,6 @@ export const useMediaItem = (mediaId: string) => {
     }
   };
 
-  // Get media comments
   const useMediaComments = (mediaId: string) => {
     return useQuery({
       queryKey: ['media-comments', mediaId],
@@ -555,16 +505,12 @@ export const useMediaItem = (mediaId: string) => {
           
         if (error) throw error;
         
-        return data.map(comment => ({
-          ...comment,
-          profile: comment.profile
-        })) as (MediaComment & { profile: { username: string, avatar_url: string | null } })[];
+        return data as unknown as (MediaComment & { profile: { username: string, avatar_url: string | null } })[];
       },
       enabled: !!mediaId
     });
   };
   
-  // Add comment to media
   const addComment = async (content: string): Promise<MediaComment | null> => {
     if (!user) {
       toast({
@@ -588,7 +534,6 @@ export const useMediaItem = (mediaId: string) => {
 
       if (error) throw error;
 
-      // Refresh comments
       queryClient.invalidateQueries({ queryKey: ['media-comments', mediaId] });
 
       return data;
@@ -603,7 +548,6 @@ export const useMediaItem = (mediaId: string) => {
     }
   };
   
-  // Delete comment
   const deleteComment = async (commentId: string): Promise<boolean> => {
     if (!user) {
       toast({
@@ -623,7 +567,6 @@ export const useMediaItem = (mediaId: string) => {
 
       if (error) throw error;
 
-      // Refresh comments
       queryClient.invalidateQueries({ queryKey: ['media-comments', mediaId] });
 
       return true;
@@ -668,20 +611,36 @@ export const useMediaItem = (mediaId: string) => {
         throw error;
       }
       
-      // Only increment view for others' media
       if (user?.id !== data.user_id) {
         incrementView();
       }
       
-      return {
-        ...data,
+      const mediaWithHelpers = {
+        ...data as unknown as MediaItem & {
+          album: { id: string; title: string; privacy: AlbumPrivacy };
+          profile: { username: string; avatar_url: string | null; bdsm_role: string };
+        },
         useMediaLiked,
         useMediaBookmarked,
         useMediaComments,
         addComment,
-        deleteComment
+        deleteComment,
+        likeMedia: (mediaId: string) => likeMediaMutation.mutate(mediaId),
+        bookmarkMedia: (mediaId: string) => bookmarkMediaMutation.mutate(mediaId),
       };
+      
+      return mediaWithHelpers;
     },
     enabled: !!mediaId
   });
+  
+  function likeMediaMutation(mediaId: string) {
+    const { likeMedia } = useMediaItems();
+    return likeMedia(mediaId);
+  }
+  
+  function bookmarkMediaMutation(mediaId: string) {
+    const { bookmarkMedia } = useMediaItems();
+    return bookmarkMedia(mediaId);
+  }
 };

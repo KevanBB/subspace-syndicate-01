@@ -1,12 +1,24 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAlbum, useAlbums } from '@/hooks/useAlbums';
 import { useMediaItems } from '@/hooks/useMediaItems';
-import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
+import MediaGrid from '@/components/albums/MediaGrid';
+import MediaUploader from '@/components/albums/MediaUploader';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
+import { formatDistanceToNow } from 'date-fns';
+import { 
+  ChevronLeft,
+  Eye, 
+  Heart, 
+  Lock, 
+  Users, 
+  Edit, 
+  Trash2,
+  MoreHorizontal
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,12 +34,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import MediaGrid from '@/components/albums/MediaGrid';
-import MediaUploader from '@/components/albums/MediaUploader';
-import AlbumForm from '@/components/albums/AlbumForm';
-import { Heart, MoreVertical, Edit, Trash2, Upload, Lock, ChevronLeft, Eye, Calendar } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
-import { AlbumPrivacy } from '@/types/albums';
 
 const AlbumDetailPage = () => {
   const { albumId } = useParams<{ albumId: string }>();
@@ -49,17 +55,14 @@ const AlbumDetailPage = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
-  // Check if current user is the album owner
   const isOwner = user?.id === album?.user_id;
   
-  // Handle like button click
   const handleLikeClick = () => {
     if (albumId) {
       likeAlbum(albumId);
     }
   };
   
-  // Handle media upload
   const handleMediaUpload = async (file: File, description?: string) => {
     if (!albumId) return;
     
@@ -74,7 +77,6 @@ const AlbumDetailPage = () => {
     }
   };
   
-  // Handle album edit
   const handleEditAlbum = async (values: {
     title: string;
     description?: string;
@@ -88,7 +90,6 @@ const AlbumDetailPage = () => {
     setIsEditDialogOpen(false);
   };
   
-  // Handle album delete
   const handleDeleteAlbum = async () => {
     if (!albumId) return;
     
@@ -99,7 +100,6 @@ const AlbumDetailPage = () => {
     }
   };
   
-  // If album is private and not owned by current user, redirect
   useEffect(() => {
     if (album && album.privacy !== 'public' && album.user_id !== user?.id) {
       navigate('/albums');
@@ -152,7 +152,6 @@ const AlbumDetailPage = () => {
         </Button>
         
         <div className="flex flex-col md:flex-row gap-6 mb-8">
-          {/* Album Cover */}
           <div className="w-full md:w-1/3 lg:w-1/4">
             <div className="aspect-square bg-black/30 rounded-md overflow-hidden">
               {album.cover_image_url ? (
@@ -169,7 +168,6 @@ const AlbumDetailPage = () => {
             </div>
           </div>
           
-          {/* Album Details */}
           <div className="flex-1">
             <div className="flex justify-between items-start">
               <div>
@@ -186,7 +184,7 @@ const AlbumDetailPage = () => {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreVertical className="h-4 w-4" />
+                      <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -206,7 +204,6 @@ const AlbumDetailPage = () => {
               )}
             </div>
             
-            {/* Creator Info */}
             <div className="flex items-center mt-4">
               <Avatar className="h-8 w-8 mr-2">
                 <AvatarImage 
@@ -227,7 +224,6 @@ const AlbumDetailPage = () => {
               </div>
             </div>
             
-            {/* Album Stats */}
             <div className="flex items-center gap-4 mt-4">
               <div className="flex items-center">
                 <Eye className="h-4 w-4 mr-1 text-white/70" />
@@ -249,7 +245,6 @@ const AlbumDetailPage = () => {
               </div>
             </div>
             
-            {/* Description */}
             {album.description && (
               <div className="mt-6">
                 <h3 className="text-lg font-medium text-white mb-2">Description</h3>
@@ -257,7 +252,6 @@ const AlbumDetailPage = () => {
               </div>
             )}
             
-            {/* Tags */}
             {albumTags && albumTags.length > 0 && (
               <div className="mt-6">
                 <h3 className="text-lg font-medium text-white mb-2">Tags</h3>
@@ -273,7 +267,6 @@ const AlbumDetailPage = () => {
           </div>
         </div>
         
-        {/* Upload Section (for owner only) */}
         {isOwner && (
           <div className="mb-8">
             <div className="bg-black/20 border border-white/10 rounded-md p-4">
@@ -287,7 +280,6 @@ const AlbumDetailPage = () => {
           </div>
         )}
         
-        {/* Media Grid */}
         <div>
           <h2 className="text-2xl font-bold text-white mb-6">Media</h2>
           
@@ -300,7 +292,6 @@ const AlbumDetailPage = () => {
           )}
         </div>
         
-        {/* Edit Album Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
@@ -319,7 +310,6 @@ const AlbumDetailPage = () => {
           </DialogContent>
         </Dialog>
         
-        {/* Delete Album Dialog */}
         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <DialogContent>
             <DialogHeader>

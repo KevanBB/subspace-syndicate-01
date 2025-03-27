@@ -1,11 +1,10 @@
-
 import React, { useState, useRef } from 'react';
 import { FileUploader } from '@/components/ui/file-uploader';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Upload, X, FileImage, FileVideo, Image as ImageIcon } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, FileVideo } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface MediaUploaderProps {
@@ -28,7 +27,6 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({ albumId, onUpload, upload
     
     const file = files[0];
     
-    // Check file size
     if (file.size > MAX_FILE_SIZE) {
       toast({
         title: 'File too large',
@@ -38,14 +36,11 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({ albumId, onUpload, upload
       return;
     }
     
-    // Set selected file
     setSelectedFile(file);
     
-    // Create preview
     const objectUrl = URL.createObjectURL(file);
     setFilePreview(objectUrl);
     
-    // Open dialog
     setIsDialogOpen(true);
   };
   
@@ -54,13 +49,11 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({ albumId, onUpload, upload
     
     setIsDialogOpen(false);
     
-    // Clean up preview URL
     if (filePreview) {
       URL.revokeObjectURL(filePreview);
       setFilePreview(null);
     }
     
-    // Reset state
     setSelectedFile(null);
     setDescription('');
   };
@@ -73,14 +66,11 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({ albumId, onUpload, upload
     try {
       await onUpload(selectedFile, description);
       
-      // Reset state
       setSelectedFile(null);
       setDescription('');
       
-      // Close dialog
       setIsDialogOpen(false);
       
-      // Clean up preview URL
       if (filePreview) {
         URL.revokeObjectURL(filePreview);
         setFilePreview(null);
@@ -92,7 +82,6 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({ albumId, onUpload, upload
     }
   };
   
-  // Get current upload progress
   const currentProgress = Object.values(uploadProgress)[0] || 0;
   
   return (
@@ -135,7 +124,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({ albumId, onUpload, upload
                   />
                 ) : (
                   <div className="w-full h-[200px] flex items-center justify-center bg-black/40 rounded-md">
-                    <FileImage className="h-12 w-12 text-white/30" />
+                    <ImageIcon className="h-12 w-12 text-white/30" />
                   </div>
                 )}
               </div>

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { MediaItem } from '@/types/albums';
-import { Eye, Heart, Clock, FileImage, FileVideo } from 'lucide-react';
+import { Eye, Heart, Clock, Image, FileVideo } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -54,7 +54,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({ mediaItems, albumId }) => {
   if (!mediaItems || mediaItems.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-white/60">
-        <FileImage className="h-12 w-12 mb-4 opacity-50" />
+        <Image className="h-12 w-12 mb-4 opacity-50" />
         <p>No media items in this album yet</p>
       </div>
     );
@@ -96,7 +96,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({ mediaItems, albumId }) => {
               </div>
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-black/40 rounded-md">
-                <FileImage className="h-12 w-12 text-white/30" />
+                <Image className="h-12 w-12 text-white/30" />
               </div>
             )}
           </div>

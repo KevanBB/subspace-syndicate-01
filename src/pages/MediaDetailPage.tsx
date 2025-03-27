@@ -24,22 +24,20 @@ import { Textarea } from '@/components/ui/textarea';
 import MediaCommentsSection from '@/components/albums/MediaCommentsSection';
 import { 
   Heart, 
-  MoreVertical, 
-  Trash2, 
   ChevronLeft, 
   Eye, 
-  Download, 
-  Calendar, 
-  Bookmark, 
+  Calendar,
   Edit,
   Info,
   X,
-  Check
+  Check,
+  MoreHorizontal,
+  Trash2
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 
 const MediaDetailPage = () => {
-  const { albumId, mediaId } = useParams<{ albumId: string; mediaId: string }>();
+  const { albumId, mediaId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const mediaRef = useRef<HTMLImageElement | HTMLVideoElement | null>(null);
@@ -73,13 +71,13 @@ const MediaDetailPage = () => {
   
   // Handle actions
   const handleLikeClick = async () => {
-    if (!mediaId || !mediaData) return;
-    mediaData.likeMedia?.(mediaId);
+    if (!mediaId || !media?.likeMedia) return;
+    media.likeMedia(mediaId);
   };
   
   const handleBookmarkClick = async () => {
-    if (!mediaId || !mediaData) return;
-    mediaData.bookmarkMedia?.(mediaId);
+    if (!mediaId || !media?.bookmarkMedia) return;
+    media.bookmarkMedia(mediaId);
   };
   
   const handleDeleteMedia = async () => {
@@ -100,13 +98,13 @@ const MediaDetailPage = () => {
   };
   
   const handleAddComment = async (content: string) => {
-    if (!mediaId || !mediaData?.addComment) return null;
-    return mediaData.addComment(content);
+    if (!mediaId || !media?.addComment) return null;
+    return media.addComment(content);
   };
   
   const handleDeleteComment = async (commentId: string) => {
-    if (!mediaId || !mediaData?.deleteComment) return false;
-    return mediaData.deleteComment(commentId);
+    if (!mediaId || !media?.deleteComment) return false;
+    return media.deleteComment(commentId);
   };
   
   // Disable right-click (context menu) on media to prevent easy downloading
@@ -287,7 +285,7 @@ const MediaDetailPage = () => {
                     size="sm"
                     onClick={handleBookmarkClick}
                   >
-                    <Bookmark className={`mr-2 h-4 w-4 ${isBookmarked ? "fill-white" : ""}`} />
+                    <Heart className={`mr-2 h-4 w-4 ${isBookmarked ? "fill-white" : ""}`} />
                     {isBookmarked ? "Saved" : "Save"}
                   </Button>
                 </div>
@@ -306,7 +304,7 @@ const MediaDetailPage = () => {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical className="h-4 w-4" />
+                          <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
