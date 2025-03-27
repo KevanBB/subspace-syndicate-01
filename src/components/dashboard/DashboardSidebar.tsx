@@ -2,13 +2,13 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
-  HomeIcon, 
+  Home as HomeIcon, 
   MessageSquare, 
-  UserIcon, 
+  User as UserIcon, 
   Settings, 
   Users, 
-  RssIcon, 
-  VideoIcon,
+  Rss as RssIcon, 
+  Video as VideoIcon,
   RotateCcw
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';

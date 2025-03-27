@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { 
   RotateCcw,
-  Coins as CoinsIcon
+  Coins
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -23,7 +22,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, onPlayAgain, winn
       </p>
       {winnings > 0 && (
         <div className="flex items-center mb-4">
-          <CoinsIcon className="mr-2 h-6 w-6 text-yellow-500" />
+          <Coins className="mr-2 h-6 w-6 text-yellow-500" />
           <p className="text-lg text-green-400">
             You won <span className="font-bold">{winnings}</span> coins!
           </p>
