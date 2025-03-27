@@ -24,6 +24,9 @@ import SubSpaceTVMyContent from './pages/SubSpaceTVMyContent';
 import VideoWatchPage from './pages/VideoWatchPage';
 import NewsFeed from './pages/NewsFeed';
 import AdminDashboard from './pages/AdminDashboard';
+import AlbumsPage from './pages/AlbumsPage';
+import AlbumDetailPage from './pages/AlbumDetailPage';
+import MediaDetailPage from './pages/MediaDetailPage';
 
 // Configure QueryClient with error handling
 const queryClient = new QueryClient({
@@ -65,6 +68,12 @@ function App() {
               <Route path="/subspacetv/my-content" element={<SubSpaceTVMyContent />} />
               <Route path="/subspacetv/watch/:id" element={<VideoWatchPage />} />
               <Route path="/admin" element={<AdminDashboard />} />
+              
+              {/* Album Routes */}
+              <Route path="/albums" element={<AlbumsPage />} />
+              <Route path="/albums/:albumId" element={<AlbumDetailPage />} />
+              <Route path="/albums/:albumId/media/:mediaId" element={<MediaDetailPage />} />
+              
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

@@ -47,6 +47,103 @@ export type Database = {
           },
         ]
       }
+      album_likes: {
+        Row: {
+          album_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          album_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          album_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "album_likes_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "albums"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      album_tags: {
+        Row: {
+          album_id: string
+          created_at: string
+          id: string
+          tag: string
+        }
+        Insert: {
+          album_id: string
+          created_at?: string
+          id?: string
+          tag: string
+        }
+        Update: {
+          album_id?: string
+          created_at?: string
+          id?: string
+          tag?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "album_tags_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "albums"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      albums: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          likes: number
+          privacy: string
+          title: string
+          updated_at: string
+          user_id: string
+          views: number
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          likes?: number
+          privacy?: string
+          title: string
+          updated_at?: string
+          user_id: string
+          views?: number
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          likes?: number
+          privacy?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          views?: number
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           content: string
@@ -346,6 +443,164 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: true
             referencedRelation: "creator_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media: {
+        Row: {
+          album_id: string
+          created_at: string
+          description: string | null
+          duration: number | null
+          file_name: string
+          file_size: number
+          file_type: string
+          height: number | null
+          id: string
+          likes: number
+          thumbnail_url: string | null
+          updated_at: string
+          url: string
+          user_id: string
+          views: number
+          width: number | null
+        }
+        Insert: {
+          album_id: string
+          created_at?: string
+          description?: string | null
+          duration?: number | null
+          file_name: string
+          file_size: number
+          file_type: string
+          height?: number | null
+          id?: string
+          likes?: number
+          thumbnail_url?: string | null
+          updated_at?: string
+          url: string
+          user_id: string
+          views?: number
+          width?: number | null
+        }
+        Update: {
+          album_id?: string
+          created_at?: string
+          description?: string | null
+          duration?: number | null
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          height?: number | null
+          id?: string
+          likes?: number
+          thumbnail_url?: string | null
+          updated_at?: string
+          url?: string
+          user_id?: string
+          views?: number
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "albums"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_bookmarks: {
+        Row: {
+          created_at: string
+          id: string
+          media_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          media_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          media_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_bookmarks_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          media_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          media_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          media_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_comments_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_likes: {
+        Row: {
+          created_at: string
+          id: string
+          media_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          media_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          media_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_likes_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
             referencedColumns: ["id"]
           },
         ]
@@ -784,6 +1039,18 @@ export type Database = {
           user_id: string
         }
         Returns: string[]
+      }
+      increment_album_views: {
+        Args: {
+          album_id: string
+        }
+        Returns: undefined
+      }
+      increment_media_views: {
+        Args: {
+          media_id: string
+        }
+        Returns: undefined
       }
       is_admin: {
         Args: {

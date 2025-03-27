@@ -1,119 +1,128 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-interface WebhookPayload {
-  type: string;
-  table: string;
-  record: any;
-  schema: string;
-}
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 serve(async (req) => {
-  // CORS headers
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
-      },
-      status: 204,
-    })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Create a Supabase client with the service role key
+    const authorization = req.headers.get('Authorization');
+    
+    if (!authorization) {
+      return new Response(
+        JSON.stringify({ error: 'Authorization header is required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
         auth: {
           autoRefreshToken: false,
-          persistSession: false
+          persistSession: false,
+        },
+      }
+    );
+
+    // Get bucket name from request body
+    let bucketName = 'post_media'; // Default bucket name
+    
+    if (req.method === 'POST') {
+      try {
+        const body = await req.json();
+        if (body.bucket_name) {
+          bucketName = body.bucket_name;
         }
+      } catch (e) {
+        console.error('Error parsing request body:', e);
       }
-    )
-    
-    // Create the post_media bucket if it doesn't exist
-    const { data: bucket, error: bucketError } = await supabaseAdmin
-      .storage
-      .createBucket('post_media', {
-        public: true,
-        fileSizeLimit: 10485760, // 10MB
-        allowedMimeTypes: [
-          'image/jpeg',
-          'image/png', 
-          'image/gif', 
-          'image/webp', 
-          'video/mp4', 
-          'video/quicktime'
-        ]
-      })
-      
-    if (bucketError && !bucketError.message.includes('already exists')) {
-      throw bucketError
     }
-    
-    // Set up RLS policies for the bucket
-    // Allow authenticated users to upload to the bucket
-    const { error: policyError1 } = await supabaseAdmin.rpc('create_storage_policy', {
-      bucket_name: 'post_media',
-      policy_name: 'authenticated users can upload',
-      definition: 'auth.role() = \'authenticated\'',
-      operation: 'INSERT'
-    })
-    
-    // Allow everyone to read from the bucket
-    const { error: policyError2 } = await supabaseAdmin.rpc('create_storage_policy', {
-      bucket_name: 'post_media',
-      policy_name: 'everyone can read',
-      definition: 'true',
-      operation: 'SELECT'
-    })
-    
-    // Allow users to delete their own media
-    const { error: policyError3 } = await supabaseAdmin.rpc('create_storage_policy', {
-      bucket_name: 'post_media',
-      policy_name: 'users can delete own media',
-      definition: 'auth.uid() = SPLIT_PART(name, \'/\', 1)::uuid',
-      operation: 'DELETE'
-    })
-    
-    // Allow users to update their own media
-    const { error: policyError4 } = await supabaseAdmin.rpc('create_storage_policy', {
-      bucket_name: 'post_media',
-      policy_name: 'users can update own media',
-      definition: 'auth.uid() = SPLIT_PART(name, \'/\', 1)::uuid',
-      operation: 'UPDATE'
-    })
-    
-    if (policyError1 || policyError2 || policyError3 || policyError4) {
-      console.error('Policy errors:', { policyError1, policyError2, policyError3, policyError4 })
+
+    console.log(`Creating bucket: ${bucketName}`);
+
+    // Check if bucket exists
+    const { data: buckets } = await supabaseAdmin.storage.listBuckets();
+    const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
+
+    if (bucketExists) {
+      console.log(`Bucket ${bucketName} already exists`);
+      return new Response(
+        JSON.stringify({ message: `Bucket ${bucketName} already exists` }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+
+    // Create bucket
+    const { data, error } = await supabaseAdmin.storage.createBucket(bucketName, {
+      public: true,
+      fileSizeLimit: 50 * 1024 * 1024, // 50MB limit
+    });
+
+    if (error) {
+      console.error('Error creating bucket:', error);
+      throw error;
+    }
+
+    console.log(`Bucket ${bucketName} created successfully`);
+
+    // Create RLS policies for the bucket
+    const sqlQueries = [
+      // Allow media to be viewed by anyone
+      `CREATE POLICY "Media is viewable by everyone"
+        ON storage.objects
+        FOR SELECT
+        USING (bucket_id = '${bucketName}');`,
+
+      // Allow authenticated users to upload
+      `CREATE POLICY "Users can upload ${bucketName}"
+        ON storage.objects
+        FOR INSERT
+        TO authenticated
+        WITH CHECK (bucket_id = '${bucketName}');`,
+
+      // Allow users to update their own uploads
+      `CREATE POLICY "Users can update their own ${bucketName}"
+        ON storage.objects
+        FOR UPDATE
+        USING (bucket_id = '${bucketName}' AND owner = auth.uid());`,
+
+      // Allow users to delete their own uploads
+      `CREATE POLICY "Users can delete their own ${bucketName}"
+        ON storage.objects
+        FOR DELETE
+        USING (bucket_id = '${bucketName}' AND owner = auth.uid());`
+    ];
+
+    for (const sql of sqlQueries) {
+      const { error: policyError } = await supabaseAdmin.rpc('pgrest_exec', { source: sql });
+      if (policyError) {
+        console.error('Error creating policy:', policyError);
+        // Continue with other policies even if one fails
+      }
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        message: `Bucket ${bucketName} created successfully with policies` 
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (err) {
+    console.error('Error in create-media-bucket function:', err);
     
     return new Response(
-      JSON.stringify({ success: true, message: 'Media storage bucket created successfully' }),
-      { 
-        headers: { 
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*' 
-        },
-        status: 200 
-      }
-    )
-  } catch (error) {
-    console.error('Error creating media bucket:', error)
-    
-    return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      { 
-        headers: { 
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        },
-        status: 500 
-      }
-    )
+      JSON.stringify({ error: err.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
-})
+});

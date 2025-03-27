@@ -30,27 +30,28 @@ export const ensureBucketExists = async (bucketName: string): Promise<boolean> =
     const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
     
     if (!bucketExists) {
-      // If bucket doesn't exist and we're checking for post_media, try to create it
-      if (bucketName === 'post_media') {
+      // If bucket doesn't exist, try to create it based on bucket name
+      if (bucketName === 'post_media' || bucketName === 'album_media') {
         try {
-          console.log('Attempting to initialize post_media bucket via Edge Function');
+          console.log(`Attempting to initialize ${bucketName} bucket via Edge Function`);
           
           const response = await fetch(`${SUPABASE_URL}/functions/v1/create-media-bucket`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
-            }
+            },
+            body: JSON.stringify({ bucket_name: bucketName })
           });
           
           if (response.ok) {
-            console.log('Successfully created post_media bucket');
+            console.log(`Successfully created ${bucketName} bucket`);
             return true;
           } else {
-            console.error('Failed to create post_media bucket:', await response.text());
+            console.error(`Failed to create ${bucketName} bucket:`, await response.text());
           }
         } catch (initError) {
-          console.error('Error initializing post_media bucket:', initError);
+          console.error(`Error initializing ${bucketName} bucket:`, initError);
         }
       }
     }

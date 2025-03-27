@@ -1,12 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, Image, Film, X, AlertCircle } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Album } from '@/types/albums';
+import AlbumCard from '@/components/albums/AlbumCard';
+import { Library, Plus } from 'lucide-react';
 
 interface MediaTabProps {
   userId?: string;
@@ -14,165 +15,111 @@ interface MediaTabProps {
 
 const MediaTab: React.FC<MediaTabProps> = ({ userId }) => {
   const { user } = useAuth();
-  const [uploading, setUploading] = useState(false);
-  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const navigate = useNavigate();
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    
-    const selectedFiles = Array.from(e.target.files);
-    const newMediaFiles = [...mediaFiles, ...selectedFiles];
-    setMediaFiles(newMediaFiles);
-    
-    // Create preview URLs
-    const newPreviewUrls = selectedFiles.map(file => URL.createObjectURL(file));
-    setPreviewUrls([...previewUrls, ...newPreviewUrls]);
-  };
+  // Determine if viewing current user's profile or someone else's
+  const targetUserId = userId || user?.id;
+  const isCurrentUser = !userId || userId === user?.id;
   
-  const removeFile = (index: number) => {
-    const newMediaFiles = [...mediaFiles];
-    newMediaFiles.splice(index, 1);
-    setMediaFiles(newMediaFiles);
-    
-    const newPreviewUrls = [...previewUrls];
-    URL.revokeObjectURL(newPreviewUrls[index]);
-    newPreviewUrls.splice(index, 1);
-    setPreviewUrls(newPreviewUrls);
-  };
-  
-  const uploadFiles = async () => {
-    if (!user || mediaFiles.length === 0) return;
-    
-    setUploading(true);
-    
-    try {
-      for (let i = 0; i < mediaFiles.length; i++) {
-        const file = mediaFiles[i];
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}-${Date.now()}-${i}.${fileExt}`;
-        const filePath = `user-media/${fileName}`;
+  useEffect(() => {
+    const fetchAlbums = async () => {
+      if (!targetUserId) return;
+      
+      setIsLoading(true);
+      
+      try {
+        let query = supabase
+          .from('albums')
+          .select('*')
+          .order('created_at', { ascending: false });
         
-        // Upload file to the media bucket
-        const { error } = await supabase.storage
-          .from('media')
-          .upload(filePath, file);
-          
+        // If viewing someone else's profile, only show public albums
+        if (!isCurrentUser) {
+          query = query.eq('privacy', 'public');
+        }
+        
+        // Filter by user ID
+        query = query.eq('user_id', targetUserId);
+        
+        const { data, error } = await query;
+        
         if (error) throw error;
+        
+        setAlbums(data as Album[]);
+      } catch (error) {
+        console.error('Error fetching albums:', error);
+      } finally {
+        setIsLoading(false);
       }
-      
-      toast({
-        title: "Upload successful",
-        description: `${mediaFiles.length} file(s) uploaded successfully.`,
-      });
-      
-      // Clear selected files after upload
-      mediaFiles.forEach((_, i) => URL.revokeObjectURL(previewUrls[i]));
-      setMediaFiles([]);
-      setPreviewUrls([]);
-      
-    } catch (error: any) {
-      toast({
-        title: "Upload failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
-    }
+    };
+    
+    fetchAlbums();
+  }, [targetUserId, isCurrentUser]);
+  
+  const handleCreateAlbumClick = () => {
+    navigate('/albums');
   };
   
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap gap-4">
-        <Button variant="outline" className="border-white/20 bg-black/30 text-white hover:bg-white/10">
-          <Image size={18} className="mr-2" /> Photos
-        </Button>
-        <Button variant="outline" className="border-white/20 bg-black/30 text-white hover:bg-white/10">
-          <Film size={18} className="mr-2" /> Videos
-        </Button>
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold text-white">Media Albums</h2>
+        {isCurrentUser && (
+          <Button
+            variant="outline"
+            onClick={handleCreateAlbumClick}
+          >
+            <Library className="mr-2 h-4 w-4" />
+            View All Albums
+          </Button>
+        )}
       </div>
       
-      <Card className="bg-black/20 border-white/10 backdrop-blur-md">
-        <CardHeader>
-          <CardTitle className="text-white">Media Gallery</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {previewUrls.length > 0 ? (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {previewUrls.map((url, index) => (
-                  <div key={index} className="relative group aspect-square rounded-md overflow-hidden">
-                    <img 
-                      src={url} 
-                      alt={`Preview ${index}`} 
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      onClick={() => removeFile(index)}
-                      className="absolute top-2 right-2 bg-black/70 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-between">
-                <Button 
-                  type="button" 
-                  variant="outline"
-                  onClick={() => document.getElementById('media-upload')?.click()}
-                >
-                  Add More
-                </Button>
-                <Button 
-                  onClick={uploadFiles} 
-                  disabled={uploading}
-                  className="bg-crimson hover:bg-crimson/80"
-                >
-                  {uploading ? "Uploading..." : "Upload All"}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="min-h-[200px] flex flex-col items-center justify-center border border-dashed border-white/20 rounded-md p-8">
-              <Upload className="h-10 w-10 text-white/40 mb-3" />
-              <p className="text-white/70 text-center">No media uploaded yet</p>
-              <Button 
-                className="mt-4 bg-crimson hover:bg-crimson/80"
-                onClick={() => document.getElementById('media-upload')?.click()}
-              >
-                Upload Media
+      {isLoading ? (
+        <Card className="bg-black/20 border-white/10">
+          <CardContent className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-crimson"></div>
+          </CardContent>
+        </Card>
+      ) : albums.length === 0 ? (
+        <Card className="bg-black/20 border-white/10">
+          <CardContent className="py-12 text-center">
+            <h3 className="text-xl font-medium text-white mb-2">No Albums Yet</h3>
+            <p className="text-white/70 mb-6">
+              {isCurrentUser 
+                ? "You haven't created any albums yet" 
+                : "This user hasn't created any public albums yet"}
+            </p>
+            
+            {isCurrentUser && (
+              <Button onClick={() => navigate('/albums/new')}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Album
               </Button>
-            </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {albums.slice(0, 6).map(album => (
+            <AlbumCard key={album.id} album={album} />
+          ))}
+          {albums.length > 6 && (
+            <Button
+              variant="ghost"
+              className="w-full h-[270px] border border-dashed border-white/20"
+              onClick={() => navigate('/albums')}
+            >
+              <span className="flex flex-col items-center">
+                <Plus className="h-6 w-6 mb-2" />
+                View All Albums
+              </span>
+            </Button>
           )}
-          
-          <input
-            id="media-upload"
-            type="file"
-            accept="image/*,video/*"
-            multiple
-            onChange={handleFileChange}
-            className="hidden"
-          />
-        </CardContent>
-      </Card>
-      
-      <Alert className="bg-amber-900/20 border-amber-500/30 text-amber-200">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Uploaded media is subject to community guidelines. Please ensure your content is appropriate.
-        </AlertDescription>
-      </Alert>
-      
-      <Card className="bg-black/20 border-white/10 backdrop-blur-md">
-        <CardHeader>
-          <CardTitle className="text-white">Recent Uploads</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-white/70">When you upload photos and videos, they'll appear here.</p>
-        </CardContent>
-      </Card>
+        </div>
+      )}
     </div>
   );
 };
