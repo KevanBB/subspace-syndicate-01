@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase, ensureBucketExists } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
 
 export interface PostMedia {
   id: string;
@@ -47,7 +48,12 @@ export const usePostCreation = ({ onPostCreated }: UsePostCreationProps) => {
     try {
       if (!content.trim() && mediaItems.length === 0) {
         setError('Please add some content or media to your post');
-        return;
+        return false;
+      }
+      
+      if (!user) {
+        setError('You must be logged in to create a post');
+        return false;
       }
       
       setIsPosting(true);
@@ -56,27 +62,62 @@ export const usePostCreation = ({ onPostCreated }: UsePostCreationProps) => {
       const uploadedMedia: PostMedia[] = [];
       
       if (mediaItems.length > 0) {
-        const bucketExists = await ensureBucketExists('post-media');
+        // Check if media bucket exists
+        const bucketExists = await ensureBucketExists('post_media');
         
         if (!bucketExists) {
-          setError('Media storage is not available. Please try again later or contact support.');
-          setIsPosting(false);
-          return;
+          // Try to create the bucket (this will likely fail on client side)
+          // We'll handle the error gracefully
+          try {
+            toast({
+              title: "Media storage issue",
+              description: "Creating media storage... This might take a moment.",
+            });
+            
+            // Call Edge Function to create bucket (if available)
+            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-media-bucket`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabase.auth.getSession()}`
+              }
+            });
+            
+            if (!response.ok) {
+              throw new Error('Failed to create media bucket');
+            }
+            
+          } catch (error) {
+            console.error('Error creating media bucket:', error);
+            setError('Media storage is not available. Please contact support or try again later.');
+            setIsPosting(false);
+            return false;
+          }
         }
         
+        // Upload each media file
         for (const item of mediaItems) {
           if (item.file) {
+            const fileExt = item.file.name.split('.').pop();
             const fileName = `${user?.id}/${uuidv4()}-${item.file.name}`;
-            const filePath = `media/${fileName}`;
+            const filePath = `${fileName}`;
             
             const { data, error: uploadError } = await supabase.storage
-              .from('post-media')
+              .from('post_media')
               .upload(filePath, item.file);
               
-            if (uploadError) throw uploadError;
+            if (uploadError) {
+              console.error('Upload error:', uploadError);
+              if (uploadError.message.includes('storage/bucket-not-found')) {
+                setError('Media storage is currently unavailable. Your post will be saved without media.');
+                break;
+              } else {
+                throw uploadError;
+              }
+            }
             
             const { data: urlData } = supabase.storage
-              .from('post-media')
+              .from('post_media')
               .getPublicUrl(filePath);
               
             uploadedMedia.push({

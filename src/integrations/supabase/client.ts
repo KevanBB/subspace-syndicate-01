@@ -20,11 +20,41 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // Helper function to check if bucket exists - avoids permission errors
 export const ensureBucketExists = async (bucketName: string): Promise<boolean> => {
   try {
-    const { data: buckets } = await supabase.storage.listBuckets();
+    const { data: buckets, error } = await supabase.storage.listBuckets();
+    
+    if (error) {
+      console.error(`Error checking buckets:`, error);
+      return false;
+    }
+    
     const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
     
-    // If bucket doesn't exist, we don't try to create it on the client side
-    // as this would require admin privileges
+    if (!bucketExists) {
+      // If bucket doesn't exist and we're checking for post_media, try to create it
+      if (bucketName === 'post_media') {
+        try {
+          console.log('Attempting to initialize post_media bucket via Edge Function');
+          
+          const response = await fetch(`${SUPABASE_URL}/functions/v1/create-media-bucket`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+            }
+          });
+          
+          if (response.ok) {
+            console.log('Successfully created post_media bucket');
+            return true;
+          } else {
+            console.error('Failed to create post_media bucket:', await response.text());
+          }
+        } catch (initError) {
+          console.error('Error initializing post_media bucket:', initError);
+        }
+      }
+    }
+    
     return !!bucketExists;
   } catch (error) {
     console.error(`Error checking if bucket ${bucketName} exists:`, error);
