@@ -1,6 +1,7 @@
+
 import React from 'react';
 import {
-  RotateCw
+  RotateCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -12,7 +13,7 @@ const WheelSettings: React.FC<WheelSettingsProps> = ({ onSpin }) => {
   return (
     <div className="flex items-center justify-center space-x-4">
       <Button onClick={onSpin}>
-        <RotateCw className="mr-2 h-4 w-4" />
+        <RotateCcw className="mr-2 h-4 w-4" />
         Spin the Wheel
       </Button>
     </div>
