@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-  RotateCcw,
+  RotateCw,
   Coins
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -29,7 +29,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ result, onPlayAgain, winn
         </div>
       )}
       <Button onClick={onPlayAgain} className="bg-crimson hover:bg-crimson-focus text-white">
-        <RotateCcw className="mr-2 h-4 w-4" />
+        <RotateCw className="mr-2 h-4 w-4" />
         Play Again
       </Button>
     </div>

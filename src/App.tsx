@@ -24,7 +24,6 @@ import SubSpaceTVMyContent from './pages/SubSpaceTVMyContent';
 import VideoWatchPage from './pages/VideoWatchPage';
 import NewsFeed from './pages/NewsFeed';
 import AdminDashboard from './pages/AdminDashboard';
-import WheelGamePage from './pages/WheelGamePage';
 
 // Configure QueryClient with error handling
 const queryClient = new QueryClient({
@@ -66,7 +65,6 @@ function App() {
               <Route path="/subspacetv/my-content" element={<SubSpaceTVMyContent />} />
               <Route path="/subspacetv/watch/:id" element={<VideoWatchPage />} />
               <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/games/wheel" element={<WheelGamePage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
