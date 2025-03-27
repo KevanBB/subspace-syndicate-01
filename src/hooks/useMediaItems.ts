@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, ensureBucketExists } from '@/integrations/supabase/client';
-import { MediaItem, MediaComment } from '@/types/albums';
+import { MediaItem, MediaComment, Album, AlbumPrivacy } from '@/types/albums';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
@@ -366,7 +366,7 @@ export const useMediaItems = (albumId?: string) => {
 
         const { data } = await supabase.rpc('decrement_media_likes', { media_id: mediaId });
         
-        return { liked: false, likes: data };
+        return { liked: false, likes: data as number };
       } else {
         await supabase
           .from('media_likes')
@@ -377,7 +377,7 @@ export const useMediaItems = (albumId?: string) => {
 
         const { data } = await supabase.rpc('increment_media_likes', { media_id: mediaId });
         
-        return { liked: true, likes: data };
+        return { liked: true, likes: data as number };
       }
     },
     onSuccess: () => {
@@ -495,7 +495,7 @@ export const useMediaItem = (mediaId: string) => {
           .from('media_comments')
           .select(`
             *,
-            profile:user_id (
+            profile:profiles!user_id (
               username,
               avatar_url
             )
@@ -581,6 +581,16 @@ export const useMediaItem = (mediaId: string) => {
     }
   };
 
+  const likeMedia = (mediaId: string) => {
+    const { likeMedia } = useMediaItems();
+    return likeMedia(mediaId);
+  };
+  
+  const bookmarkMedia = (mediaId: string) => {
+    const { bookmarkMedia } = useMediaItems();
+    return bookmarkMedia(mediaId);
+  };
+
   return useQuery({
     queryKey: ['media-item', mediaId],
     queryFn: async () => {
@@ -590,12 +600,12 @@ export const useMediaItem = (mediaId: string) => {
         .from('media')
         .select(`
           *,
-          album:album_id (
+          album:albums!album_id (
             id,
             title,
             privacy
           ),
-          profile:user_id (
+          profile:profiles!user_id (
             username,
             avatar_url,
             bdsm_role
@@ -616,31 +626,89 @@ export const useMediaItem = (mediaId: string) => {
       }
       
       const mediaWithHelpers = {
-        ...data as unknown as MediaItem & {
-          album: { id: string; title: string; privacy: AlbumPrivacy };
-          profile: { username: string; avatar_url: string | null; bdsm_role: string };
+        ...data,
+        album: {
+          ...data.album,
+          privacy: data.album.privacy as AlbumPrivacy
         },
+        profile: data.profile,
         useMediaLiked,
         useMediaBookmarked,
         useMediaComments,
-        addComment,
-        deleteComment,
-        likeMedia: (mediaId: string) => likeMediaMutation.mutate(mediaId),
-        bookmarkMedia: (mediaId: string) => bookmarkMediaMutation.mutate(mediaId),
+        addComment: async (content: string) => {
+          if (!user) {
+            toast({
+              title: 'Authentication required',
+              description: 'Please log in to add a comment',
+              variant: 'destructive'
+            });
+            return null;
+          }
+
+          try {
+            const { data, error } = await supabase
+              .from('media_comments')
+              .insert({
+                media_id: mediaId,
+                user_id: user.id,
+                content
+              })
+              .select()
+              .single();
+
+            if (error) throw error;
+
+            queryClient.invalidateQueries({ queryKey: ['media-comments', mediaId] });
+
+            return data;
+          } catch (error: any) {
+            console.error('Error adding comment:', error);
+            toast({
+              title: 'Failed to add comment',
+              description: error.message || 'An unexpected error occurred',
+              variant: 'destructive'
+            });
+            return null;
+          }
+        },
+        deleteComment: async (commentId: string) => {
+          if (!user) {
+            toast({
+              title: 'Authentication required',
+              description: 'Please log in to delete a comment',
+              variant: 'destructive'
+            });
+            return false;
+          }
+
+          try {
+            const { error } = await supabase
+              .from('media_comments')
+              .delete()
+              .eq('id', commentId)
+              .eq('user_id', user.id);
+
+            if (error) throw error;
+
+            queryClient.invalidateQueries({ queryKey: ['media-comments', mediaId] });
+
+            return true;
+          } catch (error: any) {
+            console.error('Error deleting comment:', error);
+            toast({
+              title: 'Failed to delete comment',
+              description: error.message || 'An unexpected error occurred',
+              variant: 'destructive'
+            });
+            return false;
+          }
+        },
+        likeMedia: likeMedia,
+        bookmarkMedia: bookmarkMedia
       };
       
       return mediaWithHelpers;
     },
     enabled: !!mediaId
   });
-  
-  function likeMediaMutation(mediaId: string) {
-    const { likeMedia } = useMediaItems();
-    return likeMedia(mediaId);
-  }
-  
-  function bookmarkMediaMutation(mediaId: string) {
-    const { bookmarkMedia } = useMediaItems();
-    return bookmarkMedia(mediaId);
-  }
 };

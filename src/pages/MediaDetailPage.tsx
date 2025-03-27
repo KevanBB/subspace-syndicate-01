@@ -1,463 +1,334 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { useMediaItem, useMediaItems } from '@/hooks/useMediaItems';
-import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
+import { useMediaItem } from '@/hooks/useMediaItems';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Textarea } from '@/components/ui/textarea';
-import MediaCommentsSection from '@/components/albums/MediaCommentsSection';
+import { Separator } from '@/components/ui/separator';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Heart, 
-  ChevronLeft, 
+  MessageSquare, 
+  ArrowLeft, 
+  MoreVertical, 
+  Download, 
+  Bookmark, 
   Eye, 
-  Calendar,
-  Edit,
-  Info,
-  X,
-  Check,
-  MoreHorizontal,
-  Trash2
+  Calendar, 
+  Users, 
+  Send 
 } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
+import { toast } from '@/hooks/use-toast';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
-const MediaDetailPage = () => {
-  const { albumId, mediaId } = useParams();
+const MediaDetailPage: React.FC = () => {
+  const { albumId, mediaId } = useParams<{ albumId: string; mediaId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const mediaRef = useRef<HTMLImageElement | HTMLVideoElement | null>(null);
-  
-  const { data: mediaData, isLoading, error } = useMediaItem(mediaId!);
-  const { deleteMedia, updateMedia } = useMediaItems(albumId);
-  
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false);
-  const [description, setDescription] = useState('');
-  const [isEditingDescription, setIsEditingDescription] = useState(false);
-  
-  // Get media item details
-  const media = mediaData;
-  
-  // Set up liked and bookmarked status
-  const { data: isLiked } = media?.useMediaLiked(mediaId!) || { data: false };
-  const { data: isBookmarked } = media?.useMediaBookmarked(mediaId!) || { data: false };
-  const { data: comments, isLoading: isLoadingComments } = media?.useMediaComments(mediaId!) || { data: [], isLoading: false };
-  
-  // Set description state when media data loads
-  useEffect(() => {
-    if (media?.description) {
-      setDescription(media.description);
-    }
-  }, [media]);
-  
-  // Check if current user is the media owner
-  const isOwner = user?.id === media?.user_id;
-  
-  // Handle actions
-  const handleLikeClick = async () => {
-    if (!mediaId || !media?.likeMedia) return;
-    media.likeMedia(mediaId);
-  };
-  
-  const handleBookmarkClick = async () => {
-    if (!mediaId || !media?.bookmarkMedia) return;
-    media.bookmarkMedia(mediaId);
-  };
-  
-  const handleDeleteMedia = async () => {
-    if (!mediaId) return;
-    
-    const success = await deleteMedia(mediaId);
-    if (success) {
-      setIsDeleteDialogOpen(false);
-      navigate(`/albums/${albumId}`);
-    }
-  };
-  
-  const handleUpdateDescription = async () => {
-    if (!mediaId) return;
-    
-    await updateMedia(mediaId, { description });
-    setIsEditingDescription(false);
-  };
-  
-  const handleAddComment = async (content: string) => {
-    if (!mediaId || !media?.addComment) return null;
-    return media.addComment(content);
-  };
-  
-  const handleDeleteComment = async (commentId: string) => {
-    if (!mediaId || !media?.deleteComment) return false;
-    return media.deleteComment(commentId);
-  };
-  
-  // Disable right-click (context menu) on media to prevent easy downloading
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    return false;
-  };
-  
-  // Format file size
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
+  const { data: mediaItem, isLoading, error } = useMediaItem(mediaId || '');
+  const [comment, setComment] = useState('');
   
   if (isLoading) {
     return (
-      <AuthenticatedLayout>
-        <div className="container py-8 max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-crimson"></div>
-          </div>
-        </div>
-      </AuthenticatedLayout>
+      <div className="container py-6">
+        <Card className="bg-black/20 border-white/10">
+          <CardContent className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-crimson"></div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
   
-  if (error || !media) {
+  if (error || !mediaItem) {
     return (
-      <AuthenticatedLayout>
-        <div className="container py-8 max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-white mb-2">Media Not Found</h2>
-            <p className="text-white/70 mb-6">The media item you're looking for doesn't exist or you don't have permission to view it.</p>
-            <Button asChild>
-              <Link to={`/albums/${albumId}`}>
-                <ChevronLeft className="mr-2 h-4 w-4" />
-                Back to Album
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </AuthenticatedLayout>
+      <div className="container py-6">
+        <Card className="bg-black/20 border-white/10">
+          <CardContent className="py-12 text-center">
+            <h3 className="text-xl font-medium text-white mb-2">Media Not Found</h3>
+            <p className="text-white/70 mb-6">This media doesn't exist or has been deleted</p>
+            <Button onClick={() => navigate(`/albums/${albumId}`)}>Go Back to Album</Button>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
+  
+  const isOwner = user?.id === mediaItem.user_id;
+  const { data: isLiked } = mediaItem.useMediaLiked(mediaId || '');
+  const { data: isBookmarked } = mediaItem.useMediaBookmarked(mediaId || '');
+  const { data: comments } = mediaItem.useMediaComments(mediaId || '');
+  
+  const handleLike = () => {
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please log in to like this media',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    mediaItem.likeMedia(mediaId || '');
+  };
+  
+  const handleBookmark = () => {
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please log in to bookmark this media',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    mediaItem.bookmarkMedia(mediaId || '');
+  };
+  
+  const handleDownload = () => {
+    window.open(mediaItem.url, '_blank');
+  };
+  
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!comment.trim()) return;
+    
+    const success = await mediaItem.addComment(comment);
+    if (success) {
+      setComment('');
+    }
+  };
+  
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm('Are you sure you want to delete this comment?')) {
+      return;
+    }
+    
+    await mediaItem.deleteComment(commentId);
+  };
   
   return (
-    <AuthenticatedLayout>
-      <div className="container py-8 max-w-5xl mx-auto px-4 sm:px-6">
-        <Button 
-          variant="ghost" 
-          className="mb-6" 
-          asChild
-        >
-          <Link to={`/albums/${albumId}`}>
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            Back to Album
-          </Link>
+    <div className="container py-6">
+      <div className="mb-4">
+        <Button variant="ghost" onClick={() => navigate(`/albums/${albumId}`)}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Album
         </Button>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Media Display */}
-          <div className="lg:col-span-2">
-            <div className="bg-black/40 rounded-md overflow-hidden">
-              {media.file_type.startsWith('image/') ? (
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Card className="bg-black/20 border-white/10 overflow-hidden">
+            <div className="relative">
+              {mediaItem.file_type.startsWith('image/') ? (
                 <img 
-                  ref={mediaRef as React.RefObject<HTMLImageElement>}
-                  src={media.url} 
-                  alt={media.description || 'Image'} 
-                  className="w-full h-auto object-contain max-h-[70vh]"
-                  onContextMenu={handleContextMenu}
-                  style={{ pointerEvents: 'none' }}
+                  src={mediaItem.url} 
+                  alt={mediaItem.description || 'Media preview'} 
+                  className="w-full h-auto"
                 />
-              ) : media.file_type.startsWith('video/') ? (
+              ) : mediaItem.file_type.startsWith('video/') ? (
                 <video 
-                  ref={mediaRef as React.RefObject<HTMLVideoElement>}
-                  src={media.url} 
-                  controls 
-                  className="w-full h-auto max-h-[70vh]"
-                  onContextMenu={handleContextMenu}
-                  controlsList="nodownload"
-                  disablePictureInPicture
+                  src={mediaItem.url}
+                  controls
+                  className="w-full h-auto"
+                  poster={mediaItem.thumbnail_url || undefined}
                 />
               ) : (
-                <div className="w-full h-[50vh] flex items-center justify-center">
+                <div className="w-full aspect-video flex items-center justify-center bg-black/40">
                   <p className="text-white/60">Unsupported media type</p>
                 </div>
               )}
             </div>
             
-            {/* Media Description */}
-            <div className="mt-4">
-              {isEditingDescription ? (
-                <div className="space-y-2">
-                  <Textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Add a description..."
-                    className="min-h-[80px] bg-black/30 border-white/20"
-                  />
-                  <div className="flex justify-end space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        setDescription(media.description || '');
-                        setIsEditingDescription(false);
-                      }}
-                    >
-                      <X className="mr-2 h-4 w-4" />
-                      Cancel
-                    </Button>
-                    <Button 
-                      size="sm"
-                      onClick={handleUpdateDescription}
-                    >
-                      <Check className="mr-2 h-4 w-4" />
-                      Save
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="relative">
-                  {media.description ? (
-                    <p className="text-white/80 whitespace-pre-wrap">
-                      {media.description}
-                    </p>
-                  ) : (
-                    <p className="text-white/50 italic">No description</p>
-                  )}
-                  {isOwner && (
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="absolute top-0 right-0 h-8 w-8"
-                      onClick={() => setIsEditingDescription(true)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              )}
-            </div>
-            
-            {/* Comments Section */}
-            <div className="mt-8">
-              <MediaCommentsSection 
-                comments={comments || []}
-                onAddComment={handleAddComment}
-                onDeleteComment={handleDeleteComment}
-                isLoading={isLoadingComments}
-              />
-            </div>
-          </div>
-          
-          {/* Sidebar with Media Info */}
-          <div>
-            <div className="bg-black/20 border border-white/10 rounded-md p-4 space-y-6">
-              {/* Actions */}
-              <div className="flex justify-between items-center">
-                <div className="flex space-x-4">
-                  <Button 
-                    variant={isLiked ? "default" : "outline"} 
-                    size="sm"
-                    onClick={handleLikeClick}
-                    className={isLiked ? "bg-crimson hover:bg-crimson/90" : ""}
-                  >
-                    <Heart className={`mr-2 h-4 w-4 ${isLiked ? "fill-white" : ""}`} />
-                    {isLiked ? "Liked" : "Like"}
-                  </Button>
-                  
-                  <Button 
-                    variant={isBookmarked ? "default" : "outline"} 
-                    size="sm"
-                    onClick={handleBookmarkClick}
-                  >
-                    <Heart className={`mr-2 h-4 w-4 ${isBookmarked ? "fill-white" : ""}`} />
-                    {isBookmarked ? "Saved" : "Save"}
-                  </Button>
-                </div>
-                
-                <div className="flex">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setIsInfoDialogOpen(true)}
-                  >
-                    <Info className="h-4 w-4" />
-                  </Button>
-                  
-                  {isOwner && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          className="text-red-500"
-                          onClick={() => setIsDeleteDialogOpen(true)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete Media
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
-              </div>
-              
-              {/* Stats */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-2 bg-black/20 rounded-md">
-                  <div className="flex justify-center mb-1">
-                    <Eye className="h-5 w-5 text-white/60" />
-                  </div>
-                  <div className="font-medium">{media.views}</div>
-                  <div className="text-xs text-white/60">Views</div>
-                </div>
-                
-                <div className="text-center p-2 bg-black/20 rounded-md">
-                  <div className="flex justify-center mb-1">
-                    <Heart className="h-5 w-5 text-white/60" />
-                  </div>
-                  <div className="font-medium">{media.likes}</div>
-                  <div className="text-xs text-white/60">Likes</div>
-                </div>
-              </div>
-              
-              {/* Uploader Info */}
-              <div>
-                <h3 className="text-sm font-medium text-white/70 mb-2">Uploaded by</h3>
-                <div className="flex items-center">
-                  <Avatar className="h-8 w-8 mr-2">
-                    <AvatarImage 
-                      src={media.profile?.avatar_url || undefined} 
-                      alt={media.profile?.username || "User"} 
-                    />
-                    <AvatarFallback className="bg-crimson text-white">
-                      {(media.profile?.username || "U").charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="text-sm text-white font-medium">
-                      {media.profile?.username || "User"}
-                    </p>
-                    <p className="text-xs text-white/60">
-                      {formatDistanceToNow(new Date(media.created_at), { addSuffix: true })}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Album Link */}
-              <div>
-                <h3 className="text-sm font-medium text-white/70 mb-2">Album</h3>
+            <CardFooter className="flex justify-between p-4">
+              <div className="flex items-center gap-3">
                 <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full"
-                  asChild
+                  variant={isLiked ? "default" : "outline"} 
+                  size="sm"
+                  onClick={handleLike}
+                  className={isLiked ? "bg-crimson hover:bg-crimson/90" : ""}
                 >
-                  <Link to={`/albums/${albumId}`}>
-                    {media.album?.title || "View Album"}
-                  </Link>
+                  <Heart className={`mr-1 h-4 w-4 ${isLiked ? "fill-white" : ""}`} />
+                  {mediaItem.likes}
+                </Button>
+                
+                <Button 
+                  variant={isBookmarked ? "default" : "outline"} 
+                  size="sm"
+                  onClick={handleBookmark}
+                  className={isBookmarked ? "bg-crimson hover:bg-crimson/90" : ""}
+                >
+                  <Bookmark className={`mr-1 h-4 w-4 ${isBookmarked ? "fill-white" : ""}`} />
+                  Bookmark
                 </Button>
               </div>
-            </div>
-          </div>
+              
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 text-white/70 px-3 py-1 rounded-md border border-white/10 bg-black/20">
+                  <Eye className="h-4 w-4" />
+                  <span>{mediaItem.views}</span>
+                </div>
+                
+                {(isOwner || mediaItem.file_type.startsWith('image/')) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-black/90 border-white/10">
+                      {mediaItem.file_type.startsWith('image/') && (
+                        <DropdownMenuItem onClick={handleDownload} className="cursor-pointer">
+                          <Download className="mr-2 h-4 w-4" />
+                          Download
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+            </CardFooter>
+          </Card>
         </div>
         
-        {/* Delete Media Dialog */}
-        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Delete Media</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete this media? This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button 
-                variant="outline" 
-                onClick={() => setIsDeleteDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button 
-                variant="destructive" 
-                onClick={handleDeleteMedia}
-              >
-                Delete
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        
-        {/* Media Info Dialog */}
-        <Dialog open={isInfoDialogOpen} onOpenChange={setIsInfoDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Media Information</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <p className="text-sm text-white/70">File Name</p>
-                  <p className="text-sm font-medium truncate">{media.file_name}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-white/70">File Type</p>
-                  <p className="text-sm font-medium">{media.file_type}</p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <p className="text-sm text-white/70">File Size</p>
-                  <p className="text-sm font-medium">{formatFileSize(media.file_size)}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-white/70">Uploaded</p>
-                  <p className="text-sm font-medium">{format(new Date(media.created_at), 'MMM d, yyyy')}</p>
-                </div>
-              </div>
-              
-              {media.width && media.height && (
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <p className="text-sm text-white/70">Dimensions</p>
-                    <p className="text-sm font-medium">{media.width} × {media.height}</p>
-                  </div>
-                  {media.duration && (
-                    <div className="space-y-1">
-                      <p className="text-sm text-white/70">Duration</p>
-                      <p className="text-sm font-medium">
-                        {Math.floor(media.duration / 60)}:{(media.duration % 60).toString().padStart(2, '0')}
-                      </p>
-                    </div>
-                  )}
-                </div>
+        <div>
+          <Card className="bg-black/20 border-white/10 mb-4">
+            <CardHeader className="pb-2">
+              <h3 className="text-lg font-medium text-white">About this media</h3>
+            </CardHeader>
+            <CardContent>
+              {mediaItem.description && (
+                <p className="text-white/70 mb-4">{mediaItem.description}</p>
               )}
-            </div>
-          </DialogContent>
-        </Dialog>
+              
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-white/60">Album</span>
+                  <Link to={`/albums/${mediaItem.album.id}`} className="text-crimson hover:underline">
+                    {mediaItem.album.title}
+                  </Link>
+                </div>
+                
+                <div className="flex justify-between">
+                  <span className="text-white/60">Uploaded by</span>
+                  <Link to={`/profile/${mediaItem.profile.username}`} className="text-white hover:text-crimson">
+                    {mediaItem.profile.username}
+                  </Link>
+                </div>
+                
+                <div className="flex justify-between">
+                  <span className="text-white/60">Uploaded</span>
+                  <span className="text-white">
+                    {formatDistanceToNow(new Date(mediaItem.created_at), { addSuffix: true })}
+                  </span>
+                </div>
+                
+                {mediaItem.file_type.startsWith('image/') && mediaItem.width && mediaItem.height && (
+                  <div className="flex justify-between">
+                    <span className="text-white/60">Dimensions</span>
+                    <span className="text-white">{mediaItem.width} × {mediaItem.height}</span>
+                  </div>
+                )}
+                
+                {mediaItem.file_type.startsWith('video/') && mediaItem.duration && (
+                  <div className="flex justify-between">
+                    <span className="text-white/60">Duration</span>
+                    <span className="text-white">
+                      {Math.floor(mediaItem.duration / 60)}m {mediaItem.duration % 60}s
+                    </span>
+                  </div>
+                )}
+                
+                <div className="flex justify-between">
+                  <span className="text-white/60">File type</span>
+                  <span className="text-white">{mediaItem.file_type.split('/')[1].toUpperCase()}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-black/20 border-white/10">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium text-white">Comments</h3>
+                <div className="flex items-center text-sm text-white/60">
+                  <MessageSquare className="h-4 w-4 mr-1" />
+                  {comments?.length || 0}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {user ? (
+                <form onSubmit={handleCommentSubmit} className="mb-4 flex gap-2">
+                  <Input
+                    placeholder="Add a comment..."
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    className="bg-black/30 border-white/10 text-white"
+                  />
+                  <Button type="submit" size="sm" disabled={!comment.trim()}>
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </form>
+              ) : (
+                <p className="text-white/60 text-sm mb-4">
+                  <Link to="/login" className="text-crimson hover:underline">Login</Link> to add a comment
+                </p>
+              )}
+              
+              {comments && comments.length > 0 ? (
+                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                  {comments.map((comment) => (
+                    <div key={comment.id} className="flex gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={comment.profile?.avatar_url || undefined} />
+                        <AvatarFallback className="bg-crimson/20 text-white">
+                          {comment.profile?.username?.substring(0, 2).toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Link to={`/profile/${comment.profile?.username}`} className="font-medium text-white hover:text-crimson">
+                              {comment.profile?.username || 'Unknown'}
+                            </Link>
+                            <span className="text-xs text-white/50">
+                              {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                            </span>
+                          </div>
+                          {(user?.id === comment.user_id) && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6 text-white/50 hover:text-white"
+                              onClick={() => handleDeleteComment(comment.id)}
+                            >
+                              <MoreVertical className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                        <p className="text-white/80 text-sm mt-1">{comment.content}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-white/50 text-center py-4">No comments yet</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </AuthenticatedLayout>
+    </div>
   );
 };
 

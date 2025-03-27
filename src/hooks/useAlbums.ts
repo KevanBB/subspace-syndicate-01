@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, ensureBucketExists } from '@/integrations/supabase/client';
@@ -49,7 +50,10 @@ export const useAlbums = (userId?: string) => {
         throw error;
       }
 
-      return data as Album[];
+      return data.map(album => ({
+        ...album,
+        privacy: album.privacy as AlbumPrivacy
+      })) as Album[];
     },
     enabled: !!targetUserId
   });
@@ -278,7 +282,10 @@ export const useAlbums = (userId?: string) => {
         description: 'Your album has been updated successfully'
       });
 
-      return albumData;
+      return {
+        ...albumData,
+        privacy: albumData.privacy as AlbumPrivacy
+      } as Album;
     } catch (error: any) {
       console.error('Error updating album:', error);
       toast({
@@ -312,7 +319,7 @@ export const useAlbums = (userId?: string) => {
 
         const { data } = await supabase.rpc('decrement_album_likes', { album_id: albumId });
         
-        return { liked: false, likes: data };
+        return { liked: false, likes: data as number };
       } else {
         await supabase
           .from('album_likes')
@@ -323,7 +330,7 @@ export const useAlbums = (userId?: string) => {
 
         const { data } = await supabase.rpc('increment_album_likes', { album_id: albumId });
         
-        return { liked: true, likes: data };
+        return { liked: true, likes: data as number };
       }
     },
     onSuccess: () => {
@@ -425,7 +432,10 @@ export const useAlbum = (albumId: string) => {
         incrementView();
       }
       
-      return data as unknown as Album & {
+      return {
+        ...data,
+        privacy: data.privacy as AlbumPrivacy,
+      } as unknown as Album & {
         profiles: {
           username: string;
           avatar_url: string | null;

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Album } from '@/types/albums';
 import AlbumCard from '@/components/albums/AlbumCard';
-import { Plus } from 'lucide-react';
+import { Plus, ImageIcon } from 'lucide-react';
 
 interface MediaTabProps {
   userId?: string;
@@ -46,7 +47,10 @@ const MediaTab: React.FC<MediaTabProps> = ({ userId }) => {
         
         if (error) throw error;
         
-        setAlbums(data as Album[]);
+        setAlbums(data.map(album => ({
+          ...album,
+          privacy: album.privacy as "public" | "private" | "friends-only"
+        })));
       } catch (error) {
         console.error('Error fetching albums:', error);
       } finally {
