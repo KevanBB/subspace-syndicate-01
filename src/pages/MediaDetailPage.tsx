@@ -21,7 +21,8 @@ const MediaDetailPage: React.FC = () => {
   const getUsername = (profile: any) => {
     if (!profile) return 'Unknown user';
     if (typeof profile === 'string') return 'Unknown user';
-    return profile.username || 'Unknown user';
+    if (!profile.username) return 'Unknown user';
+    return profile.username;
   };
   
   const getAvatarUrl = (profile: any) => {
@@ -38,7 +39,23 @@ const MediaDetailPage: React.FC = () => {
     return <ErrorState albumId={albumId} />;
   }
   
-  const isOwner = user?.id === mediaItem.user_id;
+  // Make a copy of the mediaItem with corrected profile and album properties
+  // to ensure type compatibility
+  const processedMediaItem = {
+    ...mediaItem,
+    profile: typeof mediaItem.profile === 'object' ? {
+      username: mediaItem.profile?.username || 'Unknown user',
+      avatar_url: mediaItem.profile?.avatar_url || undefined,
+      bdsm_role: mediaItem.profile?.bdsm_role || undefined
+    } : undefined,
+    album: mediaItem.album && typeof mediaItem.album === 'object' ? {
+      id: mediaItem.album.id,
+      title: mediaItem.album.title,
+      privacy: mediaItem.album.privacy
+    } : undefined
+  };
+  
+  const isOwner = user?.id === processedMediaItem.user_id;
   const { data: isLiked } = mediaItem.useMediaLiked(mediaId || '');
   const { data: isBookmarked } = mediaItem.useMediaBookmarked(mediaId || '');
   const { data: commentsData } = mediaItem.useMediaComments(mediaId || '');
@@ -46,7 +63,10 @@ const MediaDetailPage: React.FC = () => {
   // Transform the comments data to make it compatible with the MediaComment type
   const comments = commentsData?.map(comment => ({
     ...comment,
-    profile: typeof comment.profile === 'object' ? comment.profile : undefined
+    profile: comment.profile && typeof comment.profile === 'object' ? {
+      username: comment.profile.username || 'Unknown user',
+      avatar_url: comment.profile.avatar_url
+    } : undefined
   }));
   
   const handleLike = () => {
@@ -101,18 +121,18 @@ const MediaDetailPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <MediaViewer 
-            mediaItem={mediaItem}
+            mediaItem={processedMediaItem}
             isLiked={isLiked || false}
             isBookmarked={isBookmarked || false}
-            onLike={handleLike}
-            onBookmark={handleBookmark}
+            onLike={() => mediaItem.likeMedia(mediaId || '')}
+            onBookmark={() => mediaItem.bookmarkMedia(mediaId || '')}
             onDownload={handleDownload}
           />
         </div>
         
         <div>
           <MediaInfo 
-            mediaItem={mediaItem}
+            mediaItem={processedMediaItem}
             getUsername={getUsername}
           />
           

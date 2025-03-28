@@ -1,4 +1,3 @@
-
 export interface Album {
   id: string;
   user_id: string;
@@ -36,15 +35,14 @@ export interface MediaItem {
   updated_at: string;
   views: number;
   likes: number;
-  // Add the album and profile relation properties that the component expects
   album?: {
     id: string;
     title: string;
-    privacy: 'public' | 'private' | 'friends-only';
+    privacy: AlbumPrivacy;
   };
   profile?: {
     username?: string;
-    avatar_url?: string;
+    avatar_url?: string | null;
     bdsm_role?: string;
   };
 }
