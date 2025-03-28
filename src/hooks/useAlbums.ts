@@ -410,40 +410,51 @@ export const useAlbum = (albumId: string) => {
     queryFn: async () => {
       if (!albumId) throw new Error('Album ID is required');
       
-      const { data, error } = await supabase
-        .from('albums')
-        .select(`
-          *,
-          profiles:user_id (
-            username,
-            avatar_url,
-            bdsm_role
-          )
-        `)
-        .eq('id', albumId)
-        .single();
-        
-      if (error) {
-        if (error.code === 'PGRST116') {
-          throw new Error('Album not found');
+      console.log('Fetching album with ID:', albumId);
+      console.log('Current user:', user?.id);
+      
+      try {
+        const { data, error } = await supabase
+          .from('albums')
+          .select(`
+            *,
+            profiles:user_id (
+              username,
+              avatar_url,
+              bdsm_role
+            )
+          `)
+          .eq('id', albumId)
+          .single();
+          
+        if (error) {
+          console.error('Error fetching album:', error);
+          if (error.code === 'PGRST116') {
+            throw new Error('Album not found');
+          }
+          throw error;
         }
+        
+        console.log('Album fetch successful:', data);
+        
+        if (user?.id !== data.user_id) {
+          incrementView();
+        }
+        
+        return {
+          ...data,
+          privacy: data.privacy as AlbumPrivacy,
+        } as unknown as Album & {
+          profiles: {
+            username: string;
+            avatar_url: string | null;
+            bdsm_role: string;
+          }
+        };
+      } catch (error) {
+        console.error('Error in album fetch function:', error);
         throw error;
       }
-      
-      if (user?.id !== data.user_id) {
-        incrementView();
-      }
-      
-      return {
-        ...data,
-        privacy: data.privacy as AlbumPrivacy,
-      } as unknown as Album & {
-        profiles: {
-          username: string;
-          avatar_url: string | null;
-          bdsm_role: string;
-        }
-      };
     },
     enabled: !!albumId
   });

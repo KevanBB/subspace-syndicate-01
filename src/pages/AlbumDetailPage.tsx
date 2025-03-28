@@ -32,6 +32,10 @@ const AlbumDetailPage: React.FC = () => {
   const { albumId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  
+  console.log('Rendering AlbumDetailPage with albumId:', albumId);
+  console.log('Current user:', user?.id);
+  
   const { data: album, isLoading: isLoadingAlbum, error: albumError } = useAlbum(albumId || '');
   const { mediaItems, isLoadingMedia, uploadMedia, deleteMedia } = useMediaItems(albumId);
   const { likeAlbum, useAlbumLiked, useAlbumTags, deleteAlbum, updateAlbum } = useAlbums();
@@ -41,6 +45,7 @@ const AlbumDetailPage: React.FC = () => {
   
   useEffect(() => {
     if (albumError) {
+      console.error('Album error details:', albumError);
       toast({
         title: 'Error',
         description: 'Failed to load album. It may have been deleted or you don\'t have permission to view it.',
@@ -76,7 +81,9 @@ const AlbumDetailPage: React.FC = () => {
     );
   }
   
+  console.log('Album loaded successfully:', album);
   const isOwner = user?.id === album.user_id;
+  console.log('Is user the owner?', isOwner);
   
   const handleLike = () => {
     if (!user) {
