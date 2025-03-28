@@ -15,7 +15,7 @@ interface MediaUploaderProps {
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
-const MediaUploader: React.FC<MediaUploaderProps> = ({ albumId, onUpload, uploadProgress }) => {
+const MediaUploader: React.FC<MediaUploaderProps> = ({ albumId, onUpload, uploadProgress = {} }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [description, setDescription] = useState('');

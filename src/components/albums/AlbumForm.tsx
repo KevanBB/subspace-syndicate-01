@@ -31,6 +31,7 @@ interface AlbumFormProps {
   defaultValues?: Partial<FormValues>;
   isEditing?: boolean;
   isLoading?: boolean;
+  onCancel?: () => void;
 }
 
 const formSchema = z.object({
@@ -47,7 +48,8 @@ const AlbumForm: React.FC<AlbumFormProps> = ({
   onSubmit, 
   defaultValues, 
   isEditing = false,
-  isLoading = false
+  isLoading = false,
+  onCancel
 }) => {
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
   const [currentTag, setCurrentTag] = useState('');
@@ -96,13 +98,13 @@ const AlbumForm: React.FC<AlbumFormProps> = ({
     form.setValue('tags', tags.filter(tag => tag !== tagToRemove));
   };
 
-  const handleSubmit = form.handleSubmit(async (data) => {
+  const handleFormSubmit = form.handleSubmit(async (data) => {
     await onSubmit(data);
   });
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleFormSubmit} className="space-y-6">
         <FormField
           control={form.control}
           name="title"
@@ -228,25 +230,38 @@ const AlbumForm: React.FC<AlbumFormProps> = ({
           )}
         </div>
 
-        <Button 
-          type="submit" 
-          className="w-full" 
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <>Loading...</>
-          ) : isEditing ? (
-            <>
-              <Upload className="mr-2 h-4 w-4" />
-              Save Changes
-            </>
-          ) : (
-            <>
-              <Upload className="mr-2 h-4 w-4" />
-              Create Album
-            </>
+        <div className="flex gap-2 justify-end">
+          {onCancel && (
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onCancel}
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
           )}
-        </Button>
+          
+          <Button 
+            type="submit" 
+            className="flex-1" 
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>Loading...</>
+            ) : isEditing ? (
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                Save Changes
+              </>
+            ) : (
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                Create Album
+              </>
+            )}
+          </Button>
+        </div>
       </form>
     </Form>
   );

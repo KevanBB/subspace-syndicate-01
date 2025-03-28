@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Heart, Eye, Edit, Trash2, User, MoreVertical, Calendar } from 'lucide-react';
+import { Heart, Eye, Edit, Trash2, User, Calendar } from 'lucide-react';
 import MediaGrid from '@/components/albums/MediaGrid';
 import MediaUploader from '@/components/albums/MediaUploader';
 import AlbumForm from '@/components/albums/AlbumForm';
@@ -139,7 +138,7 @@ const AlbumDetailPage: React.FC = () => {
             <h2 className="text-xl font-semibold text-white mb-4">Edit Album</h2>
             <AlbumForm
               onSubmit={handleUpdate}
-              onCancel={() => setIsEditing(false)}
+              isEditing={true}
               defaultValues={{
                 title: album.title,
                 description: album.description || '',
@@ -234,14 +233,15 @@ const AlbumDetailPage: React.FC = () => {
         </TabsList>
         
         <TabsContent value="media" className="mt-4">
-          <MediaGrid mediaItems={mediaItems || []} albumId={albumId} onDeleteMedia={deleteMedia} />
+          <MediaGrid mediaItems={mediaItems || []} albumId={albumId} />
         </TabsContent>
         
         {isOwner && (
           <TabsContent value="upload" className="mt-4">
             <MediaUploader 
               albumId={albumId} 
-              onUpload={handleUploadMedia} 
+              onUpload={handleUploadMedia}
+              uploadProgress={{}}
             />
           </TabsContent>
         )}

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { MediaItem } from '@/types/albums';
@@ -9,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 interface MediaGridProps {
   mediaItems: MediaItem[];
   albumId: string;
+  onDeleteMedia?: (mediaId: string) => Promise<boolean>;
 }
 
 // Helper function to format duration
@@ -21,7 +21,7 @@ const formatDuration = (seconds: number | null): string => {
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 };
 
-const MediaGrid: React.FC<MediaGridProps> = ({ mediaItems, albumId }) => {
+const MediaGrid: React.FC<MediaGridProps> = ({ mediaItems, albumId, onDeleteMedia }) => {
   // Calculate grid layout
   const getMediaLayout = (items: MediaItem[]) => {
     if (!items || items.length === 0) return [];

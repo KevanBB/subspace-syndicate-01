@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useMediaItem } from '@/hooks/useMediaItems';
@@ -36,6 +35,18 @@ const MediaDetailPage: React.FC = () => {
   const { data: mediaItem, isLoading, error } = useMediaItem(mediaId || '');
   const [comment, setComment] = useState('');
   
+  const getUsername = (profile: any) => {
+    if (!profile) return 'Unknown user';
+    if (typeof profile === 'string') return 'Unknown user';
+    return profile.username || 'Unknown user';
+  };
+  
+  const getAvatarUrl = (profile: any) => {
+    if (!profile) return undefined;
+    if (typeof profile === 'string') return undefined;
+    return profile.avatar_url;
+  };
+
   if (isLoading) {
     return (
       <div className="container py-6">
@@ -221,9 +232,9 @@ const MediaDetailPage: React.FC = () => {
                 <div className="flex justify-between">
                   <span className="text-white/60">Uploaded by</span>
                   <span className="text-white">
-                    {mediaItem.profile && typeof mediaItem.profile !== 'string' && mediaItem.profile.username ? 
-                      <Link to={`/profile/${mediaItem.profile.username}`} className="text-white hover:text-crimson">
-                        {mediaItem.profile.username}
+                    {getUsername(mediaItem.profile) ? 
+                      <Link to={`/profile/${getUsername(mediaItem.profile)}`} className="text-white hover:text-crimson">
+                        {getUsername(mediaItem.profile)}
                       </Link> : 
                       'Unknown user'
                     }
@@ -295,22 +306,17 @@ const MediaDetailPage: React.FC = () => {
                   {comments.map((comment) => (
                     <div key={comment.id} className="flex gap-3">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={comment.profile && typeof comment.profile !== 'string' ? comment.profile.avatar_url || undefined : undefined} />
+                        <AvatarImage src={getAvatarUrl(comment.profile)} />
                         <AvatarFallback className="bg-crimson/20 text-white">
-                          {comment.profile && typeof comment.profile !== 'string' && comment.profile.username ? 
-                            comment.profile.username.substring(0, 2).toUpperCase() : 'U'}
+                          {getUsername(comment.profile).substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            {comment.profile && typeof comment.profile !== 'string' && comment.profile.username ? (
-                              <Link to={`/profile/${comment.profile.username}`} className="font-medium text-white hover:text-crimson">
-                                {comment.profile.username}
-                              </Link>
-                            ) : (
-                              <span className="font-medium text-white">Unknown</span>
-                            )}
+                            <Link to={`/profile/${getUsername(comment.profile)}`} className="font-medium text-white hover:text-crimson">
+                              {getUsername(comment.profile)}
+                            </Link>
                             <span className="text-xs text-white/50">
                               {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
                             </span>
