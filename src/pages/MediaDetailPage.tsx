@@ -17,7 +17,7 @@ import {
   MessageSquare, 
   ArrowLeft, 
   MoreHorizontal,
-  Download as DownloadIcon, 
+  DownloadIcon, 
   BookmarkIcon, 
   Eye, 
   Calendar, 

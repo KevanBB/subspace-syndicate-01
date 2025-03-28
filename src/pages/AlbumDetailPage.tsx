@@ -12,7 +12,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Heart, Eye, Edit, Trash2, User, Calendar } from 'lucide-react';
+import { 
+  Heart, 
+  Eye, 
+  Edit, 
+  Trash2, 
+  User, 
+  Calendar, 
+  MoreHorizontal 
+} from 'lucide-react';
 import MediaGrid from '@/components/albums/MediaGrid';
 import MediaUploader from '@/components/albums/MediaUploader';
 import AlbumForm from '@/components/albums/AlbumForm';
@@ -157,7 +165,7 @@ const AlbumDetailPage: React.FC = () => {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreVertical className="h-4 w-4" />
+                      <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-black/90 border-white/10">
