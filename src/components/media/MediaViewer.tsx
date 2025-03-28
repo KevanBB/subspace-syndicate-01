@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardFooter } from '@/components/ui/card';
 import { Heart, BookmarkIcon, Eye, MoreHorizontal, Download } from 'lucide-react';

@@ -43,10 +43,10 @@ const MediaDetailPage: React.FC = () => {
   // to ensure type compatibility
   const processedMediaItem = {
     ...mediaItem,
-    profile: typeof mediaItem.profile === 'object' ? {
-      username: mediaItem.profile?.username || 'Unknown user',
-      avatar_url: mediaItem.profile?.avatar_url || undefined,
-      bdsm_role: mediaItem.profile?.bdsm_role || undefined
+    profile: typeof mediaItem.profile === 'object' && mediaItem.profile ? {
+      username: mediaItem.profile.username || 'Unknown user',
+      avatar_url: mediaItem.profile.avatar_url || undefined,
+      bdsm_role: mediaItem.profile.bdsm_role || undefined
     } : undefined,
     album: mediaItem.album && typeof mediaItem.album === 'object' ? {
       id: mediaItem.album.id,
@@ -65,7 +65,7 @@ const MediaDetailPage: React.FC = () => {
     ...comment,
     profile: comment.profile && typeof comment.profile === 'object' ? {
       username: comment.profile.username || 'Unknown user',
-      avatar_url: comment.profile.avatar_url
+      avatar_url: comment.profile.avatar_url || undefined
     } : undefined
   }));
   
