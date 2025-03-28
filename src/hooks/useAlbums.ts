@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, ensureBucketExists } from '@/integrations/supabase/client';
@@ -129,7 +128,10 @@ export const useAlbums = (userId?: string) => {
         description: 'Your album has been created successfully'
       });
 
-      return albumData;
+      return {
+        ...albumData,
+        privacy: albumData.privacy as AlbumPrivacy
+      } as Album;
     } catch (error: any) {
       console.error('Error creating album:', error);
       toast({

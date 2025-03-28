@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Heart, Eye, Pencil, Trash2, UserIcon, MoreVertical, Calendar } from 'lucide-react';
+import { Heart, Eye, Edit, Trash2, User, MoreVertical, Calendar } from 'lucide-react';
 import MediaGrid from '@/components/albums/MediaGrid';
 import MediaUploader from '@/components/albums/MediaUploader';
 import AlbumForm from '@/components/albums/AlbumForm';
@@ -120,6 +120,16 @@ const AlbumDetailPage: React.FC = () => {
         return 'Unknown';
     }
   };
+
+  const handleUploadMedia = async (file: File, description?: string) => {
+    if (!albumId) return;
+    
+    await uploadMedia({
+      albumId,
+      file,
+      description
+    });
+  };
   
   return (
     <div className="container py-6">
@@ -128,14 +138,14 @@ const AlbumDetailPage: React.FC = () => {
           <CardContent className="py-4">
             <h2 className="text-xl font-semibold text-white mb-4">Edit Album</h2>
             <AlbumForm
-              initialValues={{
+              onSubmit={handleUpdate}
+              onCancel={() => setIsEditing(false)}
+              defaultValues={{
                 title: album.title,
                 description: album.description || '',
                 privacy: album.privacy,
                 tags: tags?.map(tag => tag.tag) || []
               }}
-              onSubmit={handleUpdate}
-              onCancel={() => setIsEditing(false)}
             />
           </CardContent>
         </Card>
@@ -153,7 +163,7 @@ const AlbumDetailPage: React.FC = () => {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-black/90 border-white/10">
                     <DropdownMenuItem onClick={() => setIsEditing(true)} className="cursor-pointer">
-                      <Pencil className="mr-2 h-4 w-4" />
+                      <Edit className="mr-2 h-4 w-4" />
                       Edit Album
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleDelete} className="cursor-pointer text-red-500">
@@ -182,7 +192,7 @@ const AlbumDetailPage: React.FC = () => {
             
             <div className="flex flex-wrap items-center gap-4 text-sm text-white/60">
               <div className="flex items-center">
-                <UserIcon className="h-4 w-4 mr-1" />
+                <User className="h-4 w-4 mr-1" />
                 {album.profiles?.username || 'Unknown User'}
               </div>
               
@@ -224,14 +234,14 @@ const AlbumDetailPage: React.FC = () => {
         </TabsList>
         
         <TabsContent value="media" className="mt-4">
-          <MediaGrid mediaItems={mediaItems || []} albumId={albumId} />
+          <MediaGrid mediaItems={mediaItems || []} albumId={albumId} onDeleteMedia={deleteMedia} />
         </TabsContent>
         
         {isOwner && (
           <TabsContent value="upload" className="mt-4">
             <MediaUploader 
               albumId={albumId} 
-              onUpload={uploadMedia} 
+              onUpload={handleUploadMedia} 
             />
           </TabsContent>
         )}

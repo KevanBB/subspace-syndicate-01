@@ -17,9 +17,9 @@ import {
   Heart, 
   MessageSquare, 
   ArrowLeft, 
-  MoreVertical, 
-  Download, 
-  Bookmark, 
+  MoreHorizontal,
+  Download as DownloadIcon, 
+  BookmarkIcon, 
   Eye, 
   Calendar, 
   Users, 
@@ -30,7 +30,7 @@ import { toast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const MediaDetailPage: React.FC = () => {
-  const { albumId, mediaId } = useParams<{ albumId: string; mediaId: string }>();
+  const { albumId, mediaId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: mediaItem, isLoading, error } = useMediaItem(mediaId || '');
@@ -167,7 +167,7 @@ const MediaDetailPage: React.FC = () => {
                   onClick={handleBookmark}
                   className={isBookmarked ? "bg-crimson hover:bg-crimson/90" : ""}
                 >
-                  <Bookmark className={`mr-1 h-4 w-4 ${isBookmarked ? "fill-white" : ""}`} />
+                  <BookmarkIcon className={`mr-1 h-4 w-4 ${isBookmarked ? "fill-white" : ""}`} />
                   Bookmark
                 </Button>
               </div>
@@ -182,13 +182,13 @@ const MediaDetailPage: React.FC = () => {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
+                        <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="bg-black/90 border-white/10">
                       {mediaItem.file_type.startsWith('image/') && (
                         <DropdownMenuItem onClick={handleDownload} className="cursor-pointer">
-                          <Download className="mr-2 h-4 w-4" />
+                          <DownloadIcon className="mr-2 h-4 w-4" />
                           Download
                         </DropdownMenuItem>
                       )}
@@ -220,9 +220,14 @@ const MediaDetailPage: React.FC = () => {
                 
                 <div className="flex justify-between">
                   <span className="text-white/60">Uploaded by</span>
-                  <Link to={`/profile/${mediaItem.profile.username}`} className="text-white hover:text-crimson">
-                    {mediaItem.profile.username}
-                  </Link>
+                  <span className="text-white">
+                    {mediaItem.profile && typeof mediaItem.profile !== 'string' && mediaItem.profile.username ? 
+                      <Link to={`/profile/${mediaItem.profile.username}`} className="text-white hover:text-crimson">
+                        {mediaItem.profile.username}
+                      </Link> : 
+                      'Unknown user'
+                    }
+                  </span>
                 </div>
                 
                 <div className="flex justify-between">
@@ -290,17 +295,22 @@ const MediaDetailPage: React.FC = () => {
                   {comments.map((comment) => (
                     <div key={comment.id} className="flex gap-3">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={comment.profile?.avatar_url || undefined} />
+                        <AvatarImage src={comment.profile && typeof comment.profile !== 'string' ? comment.profile.avatar_url || undefined : undefined} />
                         <AvatarFallback className="bg-crimson/20 text-white">
-                          {comment.profile?.username?.substring(0, 2).toUpperCase() || 'U'}
+                          {comment.profile && typeof comment.profile !== 'string' && comment.profile.username ? 
+                            comment.profile.username.substring(0, 2).toUpperCase() : 'U'}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Link to={`/profile/${comment.profile?.username}`} className="font-medium text-white hover:text-crimson">
-                              {comment.profile?.username || 'Unknown'}
-                            </Link>
+                            {comment.profile && typeof comment.profile !== 'string' && comment.profile.username ? (
+                              <Link to={`/profile/${comment.profile.username}`} className="font-medium text-white hover:text-crimson">
+                                {comment.profile.username}
+                              </Link>
+                            ) : (
+                              <span className="font-medium text-white">Unknown</span>
+                            )}
                             <span className="text-xs text-white/50">
                               {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
                             </span>
@@ -312,7 +322,7 @@ const MediaDetailPage: React.FC = () => {
                               className="h-6 w-6 text-white/50 hover:text-white"
                               onClick={() => handleDeleteComment(comment.id)}
                             >
-                              <MoreVertical className="h-3 w-3" />
+                              <MoreHorizontal className="h-3 w-3" />
                             </Button>
                           )}
                         </div>

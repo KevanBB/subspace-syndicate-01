@@ -495,7 +495,7 @@ export const useMediaItem = (mediaId: string) => {
           .from('media_comments')
           .select(`
             *,
-            profile:profiles!user_id (
+            profile:profiles(
               username,
               avatar_url
             )
@@ -505,91 +505,13 @@ export const useMediaItem = (mediaId: string) => {
           
         if (error) throw error;
         
-        return data as unknown as (MediaComment & { profile: { username: string, avatar_url: string | null } })[];
+        return data;
       },
       enabled: !!mediaId
     });
   };
   
-  const addComment = async (content: string): Promise<MediaComment | null> => {
-    if (!user) {
-      toast({
-        title: 'Authentication required',
-        description: 'Please log in to add a comment',
-        variant: 'destructive'
-      });
-      return null;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('media_comments')
-        .insert({
-          media_id: mediaId,
-          user_id: user.id,
-          content
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      queryClient.invalidateQueries({ queryKey: ['media-comments', mediaId] });
-
-      return data;
-    } catch (error: any) {
-      console.error('Error adding comment:', error);
-      toast({
-        title: 'Failed to add comment',
-        description: error.message || 'An unexpected error occurred',
-        variant: 'destructive'
-      });
-      return null;
-    }
-  };
-  
-  const deleteComment = async (commentId: string): Promise<boolean> => {
-    if (!user) {
-      toast({
-        title: 'Authentication required',
-        description: 'Please log in to delete a comment',
-        variant: 'destructive'
-      });
-      return false;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('media_comments')
-        .delete()
-        .eq('id', commentId)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      queryClient.invalidateQueries({ queryKey: ['media-comments', mediaId] });
-
-      return true;
-    } catch (error: any) {
-      console.error('Error deleting comment:', error);
-      toast({
-        title: 'Failed to delete comment',
-        description: error.message || 'An unexpected error occurred',
-        variant: 'destructive'
-      });
-      return false;
-    }
-  };
-
-  const likeMedia = (mediaId: string) => {
-    const { likeMedia } = useMediaItems();
-    return likeMedia(mediaId);
-  };
-  
-  const bookmarkMedia = (mediaId: string) => {
-    const { bookmarkMedia } = useMediaItems();
-    return bookmarkMedia(mediaId);
-  };
+  const { likeMedia, bookmarkMedia } = useMediaItems();
 
   return useQuery({
     queryKey: ['media-item', mediaId],
@@ -600,12 +522,12 @@ export const useMediaItem = (mediaId: string) => {
         .from('media')
         .select(`
           *,
-          album:albums!album_id (
+          album:albums(
             id,
             title,
             privacy
           ),
-          profile:profiles!user_id (
+          profile:profiles(
             username,
             avatar_url,
             bdsm_role
@@ -625,6 +547,76 @@ export const useMediaItem = (mediaId: string) => {
         incrementView();
       }
       
+      const addComment = async (content: string) => {
+        if (!user) {
+          toast({
+            title: 'Authentication required',
+            description: 'Please log in to add a comment',
+            variant: 'destructive'
+          });
+          return null;
+        }
+
+        try {
+          const { data, error } = await supabase
+            .from('media_comments')
+            .insert({
+              media_id: mediaId,
+              user_id: user.id,
+              content
+            })
+            .select()
+            .single();
+
+          if (error) throw error;
+
+          queryClient.invalidateQueries({ queryKey: ['media-comments', mediaId] });
+
+          return data;
+        } catch (error: any) {
+          console.error('Error adding comment:', error);
+          toast({
+            title: 'Failed to add comment',
+            description: error.message || 'An unexpected error occurred',
+            variant: 'destructive'
+          });
+          return null;
+        }
+      };
+      
+      const deleteComment = async (commentId: string) => {
+        if (!user) {
+          toast({
+            title: 'Authentication required',
+            description: 'Please log in to delete a comment',
+            variant: 'destructive'
+          });
+          return false;
+        }
+
+        try {
+          const { error } = await supabase
+            .from('media_comments')
+            .delete()
+            .eq('id', commentId)
+            .eq('user_id', user.id);
+
+          if (error) throw error;
+
+          queryClient.invalidateQueries({ queryKey: ['media-comments', mediaId] });
+
+          return true;
+        } catch (error: any) {
+          console.error('Error deleting comment:', error);
+          toast({
+            title: 'Failed to delete comment',
+            description: error.message || 'An unexpected error occurred',
+            variant: 'destructive'
+          });
+          return false;
+        }
+      };
+      
       const mediaWithHelpers = {
         ...data,
         album: {
@@ -635,76 +627,10 @@ export const useMediaItem = (mediaId: string) => {
         useMediaLiked,
         useMediaBookmarked,
         useMediaComments,
-        addComment: async (content: string) => {
-          if (!user) {
-            toast({
-              title: 'Authentication required',
-              description: 'Please log in to add a comment',
-              variant: 'destructive'
-            });
-            return null;
-          }
-
-          try {
-            const { data, error } = await supabase
-              .from('media_comments')
-              .insert({
-                media_id: mediaId,
-                user_id: user.id,
-                content
-              })
-              .select()
-              .single();
-
-            if (error) throw error;
-
-            queryClient.invalidateQueries({ queryKey: ['media-comments', mediaId] });
-
-            return data;
-          } catch (error: any) {
-            console.error('Error adding comment:', error);
-            toast({
-              title: 'Failed to add comment',
-              description: error.message || 'An unexpected error occurred',
-              variant: 'destructive'
-            });
-            return null;
-          }
-        },
-        deleteComment: async (commentId: string) => {
-          if (!user) {
-            toast({
-              title: 'Authentication required',
-              description: 'Please log in to delete a comment',
-              variant: 'destructive'
-            });
-            return false;
-          }
-
-          try {
-            const { error } = await supabase
-              .from('media_comments')
-              .delete()
-              .eq('id', commentId)
-              .eq('user_id', user.id);
-
-            if (error) throw error;
-
-            queryClient.invalidateQueries({ queryKey: ['media-comments', mediaId] });
-
-            return true;
-          } catch (error: any) {
-            console.error('Error deleting comment:', error);
-            toast({
-              title: 'Failed to delete comment',
-              description: error.message || 'An unexpected error occurred',
-              variant: 'destructive'
-            });
-            return false;
-          }
-        },
-        likeMedia: likeMedia,
-        bookmarkMedia: bookmarkMedia
+        addComment,
+        deleteComment,
+        likeMedia,
+        bookmarkMedia
       };
       
       return mediaWithHelpers;
