@@ -2,9 +2,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardFooter } from '@/components/ui/card';
-import { Heart, BookmarkIcon, Eye, MoreHorizontal } from 'lucide-react';
+import { Heart, BookmarkIcon, Eye, MoreHorizontal, DownloadIcon } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Download } from 'lucide-react';
 import { MediaItem } from '@/types/albums';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -91,7 +90,7 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
               <DropdownMenuContent align="end" className="bg-black/90 border-white/10">
                 {mediaItem.file_type.startsWith('image/') && (
                   <DropdownMenuItem onClick={onDownload} className="cursor-pointer">
-                    <Download className="mr-2 h-4 w-4" />
+                    <DownloadIcon className="mr-2 h-4 w-4" />
                     Download
                   </DropdownMenuItem>
                 )}

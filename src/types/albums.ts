@@ -36,6 +36,17 @@ export interface MediaItem {
   updated_at: string;
   views: number;
   likes: number;
+  // Add the album and profile relation properties that the component expects
+  album?: {
+    id: string;
+    title: string;
+    privacy: 'public' | 'private' | 'friends-only';
+  };
+  profile?: {
+    username?: string;
+    avatar_url?: string;
+    bdsm_role?: string;
+  };
 }
 
 export interface MediaComment {

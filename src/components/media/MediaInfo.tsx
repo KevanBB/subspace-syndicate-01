@@ -22,17 +22,19 @@ const MediaInfo: React.FC<MediaInfoProps> = ({ mediaItem, getUsername }) => {
         )}
         
         <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-white/60">Album</span>
-            <Link to={`/albums/${mediaItem.album.id}`} className="text-crimson hover:underline">
-              {mediaItem.album.title}
-            </Link>
-          </div>
+          {mediaItem.album && (
+            <div className="flex justify-between">
+              <span className="text-white/60">Album</span>
+              <Link to={`/albums/${mediaItem.album.id}`} className="text-crimson hover:underline">
+                {mediaItem.album.title}
+              </Link>
+            </div>
+          )}
           
           <div className="flex justify-between">
             <span className="text-white/60">Uploaded by</span>
             <span className="text-white">
-              {getUsername(mediaItem.profile) ? 
+              {mediaItem.profile && getUsername(mediaItem.profile) ? 
                 <Link to={`/profile/${getUsername(mediaItem.profile)}`} className="text-white hover:text-crimson">
                   {getUsername(mediaItem.profile)}
                 </Link> : 

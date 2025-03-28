@@ -4,7 +4,6 @@ import { useParams } from 'react-router-dom';
 import { useMediaItem } from '@/hooks/useMediaItems';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { Container } from '@/components/ui/container';
 
 // Import refactored components
 import MediaHeader from '@/components/media/MediaHeader';
@@ -42,7 +41,13 @@ const MediaDetailPage: React.FC = () => {
   const isOwner = user?.id === mediaItem.user_id;
   const { data: isLiked } = mediaItem.useMediaLiked(mediaId || '');
   const { data: isBookmarked } = mediaItem.useMediaBookmarked(mediaId || '');
-  const { data: comments } = mediaItem.useMediaComments(mediaId || '');
+  const { data: commentsData } = mediaItem.useMediaComments(mediaId || '');
+  
+  // Transform the comments data to make it compatible with the MediaComment type
+  const comments = commentsData?.map(comment => ({
+    ...comment,
+    profile: typeof comment.profile === 'object' ? comment.profile : undefined
+  }));
   
   const handleLike = () => {
     if (!user) {
