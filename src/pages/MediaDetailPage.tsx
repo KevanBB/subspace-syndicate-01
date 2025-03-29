@@ -43,10 +43,11 @@ const MediaDetailPage: React.FC = () => {
   // to ensure type compatibility
   const processedMediaItem = {
     ...mediaItem,
-    profile: typeof mediaItem.profile === 'object' && mediaItem.profile ? {
-      username: mediaItem.profile.username || 'Unknown user',
-      avatar_url: mediaItem.profile.avatar_url || undefined,
-      bdsm_role: mediaItem.profile.bdsm_role || undefined
+    profile: mediaItem.profile && typeof mediaItem.profile === 'object' ? {
+      username: getUsername(mediaItem.profile),
+      avatar_url: getAvatarUrl(mediaItem.profile),
+      bdsm_role: mediaItem.profile && 'bdsm_role' in mediaItem.profile ? 
+        String(mediaItem.profile.bdsm_role || '') : undefined
     } : undefined,
     album: mediaItem.album && typeof mediaItem.album === 'object' ? {
       id: mediaItem.album.id,
@@ -64,9 +65,9 @@ const MediaDetailPage: React.FC = () => {
   const comments = commentsData?.map(comment => ({
     ...comment,
     profile: comment.profile && typeof comment.profile === 'object' ? {
-      username: comment.profile.username || 'Unknown user',
-      avatar_url: comment.profile.avatar_url || undefined
-    } : undefined
+      username: getUsername(comment.profile),
+      avatar_url: getAvatarUrl(comment.profile)
+    } : { username: 'Unknown user', avatar_url: undefined }
   }));
   
   const handleLike = () => {
