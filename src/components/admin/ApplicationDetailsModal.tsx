@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -15,6 +14,8 @@ import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
+import { hasPermission } from '@/utils/permissions';
 
 interface ApplicationDetailsModalProps {
   isOpen: boolean;
@@ -63,6 +64,25 @@ interface ApplicationData {
   } | null;
 }
 
+interface SignedUrlResponse {
+  url: string;
+  expiresAt: string;
+}
+
+const maskSensitiveData = (data: string, type: 'taxId' | 'email' | 'phone'): string => {
+  switch (type) {
+    case 'taxId':
+      return data.replace(/(\d{4})/, '****');
+    case 'email':
+      const [username, domain] = data.split('@');
+      return `${username.charAt(0)}${'*'.repeat(username.length - 1)}@${domain}`;
+    case 'phone':
+      return data.replace(/(\d{3})(\d{3})(\d{4})/, '($1) ***-$3');
+    default:
+      return data;
+  }
+};
+
 export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = ({
   isOpen,
   onClose,
@@ -71,6 +91,10 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
   const [denialReason, setDenialReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const canViewSensitiveData = hasPermission(user, 'view_sensitive_data');
+
+  const [signedUrls, setSignedUrls] = useState<Record<string, SignedUrlResponse>>({});
 
   const { data: application, isLoading } = useQuery({
     queryKey: ['applicationDetails', applicationId],
@@ -94,7 +118,55 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
     enabled: isOpen && !!applicationId,
   });
 
+  const getSignedUrl = async (fileUrl: string, fileType: string): Promise<string> => {
+    // Check if we already have a valid signed URL
+    const existingUrl = signedUrls[fileUrl];
+    if (existingUrl && new Date(existingUrl.expiresAt) > new Date()) {
+      return existingUrl.url;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .functions.invoke('get-signed-url', {
+          body: { 
+            fileUrl,
+            fileType,
+            applicationId
+          }
+        });
+
+      if (error) throw error;
+
+      // Store the signed URL and its expiration
+      setSignedUrls(prev => ({
+        ...prev,
+        [fileUrl]: {
+          url: data.url,
+          expiresAt: data.expiresAt
+        }
+      }));
+
+      return data.url;
+    } catch (error) {
+      console.error('Error getting signed URL:', error);
+      toast.error('Failed to access file');
+      return '';
+    }
+  };
+
+  const handleFileView = async (fileUrl: string, fileType: string) => {
+    const signedUrl = await getSignedUrl(fileUrl, fileType);
+    if (signedUrl) {
+      window.open(signedUrl, '_blank');
+    }
+  };
+
   const handleStatusUpdate = async (status: 'approved' | 'rejected') => {
+    if (!hasPermission(user, 'manage_applications')) {
+      toast.error('You do not have permission to manage applications');
+      return;
+    }
+
     if (status === 'rejected' && !denialReason.trim()) {
       toast.error('Please provide a reason for denial');
       return;
@@ -264,13 +336,25 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
               <div>
                 <Label>Government ID</Label>
                 <div className="space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => identities.government_id_front_url && window.open(identities.government_id_front_url)}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleFileView(application.identities.government_id_front_url, 'government_id_front')}
+                  >
                     Front
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => identities.government_id_back_url && window.open(identities.government_id_back_url)}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleFileView(application.identities.government_id_back_url, 'government_id_back')}
+                  >
                     Back
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => identities.selfie_url && window.open(identities.selfie_url)}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleFileView(application.identities.selfie_url, 'selfie')}
+                  >
                     Selfie
                   </Button>
                 </div>
@@ -292,7 +376,11 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
               </div>
               <div>
                 <Label>Tax ID</Label>
-                <p>{tax_infos.tax_id}</p>
+                <p>
+                  {canViewSensitiveData 
+                    ? tax_infos.tax_id
+                    : maskSensitiveData(tax_infos.tax_id, 'taxId')}
+                </p>
               </div>
               <div>
                 <Label>Business Name</Label>
@@ -369,7 +457,7 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
           </div>
 
           {/* Action Buttons */}
-          {application.status === 'pending' && (
+          {application.status === 'pending' && hasPermission(user, 'manage_applications') && (
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label htmlFor="denialReason">Reason for Denial (if applicable)</Label>
