@@ -49,10 +49,8 @@ export const useAlbums = (userId?: string) => {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
 
-  // Get user id either from props or current user
   const targetUserId = userId || user?.id;
 
-  // Fetch albums by user id
   const {
     data: albums,
     isLoading: isLoadingAlbums,
@@ -68,12 +66,10 @@ export const useAlbums = (userId?: string) => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      // If viewing someone else's albums, only fetch public ones
       if (targetUserId !== user?.id) {
         query = query.eq('privacy', 'public');
       }
 
-      // Add user filter
       query = query.eq('user_id', targetUserId);
 
       const { data, error } = await query;
@@ -83,12 +79,14 @@ export const useAlbums = (userId?: string) => {
         throw error;
       }
 
-      return data as Album[];
+      return data.map(album => ({
+        ...album,
+        privacy: album.privacy as AlbumPrivacy
+      })) as Album[];
     },
     enabled: !!targetUserId
   });
 
-  // Create new album
   const createAlbum = async (input: CreateAlbumInput): Promise<Album | null> => {
     if (!user) {
       toast({
@@ -102,7 +100,6 @@ export const useAlbums = (userId?: string) => {
     setLoading(true);
 
     try {
-      // First, check if album_media bucket exists
       const bucketExists = await ensureBucketExists('album_media');
       if (!bucketExists) {
         throw new Error('Album media storage is not available. Please try again later.');
@@ -110,7 +107,6 @@ export const useAlbums = (userId?: string) => {
 
       let coverImageUrl = null;
 
-      // Upload cover image if provided
       if (input.coverImage) {
         const fileExt = input.coverImage.name.split('.').pop();
         const filePath = `covers/${user.id}/${uuidv4()}.${fileExt}`;
@@ -128,8 +124,7 @@ export const useAlbums = (userId?: string) => {
         coverImageUrl = urlData.publicUrl;
       }
 
-      // Insert album record
-      const { data: newAlbumData, error: createError } = await supabase
+      const { data: albumData, error: albumError } = await supabase
         .from('albums')
         .insert({
           user_id: user.id,
@@ -143,8 +138,7 @@ export const useAlbums = (userId?: string) => {
 
       if (createError) throw createError;
 
-      // Add tags if provided
-      if (input.tags && input.tags.length > 0 && newAlbumData) {
+      if (input.tags && input.tags.length > 0 && albumData) {
         const tagPromises = input.tags.map(tag =>
           supabase
             .from('album_tags')
@@ -157,7 +151,6 @@ export const useAlbums = (userId?: string) => {
         await Promise.all(tagPromises);
       }
 
-      // Refresh albums list
       queryClient.invalidateQueries({ queryKey: ['albums', user.id] });
 
       toast({
@@ -165,7 +158,10 @@ export const useAlbums = (userId?: string) => {
         description: 'Your album has been created successfully'
       });
 
-      return ensureAlbumType(newAlbumData);
+      return {
+        ...albumData,
+        privacy: albumData.privacy as AlbumPrivacy
+      } as Album;
     } catch (error: any) {
       console.error('Error creating album:', error);
       toast({
@@ -179,7 +175,6 @@ export const useAlbums = (userId?: string) => {
     }
   };
 
-  // Delete album
   const deleteAlbum = async (albumId: string): Promise<boolean> => {
     if (!user) {
       toast({
@@ -193,13 +188,11 @@ export const useAlbums = (userId?: string) => {
     setLoading(true);
 
     try {
-      // Get all media in the album to delete from storage
       const { data: mediaItems } = await supabase
         .from('media')
         .select('url')
         .eq('album_id', albumId);
 
-      // Delete the album (cascade will remove media entries from database)
       const { error: deleteError } = await supabase
         .from('albums')
         .delete()
@@ -208,15 +201,12 @@ export const useAlbums = (userId?: string) => {
 
       if (deleteError) throw deleteError;
 
-      // Clean up storage files
       if (mediaItems && mediaItems.length > 0) {
-        // Extract paths from URLs
         const filePaths = mediaItems.map(item => {
           const url = new URL(item.url);
           return url.pathname.split('/').slice(-2).join('/');
         });
 
-        // Delete files from storage
         if (filePaths.length > 0) {
           await supabase.storage
             .from('album_media')
@@ -224,7 +214,6 @@ export const useAlbums = (userId?: string) => {
         }
       }
 
-      // Refresh albums list
       queryClient.invalidateQueries({ queryKey: ['albums', user.id] });
 
       toast({
@@ -246,7 +235,6 @@ export const useAlbums = (userId?: string) => {
     }
   };
 
-  // Update album
   const updateAlbum = async (
     albumId: string,
     updates: Partial<Omit<CreateAlbumInput, 'tags'>> & { tags?: string[] }
@@ -265,7 +253,6 @@ export const useAlbums = (userId?: string) => {
     try {
       let coverImageUrl;
 
-      // Upload new cover image if provided
       if (updates.coverImage) {
         const fileExt = updates.coverImage.name.split('.').pop();
         const filePath = `covers/${user.id}/${uuidv4()}.${fileExt}`;
@@ -283,14 +270,12 @@ export const useAlbums = (userId?: string) => {
         coverImageUrl = urlData.publicUrl;
       }
 
-      // Prepare update object
       const updateData: Record<string, any> = {};
       if (updates.title !== undefined) updateData.title = updates.title;
       if (updates.description !== undefined) updateData.description = updates.description;
       if (updates.privacy !== undefined) updateData.privacy = updates.privacy;
       if (coverImageUrl) updateData.cover_image_url = coverImageUrl;
 
-      // Update album record
       const { data: albumData, error: albumError } = await supabase
         .from('albums')
         .update(updateData)
@@ -301,15 +286,12 @@ export const useAlbums = (userId?: string) => {
 
       if (albumError) throw albumError;
 
-      // Update tags if provided
       if (updates.tags !== undefined) {
-        // Delete existing tags
         await supabase
           .from('album_tags')
           .delete()
           .eq('album_id', albumId);
 
-        // Add new tags
         if (updates.tags.length > 0) {
           const tagPromises = updates.tags.map(tag =>
             supabase
@@ -324,7 +306,6 @@ export const useAlbums = (userId?: string) => {
         }
       }
 
-      // Refresh albums list
       queryClient.invalidateQueries({ queryKey: ['albums', user.id] });
       queryClient.invalidateQueries({ queryKey: ['album', albumId] });
 
@@ -333,7 +314,10 @@ export const useAlbums = (userId?: string) => {
         description: 'Your album has been updated successfully'
       });
 
-      return ensureAlbumType(albumData);
+      return {
+        ...albumData,
+        privacy: albumData.privacy as AlbumPrivacy
+      } as Album;
     } catch (error: any) {
       console.error('Error updating album:', error);
       toast({
@@ -347,12 +331,10 @@ export const useAlbums = (userId?: string) => {
     }
   };
 
-  // Like/unlike album mutation
   const likeAlbumMutation = useMutation({
     mutationFn: async (albumId: string) => {
       if (!user) throw new Error('Authentication required');
 
-      // Check if the user has already liked the album
       const { data: existingLike } = await supabase
         .from('album_likes')
         .select('id')
@@ -361,26 +343,16 @@ export const useAlbums = (userId?: string) => {
         .single();
 
       if (existingLike) {
-        // Unlike: Remove the like
         await supabase
           .from('album_likes')
           .delete()
           .eq('album_id', albumId)
           .eq('user_id', user.id);
 
-        // Decrement likes count using raw update
-        const { error: updateError } = await supabase
-          .from('albums')
-          .update({ likes: 0 }) // Temporary value
-          .eq('id', albumId)
-          .select('likes')
-          .single();
-          
-        if (updateError) throw updateError;
+        const { data } = await supabase.rpc('decrement_album_likes', { album_id: albumId });
         
-        return { liked: false };
+        return { liked: false, likes: data as number };
       } else {
-        // Like: Add a new like
         await supabase
           .from('album_likes')
           .insert({
@@ -388,17 +360,9 @@ export const useAlbums = (userId?: string) => {
             user_id: user.id
           });
 
-        // Increment likes count using raw update
-        const { error: updateError } = await supabase
-          .from('albums')
-          .update({ likes: 0 }) // Temporary value
-          .eq('id', albumId)
-          .select('likes')
-          .single();
-          
-        if (updateError) throw updateError;
+        const { data } = await supabase.rpc('increment_album_likes', { album_id: albumId });
         
-        return { liked: true };
+        return { liked: true, likes: data as number };
       }
     },
     onSuccess: () => {
@@ -407,7 +371,6 @@ export const useAlbums = (userId?: string) => {
     }
   });
 
-  // Check if user has liked an album
   const useAlbumLiked = (albumId: string) => {
     return useQuery({
       queryKey: ['album-likes', albumId, user?.id],
@@ -427,7 +390,6 @@ export const useAlbums = (userId?: string) => {
     });
   };
 
-  // Get album tags
   const useAlbumTags = (albumId: string) => {
     return useQuery({
       queryKey: ['album-tags', albumId],
@@ -460,7 +422,6 @@ export const useAlbums = (userId?: string) => {
   };
 };
 
-// Get a single album by id
 export const useAlbum = (albumId: string) => {
   const { user } = useAuth();
   
@@ -479,47 +440,51 @@ export const useAlbum = (albumId: string) => {
     queryFn: async () => {
       if (!albumId) throw new Error('Album ID is required');
       
-      // Fetch the album data with profile info
-      const { data: rawAlbum, error: fetchError } = await supabase
-        .from('albums')
-        .select('*')
-        .eq('id', albumId)
-        .single();
-        
-      if (fetchError) {
-        if (fetchError.code === 'PGRST116') {
-          throw new Error('Album not found');
+      console.log('Fetching album with ID:', albumId);
+      console.log('Current user:', user?.id);
+      
+      try {
+        const { data, error } = await supabase
+          .from('albums')
+          .select(`
+            *,
+            profiles:user_id (
+              username,
+              avatar_url,
+              bdsm_role
+            )
+          `)
+          .eq('id', albumId)
+          .single();
+          
+        if (error) {
+          console.error('Error fetching album:', error);
+          if (error.code === 'PGRST116') {
+            throw new Error('Album not found');
+          }
+          throw error;
         }
-        throw fetchError;
-      }
-
-      // Check privacy permissions
-      const album = ensureAlbumType(rawAlbum);
-      if (album.privacy !== 'public' && album.user_id !== user?.id) {
-        throw new Error('You do not have permission to view this album');
-      }
-
-      // Fetch profile data
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('username, avatar_url, bdsm_role')
-        .eq('id', album.user_id)
-        .single();
         
-      if (profileError) throw profileError;
-
-      // Combine the data
-      const result = {
-        ...album,
-        profiles: profileData
-      };
-      
-      // Only increment view for others' public albums
-      if (user?.id !== result.user_id && result.privacy === 'public') {
-        incrementView();
+        console.log('Album fetch successful:', data);
+        
+        if (user?.id !== data.user_id) {
+          incrementView();
+        }
+        
+        return {
+          ...data,
+          privacy: data.privacy as AlbumPrivacy,
+        } as unknown as Album & {
+          profiles: {
+            username: string;
+            avatar_url: string | null;
+            bdsm_role: string;
+          }
+        };
+      } catch (error) {
+        console.error('Error in album fetch function:', error);
+        throw error;
       }
-      
-      return result;
     },
     enabled: !!albumId
   });

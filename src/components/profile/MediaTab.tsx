@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Album } from '@/types/albums';
 import AlbumCard from '@/components/albums/AlbumCard';
-import { Library, Plus } from 'lucide-react';
+import { Plus, Image } from 'lucide-react';
 
 interface MediaTabProps {
   userId?: string;
@@ -19,7 +18,6 @@ const MediaTab: React.FC<MediaTabProps> = ({ userId }) => {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Determine if viewing current user's profile or someone else's
   const targetUserId = userId || user?.id;
   const isCurrentUser = !userId || userId === user?.id;
   
@@ -35,19 +33,20 @@ const MediaTab: React.FC<MediaTabProps> = ({ userId }) => {
           .select('*')
           .order('created_at', { ascending: false });
         
-        // If viewing someone else's profile, only show public albums
         if (!isCurrentUser) {
           query = query.eq('privacy', 'public');
         }
         
-        // Filter by user ID
         query = query.eq('user_id', targetUserId);
         
         const { data, error } = await query;
         
         if (error) throw error;
         
-        setAlbums(data as Album[]);
+        setAlbums(data.map(album => ({
+          ...album,
+          privacy: album.privacy as "public" | "private" | "friends-only"
+        })));
       } catch (error) {
         console.error('Error fetching albums:', error);
       } finally {
@@ -71,7 +70,7 @@ const MediaTab: React.FC<MediaTabProps> = ({ userId }) => {
             variant="outline"
             onClick={handleCreateAlbumClick}
           >
-            <Library className="mr-2 h-4 w-4" />
+            <Plus className="mr-2 h-4 w-4" />
             View All Albums
           </Button>
         )}

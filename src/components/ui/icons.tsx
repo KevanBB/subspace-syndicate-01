@@ -23,3 +23,4 @@ export const Clip: React.FC<{ className?: string }> = ({ className }) => {
     </svg>
   );
 };
+

@@ -1,4 +1,3 @@
-
 export interface Album {
   id: string;
   user_id: string;
@@ -36,6 +35,16 @@ export interface MediaItem {
   updated_at: string;
   views: number;
   likes: number;
+  album?: {
+    id: string;
+    title: string;
+    privacy: AlbumPrivacy;
+  };
+  profile?: {
+    username?: string;
+    avatar_url?: string | null;
+    bdsm_role?: string;
+  };
 }
 
 export interface MediaComment {

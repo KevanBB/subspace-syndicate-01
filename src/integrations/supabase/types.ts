@@ -1034,17 +1034,41 @@ export type Database = {
       }
     }
     Functions: {
+      decrement_album_likes: {
+        Args: {
+          album_id: string
+        }
+        Returns: number
+      }
+      decrement_media_likes: {
+        Args: {
+          media_id: string
+        }
+        Returns: number
+      }
       get_user_conversations: {
         Args: {
           user_id: string
         }
         Returns: string[]
       }
+      increment_album_likes: {
+        Args: {
+          album_id: string
+        }
+        Returns: number
+      }
       increment_album_views: {
         Args: {
           album_id: string
         }
         Returns: undefined
+      }
+      increment_media_likes: {
+        Args: {
+          media_id: string
+        }
+        Returns: number
       }
       increment_media_views: {
         Args: {
