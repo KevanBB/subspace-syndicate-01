@@ -440,11 +440,29 @@ export const useAlbum = (albumId: string) => {
     queryFn: async () => {
       if (!albumId) throw new Error('Album ID is required');
       
-      console.log('Fetching album with ID:', albumId);
-      console.log('Current user:', user?.id);
-      
       try {
-        const { data, error } = await supabase
+        // First, get basic album info to check privacy
+        const { data: basicAlbum, error: basicError } = await supabase
+          .from('albums')
+          .select('id, privacy, user_id')
+          .eq('id', albumId)
+          .single();
+
+        if (basicError) {
+          console.error('Error fetching basic album info:', basicError);
+          if (basicError.code === 'PGRST116') {
+            throw new Error('Album not found');
+          }
+          throw basicError;
+        }
+
+        // Check privacy permissions
+        if (basicAlbum.privacy !== 'public' && basicAlbum.user_id !== user?.id) {
+          throw new Error('You do not have permission to view this album');
+        }
+
+        // If we have permission, fetch the full album data
+        const { data: fullAlbum, error: fullError } = await supabase
           .from('albums')
           .select(`
             *,
@@ -457,23 +475,19 @@ export const useAlbum = (albumId: string) => {
           .eq('id', albumId)
           .single();
           
-        if (error) {
-          console.error('Error fetching album:', error);
-          if (error.code === 'PGRST116') {
-            throw new Error('Album not found');
-          }
-          throw error;
+        if (fullError) {
+          console.error('Error fetching full album data:', fullError);
+          throw fullError;
         }
         
-        console.log('Album fetch successful:', data);
-        
-        if (user?.id !== data.user_id) {
+        // Only increment views for public albums that the user doesn't own
+        if (fullAlbum.privacy === 'public' && user?.id !== fullAlbum.user_id) {
           incrementView();
         }
         
         return {
-          ...data,
-          privacy: data.privacy as AlbumPrivacy,
+          ...fullAlbum,
+          privacy: fullAlbum.privacy as AlbumPrivacy,
         } as unknown as Album & {
           profiles: {
             username: string;
@@ -481,9 +495,10 @@ export const useAlbum = (albumId: string) => {
             bdsm_role: string;
           }
         };
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error in album fetch function:', error);
-        throw error;
+        // Rethrow with a more specific error message
+        throw new Error(error.message || 'Failed to fetch album');
       }
     },
     enabled: !!albumId
