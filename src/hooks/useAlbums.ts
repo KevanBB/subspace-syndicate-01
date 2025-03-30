@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, ensureBucketExists } from '@/integrations/supabase/client';
@@ -462,32 +463,43 @@ export const useAlbum = (albumId: string) => {
         }
 
         // If we have permission, fetch the full album data
-        const { data: fullAlbum, error: fullError } = await supabase
+        // Modify this query to avoid the join that's causing issues
+        const { data: albumData, error: albumError } = await supabase
           .from('albums')
-          .select(`
-            *,
-            profiles:user_id (
-              username,
-              avatar_url,
-              bdsm_role
-            )
-          `)
+          .select('*')
           .eq('id', albumId)
           .single();
           
-        if (fullError) {
-          console.error('Error fetching full album data:', fullError);
-          throw fullError;
+        if (albumError) {
+          console.error('Error fetching full album data:', albumError);
+          throw albumError;
+        }
+        
+        // Now fetch the user profile separately
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('username, avatar_url, bdsm_role')
+          .eq('id', albumData.user_id)
+          .single();
+          
+        if (profileError) {
+          console.error('Error fetching profile data:', profileError);
+          // Don't throw here, just continue with a null profile
         }
         
         // Only increment views for public albums that the user doesn't own
-        if (fullAlbum.privacy === 'public' && user?.id !== fullAlbum.user_id) {
+        if (albumData.privacy === 'public' && user?.id !== albumData.user_id) {
           incrementView();
         }
         
         return {
-          ...fullAlbum,
-          privacy: fullAlbum.privacy as AlbumPrivacy,
+          ...albumData,
+          privacy: albumData.privacy as AlbumPrivacy,
+          profiles: profileData || {
+            username: 'Unknown User',
+            avatar_url: null,
+            bdsm_role: 'Exploring'
+          }
         } as unknown as Album & {
           profiles: {
             username: string;
