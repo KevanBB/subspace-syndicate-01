@@ -1,12 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import React, { useState, useRef } from 'react';
 import { FileUploader } from '@/components/ui/file-uploader';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Upload, X, FileVideo, Image as ImageIcon, AlertCircle } from 'lucide-react';
-import { Upload, X, Image as ImageIcon, FileVideo } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface MediaUploaderProps {
@@ -69,7 +67,6 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({ albumId, onUpload, upload
     const validationError = validateFile(file);
     
     if (validationError) {
-    if (file.size > MAX_FILE_SIZE) {
       toast({
         title: 'Invalid file',
         description: validationError,
@@ -192,7 +189,6 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({ albumId, onUpload, upload
                 ) : (
                   <div className="w-full h-[200px] flex items-center justify-center bg-black/40 rounded-md">
                     <FileVideo className="h-12 w-12 text-white/30" />
-                    <ImageIcon className="h-12 w-12 text-white/30" />
                   </div>
                 )}
               </div>
@@ -240,4 +236,4 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({ albumId, onUpload, upload
   );
 };
 
-export default MediaUploader;
+export default MediaUploader; 

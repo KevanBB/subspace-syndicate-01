@@ -136,14 +136,14 @@ export const useAlbums = (userId?: string) => {
         .select()
         .single();
 
-      if (createError) throw createError;
+      if (albumError) throw albumError;
 
       if (input.tags && input.tags.length > 0 && albumData) {
         const tagPromises = input.tags.map(tag =>
           supabase
             .from('album_tags')
             .insert({
-              album_id: newAlbumData.id,
+              album_id: albumData.id,
               tag: tag.toLowerCase().trim()
             })
         );

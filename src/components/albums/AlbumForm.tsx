@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { FileUploader } from '@/components/ui/file-uploader';
-import { X, Upload, Image as ImageIcon } from 'lucide-react';
+import { X, Upload, Image as ImageIcon, Check } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -44,13 +44,13 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-const AlbumForm: React.FC<AlbumFormProps> = ({ 
+const AlbumForm = ({ 
   onSubmit, 
   defaultValues, 
   isEditing = false,
   isLoading = false,
   onCancel
-}) => {
+}: AlbumFormProps): JSX.Element => {
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
   const [currentTag, setCurrentTag] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -129,13 +129,15 @@ const AlbumForm: React.FC<AlbumFormProps> = ({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save album');
     }
-  const handleFormSubmit = form.handleSubmit(async (data) => {
-    await onSubmit(data);
   });
 
   return (
     <Form {...form}>
-      <form onSubmit={handleFormSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {error && (
+          <div className="text-red-500 text-sm">{error}</div>
+        )}
+        
         <FormField
           control={form.control}
           name="title"
@@ -154,7 +156,7 @@ const AlbumForm: React.FC<AlbumFormProps> = ({
           )}
         />
 
-        <Controller
+        <FormField
           control={form.control}
           name="description"
           render={({ field }) => (
@@ -172,7 +174,7 @@ const AlbumForm: React.FC<AlbumFormProps> = ({
           )}
         />
 
-        <Controller
+        <FormField
           control={form.control}
           name="privacy"
           render={({ field }) => (
@@ -201,94 +203,105 @@ const AlbumForm: React.FC<AlbumFormProps> = ({
           )}
         />
 
-        <div>
-          <FormLabel>Tags</FormLabel>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {form.watch('tags')?.map(tag => (
-              <Badge key={tag} variant="secondary" className="flex items-center gap-1">
-                {tag}
-                <X 
-                  className="h-3 w-3 cursor-pointer" 
-                  onClick={() => removeTag(tag)}
+        <FormField
+          control={form.control}
+          name="tags"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Tags</FormLabel>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {field.value?.map(tag => (
+                  <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                    {tag}
+                    <X 
+                      className="h-3 w-3 cursor-pointer" 
+                      onClick={() => removeTag(tag)}
+                    />
+                  </Badge>
+                ))}
+              </div>
+              <FormControl>
+                <Input
+                  ref={tagInputRef}
+                  value={currentTag}
+                  onChange={(e) => setCurrentTag(e.target.value)}
+                  onKeyDown={handleAddTag}
+                  placeholder="Add tags and press Enter"
+                  className="bg-black/30 border-white/20"
                 />
-              </Badge>
-            ))}
-          </div>
-          <Input
-            ref={tagInputRef}
-            value={currentTag}
-            onChange={(e) => setCurrentTag(e.target.value)}
-            onKeyDown={handleAddTag}
-            placeholder="Add tags and press Enter"
-            className="bg-black/30 border-white/20"
-          />
-          <p className="text-xs text-white/60 mt-1">
-            Tags help others discover your album
-          </p>
-        </div>
-
-        <div>
-          <FormLabel>Cover Image</FormLabel>
-          {!coverImagePreview ? (
-            <FileUploader
-              accept="image/*"
-              maxSize={10}
-              onFilesSelected={handleCoverImageSelect}
-              className="mt-1"
-            >
-              <Button variant="outline" type="button" className="w-full h-[120px]">
-                <ImageIcon className="h-5 w-5 mr-2" />
-                {isEditing ? 'Change Cover Image' : 'Upload Cover Image'}
-              </Button>
-            </FileUploader>
-          ) : (
-            <div className="relative mt-1">
-              <img 
-                src={coverImagePreview} 
-                alt="Cover preview" 
-                className="rounded-md h-[120px] w-full object-cover"
-              />
-              <Button 
-                variant="secondary" 
-                size="icon" 
-                className="absolute top-2 right-2 h-8 w-8 rounded-full"
-                onClick={handleRemoveCoverImage}
-                type="button"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
-        </div>
+        />
 
-        <div className="flex gap-2 justify-end">
+        <FormField
+          control={form.control}
+          name="coverImage"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Cover Image</FormLabel>
+              <FormControl>
+                <div className="space-y-4">
+                  {coverImagePreview ? (
+                    <div className="relative aspect-[4/3]">
+                      <img
+                        src={coverImagePreview}
+                        alt="Cover preview"
+                        className="object-cover w-full h-full rounded-md"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2"
+                        onClick={handleRemoveCoverImage}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <FileUploader
+                      onFilesSelected={handleCoverImageSelect}
+                      accept="image/*"
+                      maxSize={10 * 1024 * 1024} // 10MB
+                      className="aspect-[4/3] border-2 border-dashed border-white/20 rounded-md hover:border-white/40 transition-colors"
+                    >
+                      <div className="flex flex-col items-center justify-center h-full text-white/60">
+                        <Upload className="h-8 w-8 mb-2" />
+                        <p>Click to upload cover image</p>
+                        <p className="text-xs mt-1">Max size: 10MB</p>
+                      </div>
+                    </FileUploader>
+                  )}
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="flex justify-end gap-4">
           {onCancel && (
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={onCancel}
               disabled={isLoading}
             >
               Cancel
             </Button>
           )}
-          
-          <Button 
-            type="submit" 
-            className="flex-1" 
-            disabled={isLoading}
-          >
+          <Button type="submit" disabled={isLoading}>
             {isLoading ? (
-              <>Loading...</>
-            ) : isEditing ? (
               <>
-                <Upload className="mr-2 h-4 w-4" />
-                Save Changes
+                <Check className="mr-2 h-4 w-4" />
+                Saving...
               </>
             ) : (
               <>
-                <Upload className="mr-2 h-4 w-4" />
-                Create Album
+                <Check className="mr-2 h-4 w-4" />
+                {isEditing ? 'Update Album' : 'Create Album'}
               </>
             )}
           </Button>
