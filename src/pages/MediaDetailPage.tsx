@@ -31,6 +31,12 @@ const MediaDetailPage: React.FC = () => {
     return profile.avatar_url;
   };
 
+  const getBdsmRole = (profile: any) => {
+    if (!profile) return 'Exploring';
+    if (typeof profile === 'string') return 'Exploring';
+    return profile.bdsm_role || 'Exploring';
+  };
+
   if (isLoading) {
     return <LoadingState />;
   }
@@ -46,8 +52,7 @@ const MediaDetailPage: React.FC = () => {
     profile: mediaItem.profile && typeof mediaItem.profile === 'object' ? {
       username: getUsername(mediaItem.profile),
       avatar_url: getAvatarUrl(mediaItem.profile),
-      bdsm_role: mediaItem.profile && 'bdsm_role' in mediaItem.profile ? 
-        String(mediaItem.profile.bdsm_role || '') : undefined
+      bdsm_role: getBdsmRole(mediaItem.profile)
     } : undefined,
     album: mediaItem.album && typeof mediaItem.album === 'object' ? {
       id: mediaItem.album.id,
