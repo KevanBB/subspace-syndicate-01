@@ -1,77 +1,71 @@
-
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Conversation } from '@/types/messages';
+import { Message } from '@/types/messages';
 
 interface RealtimeSubscriptionsProps {
-  userId: string;
-  conversations: Conversation[];
-  selectedConversation: Conversation | null;
-  onFetchConversations: () => void;
-  onUpdateSelectedConversation: (conversationId: string) => void;
+  selectedConversation: { id: string } | null;
+  currentUserId: string | null;
+  onNewMessage: (message: Message) => void;
 }
 
-const RealtimeSubscriptions: React.FC<RealtimeSubscriptionsProps> = ({ 
-  userId, 
-  conversations, 
-  selectedConversation, 
-  onFetchConversations,
-  onUpdateSelectedConversation
+const RealtimeSubscriptions: React.FC<RealtimeSubscriptionsProps> = ({
+  selectedConversation,
+  currentUserId,
+  onNewMessage,
 }) => {
   useEffect(() => {
-    if (!userId) return;
-    
-    // Set up real-time subscription for changes to conversations
-    const conversationsChannel = supabase
-      .channel('conversations-updates')
+    if (!selectedConversation) return;
+  
+    const messagesChannel = supabase
+      .channel(`messages-${selectedConversation.id}`)
       .on('postgres_changes', 
         { 
-          event: '*', 
+          event: 'INSERT', 
           schema: 'public', 
-          table: 'conversation_participants',
-          filter: `user_id=eq.${userId}`
+          table: 'messages',
+          filter: `conversation_id=eq.${selectedConversation.id}`
         }, 
-        () => {
-          onFetchConversations();
-        }
-      )
-      .subscribe();
-      
-    // Set up real-time subscription for new messages to update conversation list ordering
-    const messagesChannel = supabase
-      .channel('messages-updates')
-      .on('postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages'
-        },
         (payload) => {
-          // Check if the message belongs to one of our conversations before updating
-          const belongsToUserConversation = conversations.some(c => c.id === payload.new.conversation_id);
-          
-          if (belongsToUserConversation) {
-            // Debounce multiple messages coming in at once
-            onFetchConversations();
-            
-            // If the new message is for our currently selected conversation and from the other user,
-            // update the selected conversation object to include this message
-            if (selectedConversation?.id === payload.new.conversation_id && 
-                payload.new.sender_id !== userId) {
-              onUpdateSelectedConversation(selectedConversation.id);
-            }
+          if (payload.new && payload.new.conversation_id === selectedConversation?.id) {
+            onNewMessage(payload.new);
           }
         }
       )
       .subscribe();
-      
-    return () => {
-      supabase.removeChannel(conversationsChannel);
-      supabase.removeChannel(messagesChannel);
-    };
-  }, [userId, conversations, selectedConversation, onFetchConversations, onUpdateSelectedConversation]);
+    
+    const presenceChannel = supabase.channel(`presence-${selectedConversation.id}`, {
+      config: {
+        presence: {
+          key: currentUserId,
+        },
+      },
+    });
+    
+    presenceChannel
+      .on("presence", { event: "sync" }, () => {
+        // console.log("Presence sync:", presenceChannel.presenceState());
+      })
+      .on("presence", { event: "join" }, ({ key }) => {
+        // console.log("User joined:", key);
+      })
+      .on("presence", { event: "leave" }, ({ key }) => {
+        // console.log("User left:", key);
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED" && currentUserId) {
+          await presenceChannel.track({
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
 
-  return null; // This component doesn't render anything
+    return () => {
+      supabase.removeChannel(messagesChannel);
+      supabase.removeChannel(presenceChannel);
+    };
+  }, [selectedConversation, currentUserId, onNewMessage]);
+
+  return null;
 };
 
 export default RealtimeSubscriptions;

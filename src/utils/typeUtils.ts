@@ -1,85 +1,44 @@
 
 /**
- * Utility functions to handle TypeScript type conversions and other common operations
+ * Type utilities to help with TypeScript compatibility
  */
 
 /**
- * Converts a possibly null string to a non-null string with a default value
- * @param value The string that might be null
- * @param defaultValue The default value to use if null
+ * Safely converts a nullable string to a non-nullable string with fallback
+ * @param value The potentially null/undefined string
+ * @param fallback The fallback value if null/undefined (default empty string)
  */
-export function ensureString(value: string | null | undefined, defaultValue: string = ''): string {
-  return value ?? defaultValue;
+export function ensureString(value: string | null | undefined, fallback: string = ""): string {
+  return value === null || value === undefined ? fallback : value;
 }
 
 /**
- * Converts a possibly null number to a non-null number with a default value
- * @param value The number that might be null
- * @param defaultValue The default value to use if null
+ * Safely converts a nullable value to undefined (useful for props that accept undefined but not null)
+ * @param value The potentially null value
  */
-export function ensureNumber(value: number | null | undefined, defaultValue: number = 0): number {
-  return value ?? defaultValue;
+export function nullToUndefined<T>(value: T | null): T | undefined {
+  return value === null ? undefined : value;
 }
 
 /**
- * Converts a possibly null boolean to a non-null boolean with a default value
- * @param value The boolean that might be null
- * @param defaultValue The default value to use if null
+ * Safely converts an array with potentially null items to an array without null items
+ * @param array The array with potentially null items
  */
-export function ensureBoolean(value: boolean | null | undefined, defaultValue: boolean = false): boolean {
-  return value ?? defaultValue;
+export function filterNulls<T>(array: (T | null)[]): T[] {
+  return array.filter((item): item is T => item !== null);
 }
 
 /**
- * Safely iterate over a Set without downlevelIteration issues
- * @param set The set to convert to array
+ * Safely converts a Set to an Array
+ * @param set The Set to convert
  */
 export function setToArray<T>(set: Set<T>): T[] {
   return Array.from(set);
 }
 
 /**
- * Helper function to make a bucket exist in Supabase storage
- * This is a replacement for the missing ensureBucketExists function
- */
-export async function ensureBucketExists(supabase: any, bucketName: string, options: any = {}): Promise<void> {
-  try {
-    // First check if bucket exists
-    const { data, error } = await supabase.storage.getBucket(bucketName);
-    
-    // If bucket doesn't exist, create it
-    if (error && error.statusCode === 404) {
-      const { error: createError } = await supabase.storage.createBucket(bucketName, options);
-      if (createError) {
-        console.error(`Error creating bucket ${bucketName}:`, createError);
-        throw createError;
-      }
-    } else if (error) {
-      console.error(`Error checking bucket ${bucketName}:`, error);
-      throw error;
-    }
-  } catch (err) {
-    console.error(`Error ensuring bucket ${bucketName} exists:`, err);
-    throw err;
-  }
-}
-
-/**
- * Helper for type casting in places where TypeScript is too strict
- * Use this with caution as it bypasses type checking
+ * Type assertion helper
  */
 export function assertType<T>(value: any): T {
   return value as T;
 }
-
-/**
- * Create a simple DataTable component for apps that need tanstack/react-table
- * but don't have it installed
- */
-export interface GenericColumn<T> {
-  accessorKey?: keyof T | string;
-  header: React.ReactNode;
-  cell?: (props: { row: { original: T } }) => React.ReactNode;
-  id?: string;
-}
-

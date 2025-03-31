@@ -16,15 +16,12 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
-        // Update role-specific badge variants with the new colors
-        dominant: "border-transparent bg-[#991b1b] text-white hover:bg-[#991b1b]/90",
-        submissive: "border-transparent bg-[#475569] text-white hover:bg-[#475569]/90",
-        switch: "border-transparent bg-blue-600 text-white hover:bg-blue-500",
-        exploring: "border-transparent bg-green-600 text-white hover:bg-green-500",
-        // Add new crimson variant for the Hot badge
+        dominant: "border-transparent bg-dominant text-white hover:bg-dominant/80",
+        submissive: "border-transparent bg-submissive text-white hover:bg-submissive/80",
+        exploring: "border-transparent bg-slate-500 text-white hover:bg-slate-500/80",
+        switch: "border-transparent bg-amber-500 text-white hover:bg-amber-500/80",
         crimson: "border-transparent bg-crimson text-white hover:bg-crimson/80",
-        // Add success variant
-        success: "border-transparent bg-green-500 text-white hover:bg-green-600",
+        success: "border-transparent bg-green-500 text-white hover:bg-green-500/80",
       },
     },
     defaultVariants: {

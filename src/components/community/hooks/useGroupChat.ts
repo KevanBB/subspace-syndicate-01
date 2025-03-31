@@ -5,6 +5,7 @@ import { useChatSubscriptions } from './useChatSubscriptions';
 import { useMessageOperations } from './useMessageOperations';
 import { useMediaUpload } from './useMediaUpload';
 import { useTypingIndicator } from './useTypingIndicator';
+import { setToArray, nullToUndefined } from '@/utils/typeUtils';
 
 export const useGroupChat = (roomId: string, userId?: string) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -28,7 +29,7 @@ export const useGroupChat = (roomId: string, userId?: string) => {
       // Check if there's an optimistic version of this message
       const optimisticIndex = previous.findIndex(
         m => m.isOptimistic && m.user_id === newMsg.user_id && 
-             Math.abs(new Date(m.created_at).getTime() - new Date(newMsg.created_at).getTime()) < 5000
+             Math.abs(new Date(m.created_at || '').getTime() - new Date(newMsg.created_at || '').getTime()) < 5000
       );
       
       if (optimisticIndex >= 0) {
@@ -120,7 +121,7 @@ export const useGroupChat = (roomId: string, userId?: string) => {
           if (bPos !== Number.MAX_SAFE_INTEGER) return 1;
           
           // Otherwise, sort by most recently active
-          return new Date(b.last_active).getTime() - new Date(a.last_active).getTime();
+          return new Date(b.last_active || '').getTime() - new Date(a.last_active || '').getTime();
         });
       });
     } catch (error) {
@@ -165,7 +166,7 @@ export const useGroupChat = (roomId: string, userId?: string) => {
         
       if (error) throw error;
       
-      const userIds = [...new Set(data?.map(m => m.user_id).filter(Boolean))];
+      const userIds = [...new Set((data?.map(m => m.user_id) || []).filter(Boolean))];
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('id, username, avatar_url')
@@ -222,8 +223,8 @@ export const useGroupChat = (roomId: string, userId?: string) => {
       // Reset typing state immediately when sending message
       resetTypingState();
       
-      let mediaUrl = null;
-      let mediaType = null;
+      let mediaUrl: string | null = null;
+      let mediaType: string | null = null;
       
       // Create an optimistic message to show immediately
       const { data: userData } = await supabase
@@ -272,7 +273,7 @@ export const useGroupChat = (roomId: string, userId?: string) => {
       }
       
       // Send the message with media
-      const success = await sendMessageWithMedia(newMessage, mediaUrl, mediaType);
+      const success = await sendMessageWithMedia(newMessage, nullToUndefined(mediaUrl), nullToUndefined(mediaType));
       
       if (success) {
         setNewMessage('');

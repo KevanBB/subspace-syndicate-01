@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { logAdminAction } from "@/lib/admin-logger";
 import { ensureNonNull } from "@/utils/supabaseUtils";
+import { nullToUndefined } from "@/utils/typeUtils";
 
 export default async function ViewSensitiveDataPage({
   params,
@@ -47,15 +48,18 @@ export default async function ViewSensitiveDataPage({
   }
 
   // Get signed URLs for ID documents with short expiration
+  const idFrontPath = ensureNonNull(application.id_front_storage_path, '');
+  const idBackPath = ensureNonNull(application.id_back_storage_path, '');
+  
   const { data: frontUrl } = await supabase
     .storage
     .from('identity-documents')
-    .createSignedUrl(ensureNonNull(application.id_front_storage_path, ''), 30); // 30 seconds
+    .createSignedUrl(idFrontPath, 30); // 30 seconds
 
   const { data: backUrl } = await supabase
     .storage
     .from('identity-documents')
-    .createSignedUrl(ensureNonNull(application.id_back_storage_path, ''), 30); // 30 seconds
+    .createSignedUrl(idBackPath, 30); // 30 seconds
 
   // Log the sensitive data access
   await logAdminAction({

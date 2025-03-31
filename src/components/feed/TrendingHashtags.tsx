@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -5,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Hash, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { ensureNonNull } from '@/utils/supabaseUtils';
 
 interface TrendingHashtag {
   hashtag: string;
@@ -39,10 +41,12 @@ export default function TrendingHashtags() {
       if (error) throw error;
       
       // Transform data for our component
-      const formattedHashtags = data.map(item => ({
-        hashtag: item.hashtag,
-        count: item.post_count
-      }));
+      const formattedHashtags = data
+        .filter(item => item.hashtag !== null)
+        .map(item => ({
+          hashtag: ensureNonNull(item.hashtag, ''),
+          count: ensureNonNull(item.post_count, 0)
+        }));
       
       setHashtags(formattedHashtags);
     } catch (error) {

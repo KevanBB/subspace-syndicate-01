@@ -11,7 +11,7 @@ export async function ensureBucketExists(bucketName: string, options: any = {}):
     const { data, error } = await supabase.storage.getBucket(bucketName);
     
     // If bucket doesn't exist, create it
-    if (error && error.statusCode === 404) {
+    if (error && error.message?.includes("The resource was not found")) {
       const { error: createError } = await supabase.storage.createBucket(bucketName, options);
       if (createError) {
         console.error(`Error creating bucket ${bucketName}:`, createError);

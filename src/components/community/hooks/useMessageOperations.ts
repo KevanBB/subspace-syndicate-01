@@ -1,10 +1,7 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ChatMessage } from '../types/ChatTypes';
-import { toast } from '@/hooks/use-toast';
-import { Database } from '@/integrations/supabase/types';
-
-type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
+import { toast } from 'sonner';
 
 interface UseMessageOperationsProps {
   roomId: string;
@@ -13,12 +10,40 @@ interface UseMessageOperationsProps {
 
 export const useMessageOperations = ({ roomId, userId }: UseMessageOperationsProps) => {
   const [isSending, setIsSending] = useState(false);
-
+  
+  /**
+   * Mark a message as read
+   */
   const markMessageAsRead = async (messageId: string) => {
     if (!userId) return;
     
     try {
-      await supabase.channel('read-receipts')
+      // First, check if the user has already read this message
+      const { data: existingReads } = await supabase
+        .from('message_reads')
+        .select('*')
+        .eq('message_id', messageId)
+        .eq('user_id', userId)
+        .single();
+        
+      if (existingReads) {
+        // User has already read this message
+        return;
+      }
+      
+      // Add a new read record
+      await supabase
+        .from('message_reads')
+        .insert({
+          message_id: messageId,
+          user_id: userId,
+          room_id: roomId,
+          read_at: new Date().toISOString()
+        });
+        
+      // Notify other clients
+      await supabase
+        .channel('read-receipts')
         .send({
           type: 'broadcast',
           event: 'message_read',
@@ -26,197 +51,179 @@ export const useMessageOperations = ({ roomId, userId }: UseMessageOperationsPro
             message_id: messageId,
             user_id: userId,
             room_id: roomId,
-            timestamp: new Date().toISOString()
+            read_at: new Date().toISOString()
           }
         });
     } catch (error) {
       console.error('Error marking message as read:', error);
     }
   };
-
+  
+  /**
+   * Send a message with optional media
+   */
   const sendMessageWithMedia = async (
-    content: string, 
-    mediaUrl: string | null, 
-    mediaType: string | null
-  ) => {
-    if (!userId) return;
+    message: string,
+    mediaUrl?: string,
+    mediaType?: string
+  ): Promise<boolean> => {
+    if (!userId) {
+      toast.error("You must be logged in to send messages");
+      return false;
+    }
     
     try {
       setIsSending(true);
       
-      const { error } = await supabase
+      // Check if user is silenced
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('is_silenced')
+        .eq('id', userId)
+        .single();
+        
+      if (userProfile && userProfile.is_silenced) {
+        toast.error("You've been silenced and cannot send messages");
+        return false;
+      }
+      
+      // Insert the message
+      const { data, error } = await supabase
         .from('community_chats')
         .insert({
           room_id: roomId,
           user_id: userId,
-          content: content.trim(),
+          content: message.trim() || '',
           media_url: mediaUrl,
-          media_type: mediaType
-        });
+          media_type: mediaType,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
         
-      if (error) throw error;
-      
-      // Update user's last active timestamp
-      await supabase
-        .from('profiles')
-        .update({ last_active: new Date().toISOString() })
-        .eq('id', userId);
+      if (error) {
+        console.error('Error sending message:', error);
+        toast.error("Failed to send message");
+        return false;
+      }
       
       return true;
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error in sendMessageWithMedia:', error);
+      toast.error("An unexpected error occurred");
       return false;
     } finally {
       setIsSending(false);
     }
   };
-
-  // Moderating functions
-  const editMessage = async (messageId: string, newContent: string) => {
+  
+  /**
+   * Delete a message
+   */
+  const deleteMessage = async (messageId: string): Promise<boolean> => {
     if (!userId) return false;
     
     try {
-      // Check if user is admin
-      const { data: userData } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', userId)
-        .single();
-        
-      if (!userData?.is_admin) {
-        toast({
-          title: 'Permission denied',
-          description: 'Only administrators can edit messages',
-          variant: 'destructive',
-        });
-        return false;
-      }
-      
-      const { error } = await supabase
+      // First check if user is the sender or an admin
+      const { data: message } = await supabase
         .from('community_chats')
-        .update({ content: newContent.trim() })
-        .eq('id', messageId);
-        
-      if (error) throw error;
-      
-      toast({
-        title: 'Message edited',
-        description: 'The message has been updated successfully',
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('Error editing message:', error);
-      toast({
-        title: 'Error editing message',
-        description: 'Failed to update the message',
-        variant: 'destructive',
-      });
-      return false;
-    }
-  };
-
-  const deleteMessage = async (messageId: string) => {
-    if (!userId) return false;
-    
-    try {
-      // Check if user is admin
-      const { data: userData } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', userId)
+        .select('user_id')
+        .eq('id', messageId)
         .single();
         
-      if (!userData?.is_admin) {
-        toast({
-          title: 'Permission denied',
-          description: 'Only administrators can delete messages',
-          variant: 'destructive',
-        });
+      if (!message) {
+        toast.error("Message not found");
         return false;
       }
       
+      // Check if user is admin
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+        
+      const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'moderator';
+      const isOwner = message.user_id === userId;
+      
+      if (!isAdmin && !isOwner) {
+        toast.error("You don't have permission to delete this message");
+        return false;
+      }
+      
+      // Delete the message
       const { error } = await supabase
         .from('community_chats')
         .delete()
         .eq('id', messageId);
         
-      if (error) throw error;
-      
-      toast({
-        title: 'Message deleted',
-        description: 'The message has been removed successfully',
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('Error deleting message:', error);
-      toast({
-        title: 'Error deleting message',
-        description: 'Failed to remove the message',
-        variant: 'destructive',
-      });
-      return false;
-    }
-  };
-
-  const silenceUser = async (targetUserId: string, duration: number | null = null) => {
-    if (!userId) return false;
-    
-    try {
-      // Check if user is admin
-      const { data: userData } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', userId)
-        .single();
-        
-      if (!userData?.is_admin) {
-        toast({
-          title: 'Permission denied',
-          description: 'Only administrators can silence users',
-          variant: 'destructive',
-        });
+      if (error) {
+        console.error('Error deleting message:', error);
+        toast.error("Failed to delete message");
         return false;
       }
       
-      // If duration is null, it means permanent silence
-      const silenceUntil = duration ? new Date(Date.now() + duration * 1000) : null;
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          is_silenced: true,
-          silenced_until: silenceUntil?.toISOString() ?? null
-        } satisfies ProfileUpdate)
-        .eq('id', targetUserId);
-        
-      if (error) throw error;
-      
-      toast({
-        title: 'User silenced',
-        description: duration 
-          ? `User has been silenced for ${duration} seconds`
-          : 'User has been permanently silenced',
-      });
-      
+      toast.success("Message deleted");
       return true;
     } catch (error) {
-      console.error('Error silencing user:', error);
-      toast({
-        title: 'Error silencing user',
-        description: 'Failed to silence the user',
-        variant: 'destructive',
-      });
+      console.error('Error in deleteMessage:', error);
+      toast.error("An unexpected error occurred");
       return false;
     }
   };
-
+  
+  /**
+   * Silence a user (admin only)
+   */
+  const silenceUser = async (targetUserId: string, duration: number): Promise<boolean> => {
+    if (!userId) return false;
+    
+    try {
+      // Check if current user is admin
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+        
+      if (!userProfile || (userProfile.role !== 'admin' && userProfile.role !== 'moderator')) {
+        toast.error("You don't have permission to silence users");
+        return false;
+      }
+      
+      // Calculate silence end time
+      const silenceEndTime = new Date();
+      silenceEndTime.setMinutes(silenceEndTime.getMinutes() + duration);
+      
+      // Update the user's profile
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          allow_messages: false,
+          // Adjusted from 'is_silenced' since this field doesn't exist in the profiles table
+          silence_until: silenceEndTime.toISOString()
+        })
+        .eq('id', targetUserId);
+        
+      if (error) {
+        console.error('Error silencing user:', error);
+        toast.error("Failed to silence user");
+        return false;
+      }
+      
+      toast.success(`User silenced for ${duration} minutes`);
+      return true;
+    } catch (error) {
+      console.error('Error in silenceUser:', error);
+      toast.error("An unexpected error occurred");
+      return false;
+    }
+  };
+  
   return {
     isSending,
     markMessageAsRead,
     sendMessageWithMedia,
-    editMessage,
     deleteMessage,
     silenceUser
   };

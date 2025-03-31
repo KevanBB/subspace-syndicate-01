@@ -1,87 +1,131 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Image } from 'lucide-react';
-import { useAlbums } from '@/hooks/useAlbums';
-import AlbumCard from '@/components/albums/AlbumCard';
+import { Skeleton } from '@/components/ui/skeleton';
+import { FolderClosed, ImagePlus, Loader2 } from 'lucide-react';
+import AlbumCard from './AlbumCard';
 
-interface MediaTabProps {
-  userId?: string;
+interface Album {
+  id: string;
+  title: string;
+  description: string | null;
+  cover_image_url: string | null;
+  privacy: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
-const MediaTab: React.FC<MediaTabProps> = ({ userId }) => {
+export default function MediaTab() {
   const { user } = useAuth();
+  const { username } = useParams();
   const navigate = useNavigate();
-  const { albums, isLoadingAlbums } = useAlbums(userId);
+  const [albums, setAlbums] = useState<Album[] | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
+  const [creatingAlbum, setCreatingAlbum] = useState(false);
   
-  const isCurrentUser = !userId || userId === user?.id;
+  const fetchAlbums = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (!username) throw new Error('Username is required');
+      
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', username)
+        .single();
+        
+      if (profileError) throw profileError;
+      if (!profileData) throw new Error('Profile not found');
+      
+      const profileId = profileData.id;
+      
+      const { data: albumData, error: albumError } = await supabase
+        .from('albums')
+        .select('*')
+        .eq('user_id', profileId)
+        .order('created_at', { ascending: false });
+        
+      if (albumError) throw albumError;
+      
+      setAlbums(albumData || []);
+      setIsOwnProfile(user?.user_metadata?.username === username);
+    } catch (error: any) {
+      console.error('Error fetching albums:', error);
+      toast({
+        title: 'Error fetching albums',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [username, user]);
   
-  const handleCreateAlbumClick = () => {
-    navigate('/albums');
+  useEffect(() => {
+    fetchAlbums();
+  }, [fetchAlbums]);
+  
+  const onCreateAlbum = () => {
+    setCreatingAlbum(true);
+    navigate('/create-album');
   };
   
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-white">Media Albums</h2>
-        {isCurrentUser && (
-          <Button
-            variant="outline"
-            onClick={handleCreateAlbumClick}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            View All Albums
+    <Card className="bg-black/30 border-white/10">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-2xl font-bold">
+          Albums
+        </CardTitle>
+        {isOwnProfile && (
+          <Button onClick={onCreateAlbum} disabled={creatingAlbum}>
+            {creatingAlbum ? (
+              <>
+                Creating <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+              </>
+            ) : (
+              <>
+                Create Album <ImagePlus className="ml-2 h-4 w-4" />
+              </>
+            )}
           </Button>
         )}
-      </div>
-      
-      {isLoadingAlbums ? (
-        <Card className="bg-black/20 border-white/10">
-          <CardContent className="flex justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-crimson"></div>
-          </CardContent>
-        </Card>
-      ) : albums?.length === 0 ? (
-        <Card className="bg-black/20 border-white/10">
-          <CardContent className="py-12 text-center">
-            <h3 className="text-xl font-medium text-white mb-2">No Albums Yet</h3>
-            <p className="text-white/70 mb-6">
-              {isCurrentUser 
-                ? "You haven't created any albums yet" 
-                : "This user hasn't created any public albums yet"}
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="w-full h-48 rounded-lg" />
+            ))}
+          </div>
+        ) : (albums && albums.length > 0) ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+            {albums && albums.map((album) => (
+              <AlbumCard key={album.id} album={album} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-10 border border-dashed border-gray-700 rounded-lg mt-6">
+            <FolderClosed className="h-12 w-12 mx-auto text-gray-500 mb-3" />
+            <h3 className="text-xl font-medium text-gray-200">No Albums Yet</h3>
+            <p className="text-gray-400 mt-2 max-w-md mx-auto">
+              {isOwnProfile 
+                ? "You haven't created any albums yet. Create your first album to organize your media."
+                : "This user hasn't created any albums yet."}
             </p>
-            
-            {isCurrentUser && (
-              <Button onClick={() => navigate('/albums/new')}>
-                <Plus className="mr-2 h-4 w-4" />
+            {isOwnProfile && (
+              <Button className="mt-4" onClick={onCreateAlbum}>
                 Create Album
               </Button>
             )}
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {albums.slice(0, 6).map(album => (
-            <AlbumCard key={album.id} album={album} />
-          ))}
-          {albums.length > 6 && (
-            <Button
-              variant="ghost"
-              className="w-full h-[270px] border border-dashed border-white/20"
-              onClick={() => navigate('/albums')}
-            >
-              <span className="flex flex-col items-center">
-                <Plus className="h-6 w-6 mb-2" />
-                View All Albums
-              </span>
-            </Button>
-          )}
-        </div>
-      )}
-    </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
-};
-
-export default MediaTab;
+}

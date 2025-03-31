@@ -1,6 +1,8 @@
+
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { TypingIndicator } from '../types/ChatTypes';
+import { nullToUndefined } from '@/utils/typeUtils';
 
 interface UseChatSubscriptionsProps {
   roomId: string;
@@ -150,8 +152,8 @@ export const useChatSubscriptions = ({
             
           const typingUser: TypingIndicator = {
             user_id: payload.payload.user_id,
-            username: data?.username,
-            avatar_url: data?.avatar_url,
+            username: nullToUndefined(data?.username),
+            avatar_url: nullToUndefined(data?.avatar_url),
             timestamp: payload.payload.timestamp
           };
           

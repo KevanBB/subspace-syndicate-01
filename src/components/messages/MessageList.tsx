@@ -2,8 +2,9 @@
 import React, { useRef, useEffect } from 'react';
 import { Message } from '@/types/messages';
 import MessageItem from './MessageItem';
+import { nullToUndefined } from '@/utils/typeUtils';
 
-interface MessageWithSender extends Message {
+interface MessageWithSender extends Omit<Message, 'sender'> {
   sender: {
     username: string;
     avatar_url?: string;
@@ -58,7 +59,7 @@ const MessageList: React.FC<MessageListProps> = ({
           content={message.content}
           created_at={message.created_at}
           isMine={message.sender_id === currentUserId}
-          sender={message.sender}
+          sender={nullToUndefined(message.sender)}
         />
       ))}
       <div ref={messagesEndRef} />
