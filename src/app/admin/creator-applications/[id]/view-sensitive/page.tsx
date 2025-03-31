@@ -1,10 +1,9 @@
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { logAdminAction } from "@/lib/admin-logger";
 
 export default async function ViewSensitiveDataPage({
   params,
@@ -12,7 +11,6 @@ export default async function ViewSensitiveDataPage({
   params: { id: string };
 }) {
   const supabase = createServerComponentClient({ cookies });
-  const headersList = headers();
   
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) redirect('/login');
@@ -44,30 +42,16 @@ export default async function ViewSensitiveDataPage({
     return <div>Application not found</div>;
   }
 
-  // Get signed URLs for ID documents with short expiration
+  // Get signed URLs for ID documents
   const { data: frontUrl } = await supabase
     .storage
     .from('identity-documents')
-    .createSignedUrl(application.id_front_storage_path, 30); // 30 seconds
+    .createSignedUrl(application.id_front_storage_path, 60);
 
   const { data: backUrl } = await supabase
     .storage
     .from('identity-documents')
-    .createSignedUrl(application.id_back_storage_path, 30); // 30 seconds
-
-  // Log the sensitive data access
-  await logAdminAction({
-    admin_id: session.user.id,
-    action: 'view_sensitive_data',
-    target_id: application.id,
-    details: {
-      application_id: application.id,
-      user_id: application.user_id,
-      accessed_fields: ['personal_info', 'id_documents'],
-    },
-    ip_address: headersList.get('x-forwarded-for') || headersList.get('x-real-ip'),
-    user_agent: headersList.get('user-agent'),
-  });
+    .createSignedUrl(application.id_back_storage_path, 60);
 
   return (
     <div className="container mx-auto py-10">
@@ -104,9 +88,6 @@ export default async function ViewSensitiveDataPage({
         <Card>
           <CardHeader>
             <CardTitle>Identity Documents</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Document access links expire in 30 seconds
-            </p>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
@@ -118,7 +99,6 @@ export default async function ViewSensitiveDataPage({
                     alt="Front ID"
                     fill
                     className="object-contain"
-                    priority
                   />
                 </div>
               )}
@@ -132,7 +112,6 @@ export default async function ViewSensitiveDataPage({
                     alt="Back ID"
                     fill
                     className="object-contain"
-                    priority
                   />
                 </div>
               )}

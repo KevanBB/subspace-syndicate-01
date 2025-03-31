@@ -1,12 +1,12 @@
 'use client';
+
 import { useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { logAdminAction } from '@/lib/admin-logger';
 
 interface Application {
   id: string;
@@ -30,28 +30,13 @@ export function ApplicationActions({ application }: ApplicationActionsProps) {
     try {
       setIsSubmitting(true);
 
-      // Get current admin user
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
-
-      if (!profile || profile.role !== 'admin') {
-        throw new Error('Unauthorized');
-      }
-
-      // Start a transaction
+      // Update application status
       const { error: applicationError } = await supabase
         .from('creator_applications')
         .update({
           status: action === 'approve' ? 'approved' : 'denied',
           admin_notes: notes,
           reviewed_at: new Date().toISOString(),
-          reviewed_by: session.user.id,
         })
         .eq('id', application.id);
 
@@ -64,24 +49,11 @@ export function ApplicationActions({ application }: ApplicationActionsProps) {
           .update({
             creator_status: 'active',
             role: 'creator',
-            updated_at: new Date().toISOString(),
           })
           .eq('id', application.user_id);
 
         if (profileError) throw profileError;
       }
-
-      // Log the action
-      await logAdminAction({
-        admin_id: session.user.id,
-        action: action === 'approve' ? 'approve_application' : 'deny_application',
-        target_id: application.id,
-        details: {
-          application_id: application.id,
-          user_id: application.user_id,
-          notes: notes,
-        },
-      });
 
       toast.success(`Application ${action}d successfully`);
       setIsOpen(false);
@@ -110,7 +82,6 @@ export function ApplicationActions({ application }: ApplicationActionsProps) {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="min-h-[100px]"
-              required
             />
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setIsOpen(false)}>
@@ -119,7 +90,7 @@ export function ApplicationActions({ application }: ApplicationActionsProps) {
               <Button
                 variant="destructive"
                 onClick={() => handleAction('deny')}
-                disabled={isSubmitting || !notes.trim()}
+                disabled={isSubmitting}
               >
                 {isSubmitting ? 'Processing...' : 'Confirm Denial'}
               </Button>
