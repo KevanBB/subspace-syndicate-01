@@ -1,69 +1,94 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Message } from '@/types/messages';
+import { nullToUndefinedString } from '@/utils/typeUtils';
 
 interface RealtimeSubscriptionsProps {
-  selectedConversation: { id: string } | null;
   currentUserId: string | null;
-  onNewMessage: (message: Message) => void;
+  conversations: any[];
+  selectedConversation: { id: string } | null;
+  onFetchConversations: () => Promise<void>;
+  onUpdateSelectedConversation: (conversationId: string) => Promise<void>;
 }
 
 const RealtimeSubscriptions: React.FC<RealtimeSubscriptionsProps> = ({
-  selectedConversation,
   currentUserId,
-  onNewMessage,
+  conversations,
+  selectedConversation,
+  onFetchConversations,
+  onUpdateSelectedConversation,
 }) => {
   useEffect(() => {
-    if (!selectedConversation) return;
+    if (!currentUserId) return;
   
     const messagesChannel = supabase
-      .channel(`messages-${selectedConversation.id}`)
+      .channel(`messages-${currentUserId}`)
       .on('postgres_changes', 
         { 
           event: 'INSERT', 
           schema: 'public', 
-          table: 'messages',
-          filter: `conversation_id=eq.${selectedConversation.id}`
+          table: 'messages'
         }, 
         (payload) => {
-          if (payload.new && payload.new.conversation_id === selectedConversation?.id) {
-            onNewMessage(payload.new);
+          // Convert payload.new to proper Message type
+          const newMessage = payload.new as Message;
+          
+          // Check if message belongs to a conversation we're in
+          const conversationExists = conversations.some(c => c.id === newMessage.conversation_id);
+          
+          // If it's a new conversation, refresh the list
+          if (!conversationExists) {
+            onFetchConversations();
+            return;
+          }
+          
+          // If we're in this conversation, update it
+          if (selectedConversation && selectedConversation.id === newMessage.conversation_id) {
+            onUpdateSelectedConversation(nullToUndefinedString(newMessage.conversation_id) || '');
+          } else {
+            // Otherwise just refresh the conversations list
+            onFetchConversations();
           }
         }
       )
       .subscribe();
-    
-    const presenceChannel = supabase.channel(`presence-${selectedConversation.id}`, {
-      config: {
-        presence: {
-          key: currentUserId,
+      
+    const presenceChannel = supabase
+      .channel('online-users', {
+        config: {
+          presence: {
+            key: currentUserId,
+          },
         },
-      },
-    });
-    
-    presenceChannel
-      .on("presence", { event: "sync" }, () => {
-        // console.log("Presence sync:", presenceChannel.presenceState());
       })
-      .on("presence", { event: "join" }, ({ key }) => {
-        // console.log("User joined:", key);
+      .on('presence', { event: 'sync' }, () => {
+        console.log('Presence sync event');
       })
-      .on("presence", { event: "leave" }, ({ key }) => {
-        // console.log("User left:", key);
+      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+        console.log('User joined:', key, newPresences);
+      })
+      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+        console.log('User left:', key, leftPresences);
       })
       .subscribe(async (status) => {
-        if (status === "SUBSCRIBED" && currentUserId) {
+        if (status === 'SUBSCRIBED') {
           await presenceChannel.track({
             online_at: new Date().toISOString(),
           });
+          
+          // Update user's last active time
+          await supabase
+            .from('profiles')
+            .update({ last_active: new Date().toISOString() })
+            .eq('id', currentUserId);
         }
       });
-
+      
     return () => {
       supabase.removeChannel(messagesChannel);
       supabase.removeChannel(presenceChannel);
     };
-  }, [selectedConversation, currentUserId, onNewMessage]);
+  }, [currentUserId, conversations, selectedConversation, onFetchConversations, onUpdateSelectedConversation]);
 
   return null;
 };

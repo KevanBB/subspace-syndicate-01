@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { logAdminAction } from "@/lib/admin-logger";
 import { ensureNonNull } from "@/utils/supabaseUtils";
-import { nullToUndefined } from "@/utils/typeUtils";
+import { nullToUndefinedString } from "@/utils/typeUtils";
 
 export default async function ViewSensitiveDataPage({
   params,
@@ -71,8 +71,8 @@ export default async function ViewSensitiveDataPage({
       user_id: application.user_id,
       accessed_fields: ['personal_info', 'id_documents'],
     },
-    ip_address: headersList.get('x-forwarded-for') || headersList.get('x-real-ip'),
-    user_agent: headersList.get('user-agent'),
+    ip_address: nullToUndefinedString(headersList.get('x-forwarded-for') || headersList.get('x-real-ip')),
+    user_agent: nullToUndefinedString(headersList.get('user-agent')),
   });
 
   return (

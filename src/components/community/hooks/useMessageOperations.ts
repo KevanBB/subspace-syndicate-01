@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { ensureNonNullString } from '@/utils/typeUtils';
 
 interface UseMessageOperationsProps {
   roomId: string;
@@ -18,28 +19,17 @@ export const useMessageOperations = ({ roomId, userId }: UseMessageOperationsPro
     if (!userId) return;
     
     try {
-      // First, check if the user has already read this message
-      const { data: existingReads } = await supabase
-        .from('message_reads')
-        .select('*')
-        .eq('message_id', messageId)
-        .eq('user_id', userId)
-        .single();
-        
-      if (existingReads) {
-        // User has already read this message
+      // We'll use a direct SQL query since message_reads might not be in the TypeScript types
+      const { error } = await supabase.rpc('mark_message_as_read', {
+        p_message_id: messageId,
+        p_user_id: userId,
+        p_room_id: roomId
+      });
+      
+      if (error) {
+        console.error('Error marking message as read:', error);
         return;
       }
-      
-      // Add a new read record
-      await supabase
-        .from('message_reads')
-        .insert({
-          message_id: messageId,
-          user_id: userId,
-          room_id: roomId,
-          read_at: new Date().toISOString()
-        });
         
       // Notify other clients
       await supabase
@@ -75,15 +65,15 @@ export const useMessageOperations = ({ roomId, userId }: UseMessageOperationsPro
     try {
       setIsSending(true);
       
-      // Check if user is silenced
+      // Check if user is allowed to send messages
       const { data: userProfile } = await supabase
         .from('profiles')
-        .select('is_silenced')
+        .select('allow_messages, user_role')
         .eq('id', userId)
         .single();
         
-      if (userProfile && userProfile.is_silenced) {
-        toast.error("You've been silenced and cannot send messages");
+      if (userProfile && userProfile.allow_messages === false) {
+        toast.error("You've been temporarily restricted from sending messages");
         return false;
       }
       
@@ -139,11 +129,11 @@ export const useMessageOperations = ({ roomId, userId }: UseMessageOperationsPro
       // Check if user is admin
       const { data: userProfile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('user_role')
         .eq('id', userId)
         .single();
         
-      const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'moderator';
+      const isAdmin = userProfile?.user_role === 'admin' || userProfile?.user_role === 'moderator';
       const isOwner = message.user_id === userId;
       
       if (!isAdmin && !isOwner) {
@@ -182,11 +172,11 @@ export const useMessageOperations = ({ roomId, userId }: UseMessageOperationsPro
       // Check if current user is admin
       const { data: userProfile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('user_role')
         .eq('id', userId)
         .single();
         
-      if (!userProfile || (userProfile.role !== 'admin' && userProfile.role !== 'moderator')) {
+      if (!userProfile || (userProfile.user_role !== 'admin' && userProfile.user_role !== 'moderator')) {
         toast.error("You don't have permission to silence users");
         return false;
       }
@@ -195,12 +185,11 @@ export const useMessageOperations = ({ roomId, userId }: UseMessageOperationsPro
       const silenceEndTime = new Date();
       silenceEndTime.setMinutes(silenceEndTime.getMinutes() + duration);
       
-      // Update the user's profile
+      // Update the user's profile to disallow messages
       const { error } = await supabase
         .from('profiles')
         .update({
           allow_messages: false,
-          // Adjusted from 'is_silenced' since this field doesn't exist in the profiles table
           silence_until: silenceEndTime.toISOString()
         })
         .eq('id', targetUserId);

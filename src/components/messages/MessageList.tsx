@@ -4,6 +4,7 @@ import { Message } from '@/types/messages';
 import MessageItem from './MessageItem';
 import { nullToUndefined } from '@/utils/typeUtils';
 
+// Adjusted to make sender nullable rather than undefined to match existing usage
 interface MessageWithSender extends Omit<Message, 'sender'> {
   sender: {
     username: string;
@@ -59,7 +60,7 @@ const MessageList: React.FC<MessageListProps> = ({
           content={message.content}
           created_at={message.created_at}
           isMine={message.sender_id === currentUserId}
-          sender={nullToUndefined(message.sender)}
+          sender={message.sender}
         />
       ))}
       <div ref={messagesEndRef} />
