@@ -59,74 +59,11 @@ export default async function SettingsPage() {
       <Tabs defaultValue="profile" className="space-y-4">
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="creator">Creator Program</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
           {/* Existing profile settings content */}
-        </TabsContent>
-
-        <TabsContent value="creator">
-          <Card>
-            <CardHeader>
-              <CardTitle>Creator Program</CardTitle>
-              <CardDescription>
-                {getStatusDescription(application?.status)}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <h3 className="text-lg font-medium">Application Status</h3>
-                  {getStatusBadge(application?.status)}
-                </div>
-                {(!application || application.status === 'denied') && (
-                  <Link href="/settings/creator/apply">
-                    <Button>Apply Now</Button>
-                  </Link>
-                )}
-              </div>
-
-              {application && (
-                <div className="space-y-2">
-                  <div className="text-sm text-muted-foreground">
-                    Submitted {formatDistanceToNow(new Date(application.submitted_at), { addSuffix: true })}
-                  </div>
-                  {application.status === 'denied' && application.admin_notes && (
-                    <div className="mt-2 p-3 bg-destructive/10 rounded-md">
-                      <p className="text-sm text-destructive">
-                        {application.admin_notes}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {profile?.role === 'creator' && (
-                <div className="mt-4 space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">Creator Dashboard</Badge>
-                    <Link href="/creator/dashboard">
-                      <Button variant="link">View Dashboard</Button>
-                    </Link>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">Content Management</Badge>
-                    <Link href="/creator/content">
-                      <Button variant="link">Manage Content</Button>
-                    </Link>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">Subscription Settings</Badge>
-                    <Link href="/creator/subscriptions">
-                      <Button variant="link">Configure Subscriptions</Button>
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="notifications">

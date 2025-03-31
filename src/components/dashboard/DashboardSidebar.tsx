@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -247,6 +246,15 @@ const DashboardSidebar = () => {
               <Link to="/settings">
                 <Settings />
                 <span>Settings</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={location.pathname === '/settings/creator/apply'}>
+              <Link to="/settings/creator/apply">
+                <UserRound />
+                <span>Become a Creator</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
