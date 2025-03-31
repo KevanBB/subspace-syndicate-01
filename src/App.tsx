@@ -1,3 +1,4 @@
+
 import React, { Suspense } from 'react';
 import { 
   BrowserRouter as Router, 
@@ -53,6 +54,7 @@ function App() {
           <BucketProvider>
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
+                {/* All these routes will have the Footer added via their individual components */}
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/dashboard" element={<Dashboard />} />

@@ -1,9 +1,13 @@
+
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { logAdminAction } from "@/lib/admin-logger";
+import { ensureNonNull } from "@/utils/supabaseUtils";
+import { nullToUndefinedString } from "@/utils/typeUtils";
 
 export default async function ViewSensitiveDataPage({
   params,
@@ -42,16 +46,33 @@ export default async function ViewSensitiveDataPage({
     return <div>Application not found</div>;
   }
 
-  // Get signed URLs for ID documents
+  // Get signed URLs for ID documents with short expiration
+  const idFrontPath = ensureNonNull(application.id_front_storage_path, '');
+  const idBackPath = ensureNonNull(application.id_back_storage_path, '');
+  
   const { data: frontUrl } = await supabase
     .storage
     .from('identity-documents')
-    .createSignedUrl(application.id_front_storage_path, 60);
+    .createSignedUrl(idFrontPath, 30); // 30 seconds
 
   const { data: backUrl } = await supabase
     .storage
     .from('identity-documents')
-    .createSignedUrl(application.id_back_storage_path, 60);
+    .createSignedUrl(idBackPath, 30); // 30 seconds
+
+  // Log the sensitive data access
+  await logAdminAction({
+    admin_id: session.user.id,
+    action: 'view_sensitive_data',
+    target_id: application.id,
+    details: {
+      application_id: application.id,
+      user_id: application.user_id,
+      accessed_fields: ['personal_info', 'id_documents'],
+    },
+    ip_address: nullToUndefinedString(headersList.get('x-forwarded-for') || headersList.get('x-real-ip')),
+    user_agent: nullToUndefinedString(headersList.get('user-agent')),
+  });
 
   return (
     <div className="container mx-auto py-10">
@@ -121,4 +142,4 @@ export default async function ViewSensitiveDataPage({
       </div>
     </div>
   );
-} 
+}

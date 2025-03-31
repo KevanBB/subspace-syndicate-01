@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardFooter } from '@/components/ui/card';
-import { Heart, BookmarkIcon, Eye, MoreHorizontal, Download } from 'lucide-react';
+import { Heart, BookmarkIcon, Eye, MoreHorizontal } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MediaItem } from '@/types/albums';
 import { useAuth } from '@/contexts/AuthContext';
@@ -90,7 +90,22 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
               <DropdownMenuContent align="end" className="bg-black/90 border-white/10">
                 {mediaItem.file_type.startsWith('image/') && (
                   <DropdownMenuItem onClick={onDownload} className="cursor-pointer">
-                    <Download className="mr-2 h-4 w-4" />
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      width="24" 
+                      height="24" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      className="lucide lucide-download mr-2 h-4 w-4"
+                    >
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
                     Download
                   </DropdownMenuItem>
                 )}

@@ -2,8 +2,10 @@
 import React, { useRef, useEffect } from 'react';
 import { Message } from '@/types/messages';
 import MessageItem from './MessageItem';
+import { nullToUndefined } from '@/utils/typeUtils';
 
-interface MessageWithSender extends Message {
+// Adjusted to make sender nullable rather than undefined to match existing usage
+interface MessageWithSender extends Omit<Message, 'sender'> {
   sender: {
     username: string;
     avatar_url?: string;

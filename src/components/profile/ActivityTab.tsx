@@ -1,139 +1,149 @@
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Card } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { formatDistanceToNow } from 'date-fns';
-import { MessageCircle, Heart, Image, Film } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { ensureNonNullString } from '@/utils/typeUtils';
+import { parseDateSafe } from '@/utils/typeUtils';
+import { format } from 'date-fns';
+
+interface ActivityTabProps {
+  userId: string;
+}
 
 interface Activity {
   id: string;
-  type: 'post' | 'comment' | 'like' | 'media' | 'video';
-  content?: string;
+  type: 'media' | 'video' | 'post';
+  content: string;
   created_at: string;
-  reference_id?: string;
+  reference_id: string;
 }
 
-const ActivityTab: React.FC<{ userId?: string }> = ({ userId }) => {
-  const { user } = useAuth();
+const ActivityTab: React.FC<ActivityTabProps> = ({ userId }) => {
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  const profileId = userId || user?.id;
-  
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
-    if (profileId) {
-      const fetchActivities = async () => {
-        setLoading(true);
-        
-        // For now, we'll fetch posts as activities
-        // In a real app, you'd have a dedicated activities table
-        const { data, error } = await supabase
-          .from('posts')
-          .select('*')
-          .eq('user_id', profileId)
-          .order('created_at', { ascending: false })
-          .limit(10);
-          
-        if (error) {
-          console.error('Error fetching activities:', error);
-          setLoading(false);
-          return;
-        }
-        
-        // Convert posts to activity format
-        const formattedActivities: Activity[] = data.map(post => ({
-          id: post.id,
-          type: post.media_url ? (post.media_type === 'video' ? 'video' : 'media') : 'post',
-          content: post.content,
-          created_at: post.created_at,
-          reference_id: post.id
-        }));
-        
-        setActivities(formattedActivities);
-        setLoading(false);
-      };
-      
-      fetchActivities();
+    if (userId) {
+      fetchUserActivity();
     }
-  }, [profileId]);
-  
-  const getActivityIcon = (type: Activity['type']) => {
-    switch (type) {
-      case 'post':
-        return <MessageCircle className="h-5 w-5 text-crimson" />;
-      case 'like':
-        return <Heart className="h-5 w-5 text-crimson" />;
-      case 'media':
-        return <Image className="h-5 w-5 text-crimson" />;
-      case 'video':
-        return <Film className="h-5 w-5 text-crimson" />;
-      default:
-        return <MessageCircle className="h-5 w-5 text-crimson" />;
+  }, [userId]);
+
+  const fetchUserActivity = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch recent posts
+      const { data: posts } = await supabase
+        .from('posts')
+        .select('id, content, created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      // Fetch recent media uploads
+      const { data: media } = await supabase
+        .from('media')
+        .select('id, file_name, created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      // Fetch recent videos
+      const { data: videos } = await supabase
+        .from('videos')
+        .select('id, title, created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      // Transform the data
+      const postActivities = (posts || []).map(post => ({
+        id: `post-${post.id}`,
+        type: 'post' as const,
+        content: post.content?.substring(0, 100) || 'New post',
+        created_at: ensureNonNullString(post.created_at),
+        reference_id: post.id
+      }));
+
+      const mediaActivities = (media || []).map(item => ({
+        id: `media-${item.id}`,
+        type: 'media' as const,
+        content: `Uploaded ${item.file_name || 'a file'}`,
+        created_at: ensureNonNullString(item.created_at),
+        reference_id: item.id
+      }));
+
+      const videoActivities = (videos || []).map(video => ({
+        id: `video-${video.id}`,
+        type: 'video' as const,
+        content: `Uploaded video: ${video.title || 'Untitled'}`,
+        created_at: ensureNonNullString(video.created_at),
+        reference_id: video.id
+      }));
+
+      // Combine and sort by date
+      const allActivities = [...postActivities, ...mediaActivities, ...videoActivities];
+      allActivities.sort((a, b) => 
+        parseDateSafe(b.created_at).getTime() - parseDateSafe(a.created_at).getTime()
+      );
+
+      setActivities(allActivities);
+    } catch (error) {
+      console.error('Error fetching activity:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
-  
-  const getActivityText = (activity: Activity) => {
-    switch (activity.type) {
-      case 'post':
-        return 'posted an update';
-      case 'comment':
-        return 'commented on a post';
-      case 'like':
-        return 'liked a post';
-      case 'media':
-        return 'shared a photo';
-      case 'video':
-        return 'shared a video';
-      default:
-        return 'did something';
-    }
-  };
-  
-  if (loading) {
+
+  if (isLoading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-crimson"></div>
+      <div className="space-y-4">
+        {[1, 2, 3].map(i => (
+          <Card key={i} className="animate-pulse">
+            <CardContent className="p-6">
+              <div className="h-4 bg-gray-300 rounded w-1/4 mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-3/4 mb-1"></div>
+              <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     );
   }
-  
+
   if (activities.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-white/60">No recent activity to display.</p>
+      <div className="text-center py-10">
+        <p className="text-lg text-muted-foreground">No recent activity</p>
       </div>
     );
   }
-  
+
   return (
     <div className="space-y-4">
       {activities.map(activity => (
-        <Card key={activity.id} className="bg-black/20 border-white/10 backdrop-blur-md p-4">
-          <div className="flex items-start gap-4">
-            <div className="mt-1">
-              {getActivityIcon(activity.type)}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <p className="font-medium text-white">
-                  {getActivityText(activity)}
-                </p>
-                <p className="text-sm text-white/50">
-                  {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
-                </p>
+        <Card key={activity.id} className="hover:bg-background/5 transition-colors">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge
+                    variant={
+                      activity.type === 'post' ? 'default' : 
+                      activity.type === 'media' ? 'secondary' : 
+                      'success'
+                    }
+                  >
+                    {activity.type}
+                  </Badge>
+                  <p className="text-sm text-muted-foreground">
+                    {format(parseDateSafe(activity.created_at), 'PPP p')}
+                  </p>
+                </div>
+                <p className="line-clamp-2">{activity.content}</p>
               </div>
-              
-              {activity.content && (
-                <p className="mt-2 text-white/80 break-words">
-                  {activity.content.length > 150 
-                    ? `${activity.content.substring(0, 150)}...` 
-                    : activity.content}
-                </p>
-              )}
             </div>
-          </div>
+          </CardContent>
         </Card>
       ))}
     </div>

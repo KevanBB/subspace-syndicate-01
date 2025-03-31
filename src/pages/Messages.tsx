@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -66,7 +67,7 @@ const Messages = () => {
     <AuthenticatedLayout pageTitle="Messages" showSidebar={true}>
       {/* Component to handle all real-time subscriptions */}
       <RealtimeSubscriptions 
-        userId={user.id}
+        currentUserId={user.id}
         conversations={conversations}
         selectedConversation={selectedConversation}
         onFetchConversations={fetchConversations}

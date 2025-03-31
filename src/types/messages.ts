@@ -1,4 +1,3 @@
-
 export interface Conversation {
   id: string;
   created_at: string;
@@ -33,6 +32,14 @@ export interface Message {
     last_active?: string;
   };
 }
+
+export type MessageWithSenderType = Message & { 
+  sender: {
+    username: string;
+    avatar_url?: string;
+    last_active?: string;
+  } | null;
+};
 
 export interface TypingStatus {
   userId: string;
