@@ -1,3 +1,4 @@
+
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -5,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { logAdminAction } from "@/lib/admin-logger";
+import { ensureNonNull } from "@/utils/supabaseUtils";
 
 export default async function ViewSensitiveDataPage({
   params,
@@ -48,12 +50,12 @@ export default async function ViewSensitiveDataPage({
   const { data: frontUrl } = await supabase
     .storage
     .from('identity-documents')
-    .createSignedUrl(application.id_front_storage_path || '', 30); // 30 seconds
+    .createSignedUrl(ensureNonNull(application.id_front_storage_path, ''), 30); // 30 seconds
 
   const { data: backUrl } = await supabase
     .storage
     .from('identity-documents')
-    .createSignedUrl(application.id_back_storage_path || '', 30); // 30 seconds
+    .createSignedUrl(ensureNonNull(application.id_back_storage_path, ''), 30); // 30 seconds
 
   // Log the sensitive data access
   await logAdminAction({

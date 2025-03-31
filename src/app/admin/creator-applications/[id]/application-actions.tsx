@@ -1,7 +1,7 @@
+
 'use client';
 import { useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { useRouter } from 'next/router';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -23,7 +23,6 @@ export function ApplicationActions({ application }: ApplicationActionsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const router = useRouter();
   const supabase = createClientComponentClient();
 
   const handleAction = async (action: 'approve' | 'deny') => {

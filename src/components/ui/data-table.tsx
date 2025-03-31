@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ensureNonNull } from '@/utils/supabaseUtils';
 
 interface DataTableProps<TData> {
   columns: any[];
@@ -36,7 +37,7 @@ export function DataTable<TData>({ columns, data }: DataTableProps<TData>) {
                       ? column.cell({ row: { original: row } }) 
                       : column.accessorKey 
                         ? column.accessorKey.toString().includes('.') 
-                          ? column.accessorKey.toString().split('.').reduce((obj, key) => obj?.[key] ?? null, row)
+                          ? column.accessorKey.toString().split('.').reduce((obj: any, key: string) => ensureNonNull(obj?.[key], null), row)
                           : (row as any)[column.accessorKey]
                         : null}
                   </TableCell>
