@@ -1,4 +1,3 @@
-
 import React, { Suspense } from 'react';
 import { 
   BrowserRouter as Router, 
@@ -28,8 +27,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import AlbumsPage from './pages/AlbumsPage';
 import AlbumDetailPage from './pages/AlbumDetailPage';
 import MediaDetailPage from './pages/MediaDetailPage';
+import Explore from './pages/Explore';
 
-// Configure QueryClient with error handling
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -39,7 +38,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// Simple fallback for suspense
 const LoadingFallback = () => (
   <div className="flex justify-center items-center h-screen">
     <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-crimson"></div>
@@ -54,7 +52,6 @@ function App() {
           <BucketProvider>
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
-                {/* All these routes will have the Footer added via their individual components */}
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/dashboard" element={<Dashboard />} />
@@ -72,10 +69,11 @@ function App() {
                 <Route path="/subspacetv/watch/:id" element={<VideoWatchPage />} />
                 <Route path="/admin" element={<AdminDashboard />} />
                 
-                {/* Album Routes */}
                 <Route path="/albums" element={<AlbumsPage />} />
                 <Route path="/albums/:albumId" element={<AlbumDetailPage />} />
                 <Route path="/albums/:albumId/media/:mediaId" element={<MediaDetailPage />} />
+                
+                <Route path="/explore" element={<Explore />} />
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>
