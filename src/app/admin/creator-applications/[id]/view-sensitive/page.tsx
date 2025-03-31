@@ -48,12 +48,12 @@ export default async function ViewSensitiveDataPage({
   const { data: frontUrl } = await supabase
     .storage
     .from('identity-documents')
-    .createSignedUrl(application.id_front_storage_path, 30); // 30 seconds
+    .createSignedUrl(application.id_front_storage_path || '', 30); // 30 seconds
 
   const { data: backUrl } = await supabase
     .storage
     .from('identity-documents')
-    .createSignedUrl(application.id_back_storage_path, 30); // 30 seconds
+    .createSignedUrl(application.id_back_storage_path || '', 30); // 30 seconds
 
   // Log the sensitive data access
   await logAdminAction({
@@ -142,4 +142,4 @@ export default async function ViewSensitiveDataPage({
       </div>
     </div>
   );
-} 
+}

@@ -85,7 +85,7 @@ export function ApplicationActions({ application }: ApplicationActionsProps) {
 
       toast.success(`Application ${action}d successfully`);
       setIsOpen(false);
-      router.refresh();
+      window.location.reload();
     } catch (error) {
       console.error('Error processing application:', error);
       toast.error('Failed to process application');
@@ -136,4 +136,4 @@ export function ApplicationActions({ application }: ApplicationActionsProps) {
       </Button>
     </div>
   );
-} 
+}

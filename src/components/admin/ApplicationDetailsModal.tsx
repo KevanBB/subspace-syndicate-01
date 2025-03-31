@@ -119,7 +119,6 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
   });
 
   const getSignedUrl = async (fileUrl: string, fileType: string): Promise<string> => {
-    // Check if we already have a valid signed URL
     const existingUrl = signedUrls[fileUrl];
     if (existingUrl && new Date(existingUrl.expiresAt) > new Date()) {
       return existingUrl.url;
@@ -137,7 +136,6 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
 
       if (error) throw error;
 
-      // Store the signed URL and its expiration
       setSignedUrls(prev => ({
         ...prev,
         [fileUrl]: {
@@ -179,7 +177,6 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
 
     setIsSubmitting(true);
     try {
-      // Update application status
       const { error: updateError } = await supabase
         .from('creator_applications')
         .update({ status })
@@ -187,7 +184,6 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
 
       if (updateError) throw updateError;
 
-      // Create message for the user
       const { error: messageError } = await supabase
         .from('messages')
         .insert({
@@ -204,7 +200,6 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
 
       if (messageError) throw messageError;
 
-      // If approved, generate JWT token for Stripe Connect onboarding
       if (status === 'approved') {
         const { data: tokenData, error: tokenError } = await supabase
           .functions.invoke('generate-stripe-onboarding-token', {
@@ -213,7 +208,6 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
 
         if (tokenError) throw tokenError;
 
-        // Store the token in the database
         const { error: tokenUpdateError } = await supabase
           .from('payment_infos')
           .update({ stripe_connect_id: tokenData.token })
@@ -249,7 +243,6 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
     return null;
   }
 
-  // Make sure we handle potentially null properties
   const identities = application.identities || {
     full_name: 'N/A',
     date_of_birth: new Date().toISOString(),
@@ -298,7 +291,6 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Basic Information */}
           <div className="space-y-2">
             <h3 className="text-lg font-semibold">Basic Information</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -317,7 +309,6 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
             </div>
           </div>
 
-          {/* Identity Information */}
           <div className="space-y-2">
             <h3 className="text-lg font-semibold">Identity Information</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -339,21 +330,24 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={() => handleFileView(application.identities.government_id_front_url, 'government_id_front')}
+                    onClick={() => application.identities?.government_id_front_url && 
+                      handleFileView(application.identities.government_id_front_url, 'government_id_front')}
                   >
                     Front
                   </Button>
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={() => handleFileView(application.identities.government_id_back_url, 'government_id_back')}
+                    onClick={() => application.identities?.government_id_back_url && 
+                      handleFileView(application.identities.government_id_back_url, 'government_id_back')}
                   >
                     Back
                   </Button>
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={() => handleFileView(application.identities.selfie_url, 'selfie')}
+                    onClick={() => application.identities?.selfie_url && 
+                      handleFileView(application.identities.selfie_url, 'selfie')}
                   >
                     Selfie
                   </Button>
@@ -362,7 +356,6 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
             </div>
           </div>
 
-          {/* Tax Information */}
           <div className="space-y-2">
             <h3 className="text-lg font-semibold">Tax Information</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -397,7 +390,6 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
             </div>
           </div>
 
-          {/* Payment Information */}
           <div className="space-y-2">
             <h3 className="text-lg font-semibold">Payment Information</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -416,7 +408,6 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
             </div>
           </div>
 
-          {/* Creator Profile */}
           <div className="space-y-2">
             <h3 className="text-lg font-semibold">Creator Profile</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -441,7 +432,6 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
             </div>
           </div>
 
-          {/* Agreements */}
           <div className="space-y-2">
             <h3 className="text-lg font-semibold">Agreements</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -456,7 +446,6 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
             </div>
           </div>
 
-          {/* Action Buttons */}
           {application.status === 'pending' && hasPermission(user, 'manage_applications') && (
             <div className="space-y-4 pt-4">
               <div className="space-y-2">

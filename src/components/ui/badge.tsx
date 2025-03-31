@@ -23,6 +23,8 @@ const badgeVariants = cva(
         exploring: "border-transparent bg-green-600 text-white hover:bg-green-500",
         // Add new crimson variant for the Hot badge
         crimson: "border-transparent bg-crimson text-white hover:bg-crimson/80",
+        // Add success variant
+        success: "border-transparent bg-green-500 text-white hover:bg-green-600",
       },
     },
     defaultVariants: {
