@@ -95,7 +95,7 @@ export const useGroupChat = (roomId: string, userId?: string) => {
         
       if (error) throw error;
       
-      // Use a stable sorting mechanism to prevent avatar flicker
+      // Update online users state with stable sorting
       setOnlineUsers(prevUsers => {
         const newData = data || [];
         
@@ -165,7 +165,7 @@ export const useGroupChat = (roomId: string, userId?: string) => {
         
       if (error) throw error;
       
-      const userIds = [...new Set(data?.map(m => m.user_id))];
+      const userIds = [...new Set(data?.map(m => m.user_id).filter(Boolean))];
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('id, username, avatar_url')
@@ -214,6 +214,8 @@ export const useGroupChat = (roomId: string, userId?: string) => {
     e.preventDefault();
     if ((!newMessage.trim() && !selectedFile) || !userId) return;
     
+    const optimisticMessageId = `temp-${Date.now()}`;
+    
     try {
       setIsSending(true);
       
@@ -224,7 +226,6 @@ export const useGroupChat = (roomId: string, userId?: string) => {
       let mediaType = null;
       
       // Create an optimistic message to show immediately
-      const optimisticMessageId = `temp-${Date.now()}`;
       const { data: userData } = await supabase
         .from('profiles')
         .select('username, avatar_url')
@@ -249,19 +250,28 @@ export const useGroupChat = (roomId: string, userId?: string) => {
       // Update UI immediately
       setMessages(previous => [...previous, optimisticMessage]);
       
+      // Upload media file if selected
       if (selectedFile) {
-        const uploadResult = await uploadMedia(selectedFile);
-        mediaUrl = uploadResult.url;
-        mediaType = uploadResult.type;
-        
-        // Update the optimistic message with media info
-        setMessages(previous => previous.map(msg => 
-          msg.id === optimisticMessageId 
-            ? { ...msg, media_url: mediaUrl, media_type: mediaType } 
-            : msg
-        ));
+        try {
+          const uploadResult = await uploadMedia(selectedFile);
+          mediaUrl = uploadResult.url;
+          mediaType = uploadResult.type;
+          
+          // Update the optimistic message with media info
+          setMessages(previous => previous.map(msg => 
+            msg.id === optimisticMessageId 
+              ? { ...msg, media_url: mediaUrl, media_type: mediaType } 
+              : msg
+          ));
+        } catch (error) {
+          console.error('Error uploading media:', error);
+          // Remove the optimistic message if media upload fails
+          setMessages(previous => previous.filter(msg => msg.id !== optimisticMessageId));
+          throw error;
+        }
       }
       
+      // Send the message with media
       const success = await sendMessageWithMedia(newMessage, mediaUrl, mediaType);
       
       if (success) {
@@ -273,6 +283,8 @@ export const useGroupChat = (roomId: string, userId?: string) => {
       }
     } catch (error) {
       console.error('Error in send message process:', error);
+      // Remove the optimistic message on any error
+      setMessages(previous => previous.filter(msg => msg.id !== optimisticMessageId));
     } finally {
       setIsSending(false);
     }

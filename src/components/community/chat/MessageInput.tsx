@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -122,7 +121,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   }, []);
 
   return (
-    <div className="p-3 border-t border-white/10 bg-black/30 flex-col">
+    <div className="p-3 border-t border-white/10 bg-black/30 w-full">
       <MediaPreview selectedFile={selectedFile} onRemove={handleRemoveSelectedFile} />
       
       {isUploading && (
@@ -144,11 +143,11 @@ const MessageInput: React.FC<MessageInputProps> = ({
           value={newMessage}
           onChange={handleInputChange}
           placeholder="Type a message..."
-          className="bg-black/20 border-white/20"
+          className="bg-black/20 border-white/20 flex-1"
           disabled={isSending || isUploading || !isUserLoggedIn}
         />
         
-        <div className="flex">
+        <div className="flex gap-2">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -190,7 +189,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
           <Button 
             type="submit" 
             disabled={(!newMessage.trim() && !selectedFile) || isSending || isUploading || !isUserLoggedIn}
-            className="bg-crimson hover:bg-crimson/80 ml-1"
+            className="bg-crimson hover:bg-crimson/80"
           >
             {isSending || isUploading ? (
               <Loader2 className="h-5 w-5 animate-spin" />

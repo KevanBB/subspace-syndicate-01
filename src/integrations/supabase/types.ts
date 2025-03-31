@@ -849,6 +849,7 @@ export type Database = {
           hard_limits: string | null
           id: string
           is_admin: boolean
+          is_silenced: boolean
           kinks: string | null
           last_active: string | null
           location: string | null
@@ -856,6 +857,7 @@ export type Database = {
           media_visibility: string | null
           orientation: string | null
           show_online_status: boolean | null
+          silenced_until: string | null
           soft_limits: string | null
           user_role: string | null
           username: string | null
@@ -872,6 +874,7 @@ export type Database = {
           hard_limits?: string | null
           id: string
           is_admin?: boolean
+          is_silenced?: boolean
           kinks?: string | null
           last_active?: string | null
           location?: string | null
@@ -879,6 +882,7 @@ export type Database = {
           media_visibility?: string | null
           orientation?: string | null
           show_online_status?: boolean | null
+          silenced_until?: string | null
           soft_limits?: string | null
           user_role?: string | null
           username?: string | null
@@ -895,6 +899,7 @@ export type Database = {
           hard_limits?: string | null
           id?: string
           is_admin?: boolean
+          is_silenced?: boolean
           kinks?: string | null
           last_active?: string | null
           location?: string | null
@@ -902,6 +907,7 @@ export type Database = {
           media_visibility?: string | null
           orientation?: string | null
           show_online_status?: boolean | null
+          silenced_until?: string | null
           soft_limits?: string | null
           user_role?: string | null
           username?: string | null

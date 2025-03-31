@@ -1,12 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Album } from '@/types/albums';
-import AlbumCard from '@/components/albums/AlbumCard';
 import { Plus, Image } from 'lucide-react';
+import { useAlbums } from '@/hooks/useAlbums';
+import AlbumCard from '@/components/albums/AlbumCard';
 
 interface MediaTabProps {
   userId?: string;
@@ -15,47 +14,9 @@ interface MediaTabProps {
 const MediaTab: React.FC<MediaTabProps> = ({ userId }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [albums, setAlbums] = useState<Album[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { albums, isLoadingAlbums } = useAlbums(userId);
   
-  const targetUserId = userId || user?.id;
   const isCurrentUser = !userId || userId === user?.id;
-  
-  useEffect(() => {
-    const fetchAlbums = async () => {
-      if (!targetUserId) return;
-      
-      setIsLoading(true);
-      
-      try {
-        let query = supabase
-          .from('albums')
-          .select('*')
-          .order('created_at', { ascending: false });
-        
-        if (!isCurrentUser) {
-          query = query.eq('privacy', 'public');
-        }
-        
-        query = query.eq('user_id', targetUserId);
-        
-        const { data, error } = await query;
-        
-        if (error) throw error;
-        
-        setAlbums(data.map(album => ({
-          ...album,
-          privacy: album.privacy as "public" | "private" | "friends-only"
-        })));
-      } catch (error) {
-        console.error('Error fetching albums:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchAlbums();
-  }, [targetUserId, isCurrentUser]);
   
   const handleCreateAlbumClick = () => {
     navigate('/albums');
@@ -76,13 +37,13 @@ const MediaTab: React.FC<MediaTabProps> = ({ userId }) => {
         )}
       </div>
       
-      {isLoading ? (
+      {isLoadingAlbums ? (
         <Card className="bg-black/20 border-white/10">
           <CardContent className="flex justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-crimson"></div>
           </CardContent>
         </Card>
-      ) : albums.length === 0 ? (
+      ) : albums?.length === 0 ? (
         <Card className="bg-black/20 border-white/10">
           <CardContent className="py-12 text-center">
             <h3 className="text-xl font-medium text-white mb-2">No Albums Yet</h3>

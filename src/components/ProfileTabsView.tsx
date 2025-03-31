@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import UserPostsList from '@/components/profile/UserPostsList';
@@ -43,7 +42,7 @@ const ProfileTabsView: React.FC<ProfileTabsViewProps> = ({ profileId, profile })
       </TabsContent>
       
       <TabsContent value="media" className="mt-6">
-        <MediaTab />
+        <MediaTab userId={profileId} />
       </TabsContent>
       
       <TabsContent value="about" className="mt-6">

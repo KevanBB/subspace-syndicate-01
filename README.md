@@ -66,12 +66,6 @@ SubSpace Syndicate is a comprehensive social networking platform built with mode
 - Content filtering options
 - Recent activity display
 
-### Creator Program
-- Creator application process
-- Identity verification
-- Tax and payment information management
-- Creator profiles with specializations
-- Legal agreements and documentation
 
 ## Components
 

@@ -33,15 +33,19 @@ export const useChatSubscriptions = ({
           filter: `room_id=eq.${roomId}`
         }, 
         async (payload) => {
-          const { data: userData } = await supabase
-            .from('profiles')
-            .select('username, avatar_url')
-            .eq('id', payload.new.user_id)
-            .single();
+          let userData = null;
+          if (payload.new.user_id) {
+            const { data } = await supabase
+              .from('profiles')
+              .select('username, avatar_url')
+              .eq('id', payload.new.user_id)
+              .single();
+            userData = data;
+          }
             
           const newMessage = {
             ...payload.new,
-            username: userData?.username,
+            username: userData?.username || 'Unknown User',
             avatar_url: userData?.avatar_url,
             read_by: [payload.new.user_id]
           };
@@ -65,23 +69,55 @@ export const useChatSubscriptions = ({
       .subscribe();
       
     // Presence subscription for online users
-    const presenceSubscription = supabase
-      .channel('online-users')
-      .on('presence', { event: 'sync' }, () => {
-        onOnlineStatusChange();
+    const presenceChannel = supabase.channel('online-users', {
+      config: {
+        presence: {
+          key: userId
+        }
+      }
+    });
+    
+    presenceChannel
+      .on('presence', { event: 'sync' }, async () => {
+        const presenceState = presenceChannel.presenceState();
+        const onlineUsers = Object.values(presenceState).map((presence: any) => ({
+          id: presence.user_id,
+          online_at: presence.online_at
+        }));
+        
+        // Fetch user profiles for online users
+        if (onlineUsers.length > 0) {
+          const userIds = onlineUsers.map(user => user.id).filter(Boolean);
+          if (userIds.length > 0) {
+            const { data: profiles } = await supabase
+              .from('profiles')
+              .select('id, username, avatar_url')
+              .in('id', userIds);
+              
+            if (profiles) {
+              const enrichedUsers = onlineUsers.map(user => ({
+                ...user,
+                username: profiles.find(p => p.id === user.id)?.username || 'Unknown User',
+                avatar_url: profiles.find(p => p.id === user.id)?.avatar_url
+              }));
+              onOnlineStatusChange();
+            }
+          }
+        } else {
+          onOnlineStatusChange();
+        }
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED' && userId) {
+          await presenceChannel.track({
+            user_id: userId,
+            online_at: new Date().toISOString(),
+          });
+          
           await supabase
             .from('profiles')
             .update({ last_active: new Date().toISOString() })
             .eq('id', userId);
-            
-          const channel = supabase.channel('online-users');
-          channel.track({
-            user_id: userId,
-            online_at: new Date().toISOString(),
-          });
         }
       });
       
@@ -146,7 +182,7 @@ export const useChatSubscriptions = ({
     
     return () => {
       supabase.removeChannel(messageSubscription);
-      supabase.removeChannel(presenceSubscription);
+      supabase.removeChannel(presenceChannel);
       supabase.removeChannel(typingChannel);
       supabase.removeChannel(readReceiptChannel);
       

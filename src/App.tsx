@@ -1,4 +1,3 @@
-
 import React, { Suspense } from 'react';
 import { 
   BrowserRouter as Router, 
@@ -8,6 +7,7 @@ import {
 import { Toaster } from "@/components/ui/toaster";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
+import { BucketProvider } from './contexts/BucketContext';
 import Index from './pages/Index';
 import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
@@ -50,34 +50,36 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Router>
         <AuthProvider>
-          <Suspense fallback={<LoadingFallback />}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/messages" element={<Messages />} />
-              <Route path="/messages/:conversationId" element={<Messages />} />
-              <Route path="/community" element={<Community />} />
-              <Route path="/feed" element={<NewsFeed />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/profile/:username" element={<ProfileView />} />
-              <Route path="/hashtag/:tag" element={<HashtagSearch />} />
-              <Route path="/subspacetv" element={<SubSpaceTVBrowse />} />
-              <Route path="/subspacetv/upload" element={<SubSpaceTVUpload />} />
-              <Route path="/subspacetv/my-content" element={<SubSpaceTVMyContent />} />
-              <Route path="/subspacetv/watch/:id" element={<VideoWatchPage />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-              
-              {/* Album Routes */}
-              <Route path="/albums" element={<AlbumsPage />} />
-              <Route path="/albums/:albumId" element={<AlbumDetailPage />} />
-              <Route path="/albums/:albumId/media/:mediaId" element={<MediaDetailPage />} />
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-          <Toaster />
+          <BucketProvider>
+            <Suspense fallback={<LoadingFallback />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/messages" element={<Messages />} />
+                <Route path="/messages/:conversationId" element={<Messages />} />
+                <Route path="/community" element={<Community />} />
+                <Route path="/feed" element={<NewsFeed />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/profile/:username" element={<ProfileView />} />
+                <Route path="/hashtag/:tag" element={<HashtagSearch />} />
+                <Route path="/subspacetv" element={<SubSpaceTVBrowse />} />
+                <Route path="/subspacetv/upload" element={<SubSpaceTVUpload />} />
+                <Route path="/subspacetv/my-content" element={<SubSpaceTVMyContent />} />
+                <Route path="/subspacetv/watch/:id" element={<VideoWatchPage />} />
+                <Route path="/admin" element={<AdminDashboard />} />
+                
+                {/* Album Routes */}
+                <Route path="/albums" element={<AlbumsPage />} />
+                <Route path="/albums/:albumId" element={<AlbumDetailPage />} />
+                <Route path="/albums/:albumId/media/:mediaId" element={<MediaDetailPage />} />
+                
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+            <Toaster />
+          </BucketProvider>
         </AuthProvider>
       </Router>
     </QueryClientProvider>

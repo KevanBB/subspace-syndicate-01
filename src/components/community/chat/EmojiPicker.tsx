@@ -1,5 +1,4 @@
-
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, forwardRef } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Smile } from 'lucide-react';
@@ -18,7 +17,7 @@ const EMOJI_CATEGORIES = {
   'Symbols': ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘'],
 };
 
-const EmojiPicker: React.FC<EmojiPickerProps> = ({ onEmojiSelect }) => {
+const EmojiPicker = forwardRef<HTMLButtonElement, EmojiPickerProps>(({ onEmojiSelect }, ref) => {
   const [selectedCategory, setSelectedCategory] = useState<string>(Object.keys(EMOJI_CATEGORIES)[0]);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -31,6 +30,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({ onEmojiSelect }) => {
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button 
+          ref={ref}
           variant="ghost" 
           size="icon" 
           className="h-10 w-10 text-white/70 hover:text-white hover:bg-white/10"
@@ -72,6 +72,8 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({ onEmojiSelect }) => {
       </PopoverContent>
     </Popover>
   );
-};
+});
+
+EmojiPicker.displayName = 'EmojiPicker';
 
 export default EmojiPicker;

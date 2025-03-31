@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase, ensureBucketExists } from '@/integrations/supabase/client';
 
@@ -28,16 +27,42 @@ export const useMediaUpload = ({ roomId }: UseMediaUploadProps) => {
       const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
       const filePath = `community/${roomId}/${fileName}`;
       
-      const options = {
-        cacheControl: '3600',
-        upsert: false
-      };
-      
-      const { data, error } = await supabase.storage
+      // Get a signed URL for upload
+      const { data: uploadData } = await supabase.storage
         .from('media')
-        .upload(filePath, file, options);
+        .createSignedUploadUrl(filePath);
       
-      if (error) throw error;
+      if (!uploadData?.signedUrl) {
+        throw new Error('Failed to get upload URL');
+      }
+
+      // Use XMLHttpRequest to track upload progress
+      const xhr = new XMLHttpRequest();
+      
+      const uploadPromise = new Promise<void>((resolve, reject) => {
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const percentComplete = Math.round((event.loaded / event.total) * 100);
+            setUploadProgress(percentComplete);
+          }
+        });
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            reject(new Error(`Upload failed with status ${xhr.status}`));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error('Upload failed'));
+      });
+
+      xhr.open('PUT', uploadData.signedUrl);
+      xhr.setRequestHeader('Content-Type', file.type);
+      xhr.send(file);
+
+      await uploadPromise;
       
       const { data: { publicUrl } } = supabase.storage
         .from('media')

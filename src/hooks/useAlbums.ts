@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, ensureBucketExists } from '@/integrations/supabase/client';
@@ -50,7 +49,8 @@ export const useAlbums = (userId?: string) => {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
 
-  const targetUserId = userId || user?.id;
+  // Only use user.id as fallback if no userId is provided
+  const targetUserId = userId ?? user?.id;
 
   const {
     data: albums,
@@ -65,15 +65,15 @@ export const useAlbums = (userId?: string) => {
       let query = supabase
         .from('albums')
         .select('*')
-        .order('created_at', { ascending: false });
+        .eq('user_id', targetUserId);
 
+      // Only apply privacy filter when viewing another user's profile
       if (targetUserId !== user?.id) {
         query = query.eq('privacy', 'public');
       }
 
-      query = query.eq('user_id', targetUserId);
-
-      const { data, error } = await query;
+      const { data, error } = await query
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching albums:', error);

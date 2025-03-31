@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase, ensureBucketExists } from '@/integrations/supabase/client';
+import { useBuckets } from '@/contexts/BucketContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -36,6 +37,7 @@ type VideoCategory = 'tutorial' | 'scene' | 'event' | 'other';
 
 const VideoUploadForm = () => {
   const { user } = useAuth();
+  const { bucketExists } = useBuckets();
   const navigate = useNavigate();
   
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -49,6 +51,15 @@ const VideoUploadForm = () => {
   const [currentTag, setCurrentTag] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [processingStatus, setProcessingStatus] = useState<'idle' | 'uploading' | 'processing' | 'complete' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [videoMetadata, setVideoMetadata] = useState<{
+    duration?: number;
+    width?: number;
+    height?: number;
+    format?: string;
+    bitrate?: number;
+  } | null>(null);
   const [isPageLeaveDialogOpen, setIsPageLeaveDialogOpen] = useState(false);
   const [leavePage, setLeavePage] = useState(false);
   const [leaveDestination, setLeaveDestination] = useState('');
@@ -175,29 +186,13 @@ const VideoUploadForm = () => {
       return;
     }
 
-    if (skipProcessing && duration <= 0) {
-      toast({
-        title: "Duration required",
-        description: "Please provide a valid duration for your video.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
-      setUploading(true);
+      setProcessingStatus('uploading');
       setUploadProgress(0);
+      setErrorMessage(null);
       
-      const bucketExists = await ensureBucketExists('videos');
-      
-      if (!bucketExists) {
-        toast({
-          title: "Storage not available",
-          description: "Video storage is not available. Please try again later or contact support.",
-          variant: "destructive"
-        });
-        setUploading(false);
-        return;
+      if (!bucketExists('videos')) {
+        throw new Error('Video storage is not available. Please try again later or contact support.');
       }
       
       const videoId = uuidv4();
@@ -238,33 +233,7 @@ const VideoUploadForm = () => {
       
       const { data: videoUrl } = supabase.storage.from('videos').getPublicUrl(videoPath);
 
-      let thumbnailUrl = null;
-      if (thumbnailFile) {
-        const thumbnailFileName = `${videoId}-thumb.${thumbnailFile.name.split('.').pop()}`;
-        const thumbnailPath = `${user.id}/${thumbnailFileName}`;
-        
-        const { error: thumbnailUploadError } = await supabase.storage
-          .from('videos')
-          .upload(thumbnailPath, thumbnailFile, {
-            cacheControl: '3600',
-            upsert: false
-          });
-
-        if (thumbnailUploadError) throw thumbnailUploadError;
-
-        const { data: thumbUrl } = supabase.storage
-          .from('videos')
-          .getPublicUrl(thumbnailPath);
-
-        thumbnailUrl = thumbUrl.publicUrl;
-      }
-
-      toast({
-        title: "Upload complete",
-        description: skipProcessing ? "Your video is now ready." : "Your video is now being processed.",
-      });
-      
-      setUploadProgress(100);
+      setProcessingStatus('processing');
 
       const { data: videoRecord, error: insertError } = await supabase
         .from('videos')
@@ -273,11 +242,11 @@ const VideoUploadForm = () => {
           title,
           description,
           video_url: videoUrl.publicUrl,
-          thumbnail_url: thumbnailUrl,
+          thumbnail_url: thumbnailFile ? URL.createObjectURL(thumbnailFile) : null,
           visibility,
           tags: tags.join(','),
-          duration: skipProcessing ? duration : 0,
-          status: skipProcessing ? 'ready' : 'processing',
+          duration: 0,
+          status: 'processing',
           category
         })
         .select()
@@ -285,67 +254,59 @@ const VideoUploadForm = () => {
 
       if (insertError) throw insertError;
 
-      console.log("Video record inserted:", videoRecord);
+      // Start polling for processing status
+      const pollInterval = setInterval(async () => {
+        const { data: updatedVideo, error: pollError } = await supabase
+          .from('videos')
+          .select('*')
+          .eq('id', videoRecord.id)
+          .single();
 
-      if (!skipProcessing) {
-        try {
-          const processResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-video`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            },
-            body: JSON.stringify({ videoId: videoRecord.id }),
-          });
-
-          if (!processResponse.ok) {
-            const errorData = await processResponse.json();
-            console.error("Video processing error:", errorData);
-            toast({
-              title: "Processing started",
-              description: "Your video is being processed in the background. You can check its status in My Content.",
-            });
-          }
-        } catch (processError) {
-          console.error("Error initiating video processing:", processError);
-          toast({
-            title: "Processing queued",
-            description: "Your video will be processed shortly. You can check its status in My Content.",
-          });
+        if (pollError) {
+          console.error('Error polling video status:', pollError);
+          return;
         }
+
+        if (updatedVideo.status === 'ready') {
+          setProcessingStatus('complete');
+          setVideoMetadata({
+            duration: updatedVideo.duration ?? 0,
+            width: updatedVideo.width ?? 0,
+            height: updatedVideo.height ?? 0,
+            format: updatedVideo.format ?? 'unknown',
+            bitrate: updatedVideo.bitrate ?? 0
+          });
+          clearInterval(pollInterval);
+        } else if (updatedVideo.status === 'failed') {
+          setProcessingStatus('error');
+          setErrorMessage('Processing failed');
+          clearInterval(pollInterval);
+        }
+      }, 5000); // Poll every 5 seconds
+
+      // Trigger video processing
+      const processResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-video`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ videoId: videoRecord.id }),
+      });
+
+      if (!processResponse.ok) {
+        throw new Error('Failed to start video processing');
       }
 
-      toast({
-        title: "Upload successful!",
-        description: skipProcessing 
-          ? "Your video has been uploaded and is ready to view." 
-          : "Your video has been uploaded and is being processed.",
-      });
-      
-      setVideoFile(null);
-      setThumbnailFile(null);
-      setThumbnailPreview(null);
-      setTitle('');
-      setDescription('');
-      setVisibility('public');
-      setTags([]);
-      setCurrentTag('');
-      setSkipProcessing(false);
-      setDuration(0);
-      setMinutes(0);
-      setSeconds(0);
-      
-      navigate('/subspacetv/my-content');
-      
-    } catch (error: any) {
+    } catch (error) {
       console.error('Upload error:', error);
+      setProcessingStatus('error');
+      setErrorMessage(error.message);
       toast({
         title: "Upload failed",
         description: error.message || "There was an error uploading your video.",
         variant: "destructive"
       });
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -602,6 +563,70 @@ const VideoUploadForm = () => {
           </div>
         </div>
       </div>
+
+      {processingStatus !== 'idle' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">
+                {processingStatus === 'uploading' && 'Uploading video...'}
+                {processingStatus === 'processing' && 'Processing video...'}
+                {processingStatus === 'complete' && 'Processing complete!'}
+                {processingStatus === 'error' && 'Processing failed'}
+              </p>
+              {processingStatus === 'uploading' && (
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div 
+                    className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              )}
+            </div>
+            {processingStatus === 'uploading' && (
+              <span className="text-sm text-gray-500">{uploadProgress}%</span>
+            )}
+          </div>
+
+          {processingStatus === 'processing' && (
+            <div className="text-sm text-gray-500">
+              <p>Your video is being processed. This may take a few minutes depending on the file size.</p>
+              <p className="mt-2">You can check the status in My Content.</p>
+            </div>
+          )}
+
+          {processingStatus === 'complete' && videoMetadata && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-green-600">Video processing completed successfully!</p>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-500">Duration</p>
+                  <p>{Math.round(videoMetadata.duration ?? 0)} seconds</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Resolution</p>
+                  <p>{videoMetadata.width}x{videoMetadata.height}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Format</p>
+                  <p>{videoMetadata.format ?? 'unknown'}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Bitrate</p>
+                  <p>{Math.round((videoMetadata.bitrate ?? 0) / 1000)} kbps</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {processingStatus === 'error' && errorMessage && (
+            <div className="text-sm text-red-600">
+              <p>Error: {errorMessage}</p>
+              <p className="mt-2">Please try again or contact support if the issue persists.</p>
+            </div>
+          )}
+        </div>
+      )}
 
       <AlertDialog open={isPageLeaveDialogOpen} onOpenChange={setIsPageLeaveDialogOpen}>
         <AlertDialogContent>
