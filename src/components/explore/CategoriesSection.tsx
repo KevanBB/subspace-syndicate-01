@@ -4,13 +4,13 @@ import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { 
   Film, 
-  Album, 
+  Image, 
   MessageSquare, 
-  Star, 
+  BrightnessUp, 
   Users, 
   Calendar, 
-  Book, 
-  Category
+  BookOpen, 
+  Grid
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -36,7 +36,7 @@ const categories: CategoryItem[] = [
     id: 'albums',
     name: 'Photo Albums',
     description: 'Visual stories and image collections',
-    icon: Album,
+    icon: Image,
     link: '/albums',
     color: 'from-rose-500 to-red-700'
   },
@@ -52,7 +52,7 @@ const categories: CategoryItem[] = [
     id: 'featured',
     name: 'Featured',
     description: 'Staff picks and highlighted content',
-    icon: Star,
+    icon: BrightnessUp,
     link: '/explore/featured',
     color: 'from-amber-500 to-yellow-700'
   },
@@ -76,7 +76,7 @@ const categories: CategoryItem[] = [
     id: 'guides',
     name: 'Guides',
     description: 'Tutorials and educational resources',
-    icon: Book,
+    icon: BookOpen,
     link: '/guides',
     color: 'from-pink-500 to-fuchsia-700'
   },
@@ -84,7 +84,7 @@ const categories: CategoryItem[] = [
     id: 'categories',
     name: 'All Categories',
     description: 'Browse all available categories',
-    icon: Category,
+    icon: Grid,
     link: '/categories',
     color: 'from-gray-500 to-slate-700'
   },

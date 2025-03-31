@@ -1,15 +1,53 @@
-
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import { Tabs, TabsContent } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Folder, PlusSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { Album, Media } from '@/types/media';
-import { MediaGrid } from '@/components/media/MediaGrid';
-import { AlbumGrid } from '@/components/media/AlbumGrid';
-import { ensureNonNullString, safeSetToArray } from '@/utils/typeUtils';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
+import { 
+  FolderOpen, 
+  PlusCircle, 
+  ImageIcon, 
+  Film, 
+  Loader2 
+} from 'lucide-react';
+import AlbumGrid from '../media/AlbumGrid';
+import MediaGrid from '../media/MediaGrid';
+
+// Define proper types for Album and Media
+export type AlbumPrivacy = 'public' | 'private' | 'friends-only';
+
+export interface Album {
+  id: string;
+  title: string;
+  description?: string;
+  cover_image_url?: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  privacy: AlbumPrivacy;
+  likes: number;
+  views: number;
+}
+
+export interface Media {
+  id: string;
+  album_id: string;
+  user_id: string;
+  file_name: string;
+  file_size: number;
+  file_type: string;
+  url: string;
+  thumbnail_url?: string;
+  title: string;
+  description?: string;
+  created_at: string;
+  likes: number;
+  views: number;
+  width?: number;
+  height?: number;
+  duration?: number;
+}
 
 interface MediaTabProps {
   userId: string;
@@ -17,167 +55,110 @@ interface MediaTabProps {
 }
 
 const MediaTab: React.FC<MediaTabProps> = ({ userId, isCurrentUser }) => {
-  const { user } = useAuth();
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'all' | 'albums'>('all');
-  const [media, setMedia] = useState<Media[]>([]);
   const [albums, setAlbums] = useState<Album[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [mediaCount, setMediaCount] = useState(0);
-  const [albumCount, setAlbumCount] = useState(0);
-  const [selectedMedia, setSelectedMedia] = useState<Set<string>>(new Set());
-
+  const [media, setMedia] = useState<Media[]>([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  
   useEffect(() => {
-    if (userId) {
-      fetchUserMedia();
-      fetchUserAlbums();
-    }
+    const fetchAlbumsAndMedia = async () => {
+      setLoading(true);
+      
+      try {
+        // Fetch albums
+        const { data: albumsData, error: albumsError } = await supabase
+          .from('albums')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+          
+        if (albumsError) throw albumsError;
+        
+        setAlbums(albumsData || []);
+        
+        // Fetch media (images/videos)
+        const { data: mediaData, error: mediaError } = await supabase
+          .from('media')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+          
+        if (mediaError) throw mediaError;
+        
+        setMedia(mediaData || []);
+      } catch (error: any) {
+        console.error('Error fetching albums and media:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchAlbumsAndMedia();
   }, [userId]);
-
-  const fetchUserMedia = async () => {
-    try {
-      setIsLoading(true);
-      
-      const { data, error, count } = await supabase
-        .from('media')
-        .select('*', { count: 'exact' })
-        .eq('user_id', userId)
-        .is('album_id', null)
-        .order('created_at', { ascending: false });
-        
-      if (error) throw error;
-      
-      setMedia(data || []);
-      setMediaCount(count || 0);
-    } catch (error) {
-      console.error('Error fetching media:', error);
-    } finally {
-      setIsLoading(false);
-    }
+  
+  const handleCreateAlbum = () => {
+    navigate('/albums/create');
   };
-
-  const fetchUserAlbums = async () => {
-    try {
-      const { data, error, count } = await supabase
-        .from('albums')
-        .select('*', { count: 'exact' })
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-        
-      if (error) throw error;
-      
-      if (data) {
-        setAlbums(data);
-      }
-      
-      if (count) {
-        setAlbumCount(count);
-      }
-    } catch (error) {
-      console.error('Error fetching albums:', error);
-    }
-  };
-
-  const handleMediaSelect = (mediaId: string) => {
-    setSelectedMedia(prev => {
-      const newSelection = new Set(prev);
-      if (newSelection.has(mediaId)) {
-        newSelection.delete(mediaId);
-      } else {
-        newSelection.add(mediaId);
-      }
-      return newSelection;
-    });
-  };
-
-  const handleAddToAlbum = async () => {
-    if (selectedMedia.size === 0 || !isCurrentUser) return;
-    
-    // Convert Set to Array to avoid TypeScript issues
-    const selectedMediaArray = safeSetToArray(selectedMedia);
-    
-    const albumId = prompt('Enter album ID to add media to:');
-    if (!albumId) return;
-    
-    try {
-      const { error } = await supabase
-        .from('media')
-        .update({ album_id: albumId })
-        .in('id', selectedMediaArray);
-        
-      if (error) throw error;
-      
-      // Refresh media list
-      fetchUserMedia();
-      setSelectedMedia(new Set());
-    } catch (error) {
-      console.error('Error adding media to album:', error);
-    }
-  };
-
+  
+  if (loading) {
+    return (
+      <Card className="bg-black/30 border-white/10 backdrop-blur-md shadow-lg shadow-crimson/5">
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="h-10 w-10 text-crimson animate-spin mb-4" />
+          <p className="text-white/70">Loading media...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+  
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex space-x-4">
-          <Button 
-            onClick={() => setActiveTab('all')}
-            variant={activeTab === 'all' ? 'default' : 'outline'}
-          >
-            All Media ({mediaCount})
-          </Button>
-          <Button 
-            onClick={() => setActiveTab('albums')}
-            variant={activeTab === 'albums' ? 'default' : 'outline'}
-          >
-            Albums ({albumCount})
-          </Button>
-        </div>
+    <Tabs defaultValue="albums" className="w-full">
+      <div className="flex items-center justify-between mb-6">
+        <TabsList className="bg-black/20 border border-white/10">
+          <TabsTrigger value="albums">
+            <FolderOpen className="mr-2 h-4 w-4" />
+            Albums
+          </TabsTrigger>
+          <TabsTrigger value="media">
+            <ImageIcon className="mr-2 h-4 w-4" />
+            Media
+          </TabsTrigger>
+        </TabsList>
         
         {isCurrentUser && (
-          <div className="flex space-x-2">
-            {activeTab === 'all' && selectedMedia.size > 0 && (
-              <Button onClick={handleAddToAlbum}>
-                <Folder className="h-4 w-4 mr-2" />
-                Add to Album
-              </Button>
-            )}
-            
-            {activeTab === 'albums' && (
-              <Button onClick={() => router.push('/albums/new')}>
-                <PlusSquare className="h-4 w-4 mr-2" />
-                New Album
-              </Button>
-            )}
-            
-            {activeTab === 'all' && (
-              <Button onClick={() => router.push('/upload')}>
-                <PlusSquare className="h-4 w-4 mr-2" />
-                Upload
-              </Button>
-            )}
-          </div>
+          <Button onClick={handleCreateAlbum} className="bg-crimson hover:bg-crimson/90 text-white">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Create Album
+          </Button>
         )}
       </div>
       
-      <div className="mt-4">
-        {activeTab === 'all' && (
-          <MediaGrid 
-            media={media}
-            isLoading={isLoading}
-            selectable={isCurrentUser}
-            selectedMedia={selectedMedia}
-            onSelectMedia={handleMediaSelect}
-          />
+      <TabsContent value="albums" className="mt-2">
+        {albums.length > 0 ? (
+          <AlbumGrid albums={albums} />
+        ) : (
+          <Card className="bg-black/30 border-white/10 backdrop-blur-md">
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <FolderOpen className="h-8 w-8 text-white/50 mb-4" />
+              <p className="text-white/70">No albums created yet.</p>
+            </CardContent>
+          </Card>
         )}
-        
-        {activeTab === 'albums' && (
-          <AlbumGrid
-            albums={albums}
-            isLoading={isLoading}
-          />
+      </TabsContent>
+      
+      <TabsContent value="media" className="mt-2">
+        {media.length > 0 ? (
+          <MediaGrid media={media} />
+        ) : (
+          <Card className="bg-black/30 border-white/10 backdrop-blur-md">
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <ImageIcon className="h-8 w-8 text-white/50 mb-4" />
+              <p className="text-white/70">No media uploaded yet.</p>
+            </CardContent>
+          </Card>
         )}
-      </div>
-    </div>
+      </TabsContent>
+    </Tabs>
   );
 };
 

@@ -55,7 +55,7 @@ const CommunitySpotlight = () => {
     queryKey: ['spotlightMembers'],
     queryFn: async () => {
       // Mock API call
-      return new Promise((resolve) => {
+      return new Promise<typeof mockMembers>((resolve) => {
         setTimeout(() => {
           resolve(mockMembers);
         }, 500);
